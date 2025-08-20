@@ -1,0 +1,67 @@
+{
+  "collection_points": {
+    "title": "Titik Pengumpulan Sampah - Desa Cukangkawung",
+    "description": "Lokasi pengumpulan sampah untuk warga Desa Cukangkawung",
+    "locations": [
+      {
+        "id": "CP001",
+        "name": "Balai Desa Cukangkawung",
+        "type": "Titik Utama",
+        "address": "Jl. Raya Cukangkawung No. 1",
+        "coordinates": [-6.2088, 106.8456],
+        "accepted_waste": ["organik", "anorganik"],
+        "schedule": "Senin, Rabu, Jumat (08:00-16:00)",
+        "contact": "0812-3456-7890",
+        "description": "Titik pengumpulan utama di balai desa"
+      },
+      {
+        "id": "CP002",
+        "name": "Sekolah Dasar Cukangkawung",
+        "type": "Titik Sekolah",
+        "address": "Jl. Pendidikan No. 5",
+        "coordinates": [-6.2095, 106.8465],
+        "accepted_waste": ["anorganik"],
+        "schedule": "Selasa, Kamis (07:00-15:00)",
+        "contact": "0812-3456-7891",
+        "description": "Bank sampah sekolah untuk edukasi anak"
+      },
+      {
+        "id": "CP003",
+        "name": "Masjid Al-Hidayah",
+        "type": "Titik Ibadah",
+        "address": "Jl. Masjid No. 3",
+        "coordinates": [-6.2075, 106.8442],
+        "accepted_waste": ["organik", "anorganik"],
+        "schedule": "Setiap hari (05:00-21:00)",
+        "contact": "0812-3456-7892",
+        "description": "Titik pengumpulan di area masjid"
+      },
+      {
+        "id": "CP004",
+        "name": "Posyandu RW 01",
+        "type": "Titik Kesehatan",
+        "address": "Puskesmas Cukangkawung",
+        "coordinates": [-6.2100, 106.8438],
+        "accepted_waste": ["b3"],
+        "schedule": "Rabu pertama setiap bulan (09:00-12:00)",
+        "contact": "0812-3456-7893",
+        "description": "Khusus sampah B3 dan obat kadaluarsa"
+      },
+      {
+        "id": "CP005",
+        "name": "Warung Pak Haji",
+        "type": "Titik Komersial",
+        "address": "Jl. Perdagangan No. 12",
+        "coordinates": [-6.2110, 106.8470],
+        "accepted_waste": ["anorganik"],
+        "schedule": "Senin-Sabtu (06:00-20:00)",
+        "contact": "0812-3456-7894",
+        "description": "Pengumpulan sampah plastik dan kaleng"
+      }
+    ]
+  },
+  "mock_response": {
+    "url_template": "https://maps.google.com/maps?q={lat},{lng}&z=15",
+    "default_message": "Peta lokasi pengumpulan sampah Desa Cukangkawung"
+  }
+}

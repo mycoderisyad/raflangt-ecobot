@@ -1,0 +1,84 @@
+{
+  "waste_types": {
+    "organik": {
+      "name": "Sampah Organik",
+      "description": "Sampah yang berasal dari makhluk hidup dan dapat terurai secara alami",
+      "examples": [
+        "Sisa makanan (nasi, sayuran, buah)",
+        "Daun-daunan dan ranting",
+        "Kulit buah dan sayuran",
+        "Ampas kopi dan teh",
+        "Kotoran hewan"
+      ],
+      "sorting_guide": "**Cara Pemilahan Sampah Organik:**\n• Pisahkan dari sampah lainnya\n• Buang ke tempat sampah hijau/coklat\n• Pastikan tidak tercampur plastik\n• Bisa langsung dikompos di rumah",
+      "recycling_tips": "**Tips Daur Ulang Organik:**\n• Buat kompos sendiri di halaman rumah\n• Gunakan ember atau pot berlubang\n• Campur dengan tanah dan dedaunan kering\n• Aduk seminggu sekali\n• Kompos siap dalam 2-3 bulan",
+      "detailed_info": "**Panduan Lengkap Sampah Organik**\n\n**Jenis-jenis:**\n• Sisa makanan: nasi, sayur, buah\n• Sampah kebun: daun, ranting kecil\n• Limbah dapur: kulit buah, ampas\n\n**Cara Pemilahan:**\n1. Siapkan tempat sampah khusus organik\n2. Buang sampah organik secara terpisah\n3. Jangan campurkan dengan plastik\n4. Tutup rapat untuk menghindari lalat\n\n**Manfaat Kompos:**\n• Pupuk alami untuk tanaman\n• Mengurangi sampah rumah tangga\n• Menghemat biaya pupuk\n• Ramah lingkungan\n\n**Waktu Pengomposan:**\n• Kompos cair: 2-4 minggu\n• Kompos padat: 2-3 bulan\n• Kompos dengan cacing: 1-2 bulan"
+    },
+    "anorganik": {
+      "name": "Sampah Anorganik",
+      "description": "Sampah yang tidak dapat terurai secara alami dan memerlukan proses daur ulang",
+      "examples": [
+        "Botol plastik dan kaca",
+        "Kaleng minuman",
+        "Kertas dan karton",
+        "Kemasan makanan",
+        "Kantong plastik"
+      ],
+      "sorting_guide": "**Cara Pemilahan Sampah Anorganik:**\n• Bersihkan dari sisa makanan\n• Buang ke tempat sampah biru/kuning\n• Kumpulkan untuk dijual ke pemulung",
+      "recycling_tips": "**Tips Daur Ulang Anorganik:**\n• Cuci bersih sebelum membuang\n• Pisahkan plastik, kertas, logam\n• Kumpulkan untuk bank sampah\n• Kreasikan menjadi kerajinan\n• Jual ke pengepul sampah",
+      "detailed_info": "**Panduan Lengkap Sampah Anorganik**\n\n**Jenis-jenis:**\n• Plastik: botol, kantong, kemasan\n• Kertas: koran, majalah, karton\n• Logam: kaleng, aluminium\n• Kaca: botol, toples\n\n**Cara Pemilahan:**\n1. Bersihkan dari sisa makanan\n2. Pisahkan berdasarkan material\n3. Simpan di tempat kering\n4. Kumpulkan untuk bank sampah\n\n**Peluang Ekonomi:**\n• Plastik: Rp 2.000-5.000/kg\n• Kertas: Rp 1.500-3.000/kg\n• Kaleng: Rp 8.000-12.000/kg\n• Botol kaca: Rp 500-1.000/pcs\n\n**Tips Bank Sampah:**\n• Kumpulkan minimal 5kg\n• Pisahkan berdasarkan jenis\n• Bersihkan sebelum menyetor\n• Catat berat dan harga\n\n**Kreativitas:**\n• Botol plastik jadi pot tanaman\n• Kardus jadi rak penyimpanan\n• Kaleng jadi tempat pensil\n• Kantong plastik jadi tas belanja"
+    },
+    "b3": {
+      "name": "Sampah B3 (Bahan Berbahaya dan Beracun)",
+      "description": "Sampah yang mengandung bahan kimia berbahaya dan memerlukan penanganan khusus",
+      "examples": [
+        "Baterai bekas",
+        "Lampu neon",
+        "Obat kadaluarsa",
+        "Cat dan pelarut",
+        "Aki bekas"
+      ],
+      "sorting_guide": "**Cara Pemilahan Sampah B3:**\n• JANGAN buang ke tempat sampah biasa\n• Kumpulkan di wadah terpisah\n• Bawa ke titik pengumpulan khusus\n• Hindari kontak langsung",
+      "recycling_tips": "**Penanganan Sampah B3:**\n• Gunakan sarung tangan saat menangani\n• Simpan di tempat kering dan aman\n• Jauhkan dari jangkauan anak-anak\n• Serahkan ke fasilitas pengolahan B3\n• Jangan dibakar atau dikubur",
+      "detailed_info": "**Panduan Lengkap Sampah B3**\n\n**Bahaya Sampah B3:**\n• Mencemari tanah dan air\n• Berbahaya bagi kesehatan\n• Dapat menyebabkan kanker\n• Merusak ekosistem\n\n**Cara Pemilahan:**\n1. JANGAN campurkan dengan sampah lain\n2. Gunakan sarung tangan\n3. Simpan dalam wadah tertutup\n4. Beri label \"B3\" atau \"Berbahaya\"\n\n**Titik Pengumpulan:**\n• Puskesmas (untuk obat kadaluarsa)\n• Toko elektronik (untuk baterai)\n• Bengkel (untuk aki bekas)\n• Drop box khusus B3\n\n**Dampak Kesehatan:**\n• Iritasi kulit dan mata\n• Gangguan pernapasan\n• Kerusakan organ\n• Risiko kanker\n\n**Dampak Lingkungan:**\n• Pencemaran air tanah\n• Kerusakan tanah\n• Kematian biota air\n• Polusi udara jika dibakar\n\n**Yang Harus Dilakukan:**\n• Kumpulkan secara terpisah\n• Bawa ke titik pengumpulan khusus\n• Gunakan APD saat menangani\n• Jangan dibakar\n• Jangan dikubur\n• Jangan buang sembarangan"
+    }
+  },
+  "general_tips": [
+    "Reduce: Kurangi penggunaan kemasan sekali pakai",
+    "Reuse: Gunakan kembali barang yang masih bisa dipakai",
+    "Recycle: Daur ulang sampah menjadi produk baru",
+    "Kompos: Ubah sampah organik menjadi pupuk",
+    "Bank Sampah: Kumpulkan sampah untuk nilai ekonomi",
+    "Edukasi: Ajarkan keluarga tentang pengelolaan sampah",
+    "Gotong Royong: Kerja sama membersihkan lingkungan",
+    "Monitor: Pantau jumlah sampah yang dihasilkan"
+  ],
+  "general_education": {
+    "title": "**Tips Pengelolaan Sampah**",
+    "principles": {
+      "title": "**Prinsip 4R:**",
+      "items": [
+        "**Reduce** - Kurangi penggunaan",
+        "**Reuse** - Gunakan kembali",
+        "**Recycle** - Daur ulang",
+        "**Replace** - Ganti dengan ramah lingkungan"
+      ]
+    },
+    "benefits": {
+      "title": "**Manfaat:**",
+      "items": [
+        "Lingkungan lebih bersih",
+        "Mengurangi pencemaran",
+        "Peluang ekonomi tambahan",
+        "Menciptakan lingkungan sehat"
+      ]
+    },
+    "practical_tips": {
+      "title": "**Tips Praktis:**"
+    }
+  },
+  "default_messages": {
+    "unknown_type": "Maaf, jenis sampah tidak dikenali. Silakan kirim foto yang lebih jelas atau ketik 'help' untuk bantuan.",
+    "error_message": "Terjadi kesalahan dalam mengidentifikasi sampah. Silakan coba lagi atau hubungi administrator."
+  }
+}

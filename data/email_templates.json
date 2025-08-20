@@ -1,0 +1,30 @@
+{
+  "email_templates": {
+    "daily_report": {
+      "subject": "EcoBot - Laporan Harian Aktivitas",
+      "body_template": "Laporan aktivitas EcoBot untuk tanggal {date}:\n\nTotal klasifikasi: {total_classifications}\nSampah organik: {organic_count}\nSampah anorganik: {inorganic_count}\nSampah B3: {hazardous_count}\n\nPengguna aktif: {active_users}\nTingkat akurasi: {accuracy_rate}%\n\nTerima kasih,\nTim EcoBot"
+    },
+    "weekly_summary": {
+      "subject": "EcoBot - Ringkasan Mingguan",
+      "body_template": "Ringkasan aktivitas EcoBot minggu ini ({week_start} - {week_end}):\n\nTotal aktivitas: {total_activities}\nPertumbuhan pengguna: {user_growth}%\nJenis sampah terpopuler: {popular_waste_type}\n\nRekomendasi:\n{recommendations}\n\nSalam,\nTim EcoBot Desa Cukangkawung"
+    },
+    "error_notification": {
+      "subject": "EcoBot - Notifikasi Error",
+      "body_template": "Terjadi error pada sistem EcoBot:\n\nWaktu: {timestamp}\nError: {error_message}\nUser: {user_id}\nDetail: {error_details}\n\nMohon segera ditindaklanjuti.\n\nTim EcoBot"
+    }
+  },
+  "mock_responses": {
+    "success": "Email berhasil dikirim (mode development)",
+    "error": "Gagal mengirim email (mode development)"
+  },
+  "default_messages": {
+    "no_issues": "• Tidak ada masalah terdeteksi",
+    "no_data": "• Data tidak tersedia",
+    "no_maintenance": "• Tidak ada update maintenance"
+  },
+  "notification_settings": {
+    "admin_email": "admin@cukangkawung.id",
+    "daily_report_time": "18:00",
+    "weekly_report_day": "sunday"
+  }
+}
