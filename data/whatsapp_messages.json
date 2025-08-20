@@ -1,0 +1,70 @@
+{
+  "help_message": {
+    "title": "*EcoBot - Asisten Pengelolaan Sampah*",
+    "welcome": "Selamat datang di EcoBot untuk Desa Cukangkawung.",
+    "usage_title": "*Cara menggunakan:*",
+    "usage_items": [
+      "Kirim foto sampah untuk identifikasi otomatis",
+      "Ketik 'lokasi' untuk melihat titik pengumpulan",
+      "Ketik 'edukasi' untuk tips pengelolaan sampah"
+    ],
+    "footer": "Mulai dengan mengirim foto sampah yang ingin Anda identifikasi."
+  },
+  "classification_response": {
+    "title": "*Hasil Identifikasi Sampah*",
+    "confidence_label": "Confidence:",
+    "sorting_title": "*Cara Pemilahan:*",
+    "tips_title": "Tips Daur Ulang:",
+    "footer": "Ketik 'lokasi' untuk melihat titik pengumpulan sampah terdekat"
+  },
+  "location_response": {
+    "title": "*Titik Pengumpulan Sampah*",
+    "description": "Lokasi pengumpulan sampah di Desa Cukangkawung:",
+    "map_text": "Lihat peta:",
+    "accepted_waste_title": "Jenis sampah yang diterima:",
+    "accepted_waste_types": {
+      "organik": "Organik: Sisa makanan, daun",
+      "anorganik": "Anorganik: Plastik, kaleng, kertas",
+      "b3": "B3: Baterai, lampu (titik khusus)"
+    },
+    "schedule": "Jadwal: Senin, Rabu, Jumat (08.00-16.00)"
+  },
+  "error_messages": {
+    "image_processing": "Maaf, tidak dapat memproses gambar. Pastikan format gambar valid (JPG, PNG).",
+    "classification_failed": "Maaf, tidak dapat mengidentifikasi jenis sampah. Coba kirim foto yang lebih jelas.",
+    "general_error": "Maaf, terjadi kesalahan. Silakan coba lagi.",
+    "image_classification_error": "Maaf, terjadi kesalahan saat memproses gambar. Silakan coba lagi.",
+    "location_error": "Tidak dapat mengambil informasi lokasi. Silakan coba lagi.",
+    "no_collection_points": "Maaf, tidak ada titik pengumpulan yang tersedia untuk jenis sampah ini."
+  },
+  "collection_points_format": {
+    "title_all": "**Semua Titik Pengumpulan Sampah**",
+    "title_specific": "**Titik Pengumpulan Sampah {waste_type}**",
+    "labels": {
+      "type": "Tipe:",
+      "waste_types": "Jenis:",
+      "schedule": "Jadwal:",
+      "contact": "Kontak:",
+      "description": "Info:"
+    },
+    "icons": {
+      "organik": "Organik",
+      "anorganik": "Anorganik", 
+      "b3": "B3"
+    },
+    "map_link": "**Lihat di Peta:**",
+    "legend": {
+      "title": "**Keterangan:**",
+      "items": "Organik | Anorganik | B3 (Berbahaya)"
+    },
+    "footer": "Pastikan sampah bersih dan terpilah sebelum dibuang!"
+  },
+  "commands": {
+    "location_keywords": ["lokasi", "maps", "peta", "titik"],
+    "help_keywords": ["help", "bantuan", "info"],
+    "education_keywords": ["edukasi", "tips", "belajar"],
+    "organic_keywords": ["organik", "kompos"],
+    "inorganic_keywords": ["anorganik", "plastik"],
+    "hazardous_keywords": ["b3", "berbahaya", "beracun"]
+  }
+}

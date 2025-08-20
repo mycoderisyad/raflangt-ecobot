@@ -1,0 +1,26 @@
+# Core dependencies
+flask==2.3.3
+twilio==8.10.0
+requests==2.31.0
+python-dotenv==1.0.0
+Pillow==10.0.1
+
+# AI and ML (Primary: Lunos.tech, Backup: Direct providers)
+# Note: Lunos.tech provides unified access to multiple AI providers
+# Keep direct provider libraries for fallback/compatibility
+
+# Google Maps
+googlemaps==4.10.0
+
+# Email services
+mailjet-rest==1.3.4
+
+# Development
+pytest==7.4.2
+pytest-cov==4.1.0
+black==23.9.1
+flake8==6.0.0
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3
