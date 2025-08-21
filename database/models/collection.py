@@ -86,7 +86,7 @@ class CollectionPointModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT  FROM collection_points 
+                    SELECT * FROM collection_points 
                     WHERE id = ? AND is_active = 1
                 ''', (point_id,))
                 

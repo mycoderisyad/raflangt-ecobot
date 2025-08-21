@@ -121,14 +121,6 @@ docker run -p 8000:8000 --env-file .env ecobot
 | `/` | GET | Health check and service status |
 | `/webhook` | POST | WhatsApp webhook for incoming messages |
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ## License
 
 Licensed under the Apache License, Version 2.0 (the "License");

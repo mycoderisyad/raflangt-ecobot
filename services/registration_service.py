@@ -101,55 +101,53 @@ class RegistrationService:
     
     def _generate_registration_prompt(self) -> str:
         """Generate registration prompt message"""
-        response = MessageFormatter.format_header("Selamat datang di EcoBot!", ICONS['ROBOT'])
-        response += "Silakan isi informasi di bawah ini untuk melanjutkan pendaftaran:\n\n"
-        response += "Format:\n"
-        response += "Nama: (nama lengkap Anda)\n"
-        response += "Alamat: (alamat lengkap Anda)\n\n"
-        response += "Contoh:\n"
-        response += "Nama: Asep Surasep\n"
-        response += "Alamat: Kampung Manggis RT 02 RW 05\n\n"
-        response += "Kirim informasi Anda sesuai format di atas."
-        
-        return response
+        return MessageFormatter.format_registration_form()
     
     def _generate_format_error_message(self) -> str:
         """Generate format error message"""
-        response = MessageFormatter.format_header("Format tidak sesuai!", ICONS['ERROR'])
-        response += "Silakan kirim informasi dengan format yang benar:\n\n"
-        response += "Format:\n"
+        response = MessageFormatter.format_info_header("Format Tidak Sesuai")
+        response += "❌ Mohon kirim informasi dengan format yang benar:\n\n"
+        response += "📝 *Format yang benar:*\n"
+        response += "```\n"
         response += "Nama: (nama lengkap Anda)\n"
-        response += "Alamat: (alamat lengkap Anda)\n\n"
-        response += "Contoh:\n"
-        response += "Nama: Asep Surasep\n"
-        response += "Alamat: Kampung Manggis RT 02 RW 05\n\n"
-        response += "Pastikan Anda mengisi kedua informasi dengan lengkap."
+        response += "Alamat: (alamat lengkap Anda)\n"
+        response += "```\n\n"
+        response += "💡 Pastikan Anda mengisi kedua informasi dengan lengkap."
         
         return response
     
     def _generate_success_message(self, name: str) -> str:
         """Generate registration success message"""
-        response = MessageFormatter.format_header(f"Selamat {name}!", ICONS['SUCCESS'])
-        response += "Anda sudah terdaftar sebagai pengguna EcoBot Desa Cukangkawung.\n\n"
-        response += "Fitur yang Tersedia:\n"
-        response += "• Edukasi - Tips pengelolaan sampah\n"
-        response += "• Jadwal - Jadwal pengumpulan sampah\n"
-        response += "• Lokasi - Titik pengumpulan terdekat\n"
-        response += "• Point - Sistem reward (segera hadir)\n\n"
-        response += "Cara Penggunaan:\n"
-        response += "• Kirim foto sampah untuk identifikasi\n"
-        response += "• Ketik nama fitur (contoh: \"edukasi\", \"lokasi\")\n"
-        response += "• Tanya langsung tentang pengelolaan sampah\n\n"
-        response += "Selamat bergabung dalam program pengelolaan sampah ramah lingkungan!"
+        response = MessageFormatter.format_success_header(f"Selamat Datang, {name}!")
+        response += "🎉 Anda berhasil terdaftar sebagai pengguna EcoBot Desa Cukangkawung.\n\n"
+        
+        features = [
+            "🎓 *Edukasi* - Tips pengelolaan sampah ramah lingkungan",
+            "📅 *Jadwal* - Jadwal pengumpulan sampah terbaru", 
+            "📍 *Lokasi* - Titik pengumpulan sampah terdekat",
+            "🏆 *Point* - Sistem reward (segera hadir)"
+        ]
+        response += MessageFormatter.format_feature_list("Fitur yang Tersedia", features)
+        
+        response += "\n\n💡 *Cara Penggunaan:*\n"
+        response += "• 📸 Kirim foto sampah untuk identifikasi otomatis\n"
+        response += "• 💬 Ketik nama fitur (contoh: \"edukasi\", \"lokasi\")\n"
+        response += "• ❓ Tanya langsung tentang pengelolaan sampah\n\n"
+        response += "🌱 *Selamat bergabung dalam program pengelolaan sampah ramah lingkungan!*"
         
         return response
     
     def get_unregistered_user_message(self) -> str:
         """Get message for unregistered users"""
-        response = MessageFormatter.format_header("Halo! Selamat datang di EcoBot", ICONS['ROBOT'])
-        response += "Anda belum terdaftar sebagai pengguna. Untuk menggunakan layanan EcoBot, silakan ketik:\n\n"
-        response += "daftar\n\n"
-        response += "untuk memulai proses pendaftaran.\n\n"
-        response += "EcoBot adalah asisten AI untuk pengelolaan sampah di Desa Cukangkawung yang akan membantu Anda mengidentifikasi jenis sampah dan memberikan tips pengelolaan yang tepat."
+        response = MessageFormatter.format_welcome_header("Selamat Datang di EcoBot")
+        response += "👋 Halo! Terima kasih telah menghubungi EcoBot.\n\n"
+        response += "🔒 Anda belum terdaftar sebagai pengguna. Untuk menggunakan layanan EcoBot, silakan ketik:\n\n"
+        response += "```\ndaftar\n```\n\n"
+        response += "📱 *Tentang EcoBot:*\n"
+        response += "EcoBot adalah asisten AI untuk pengelolaan sampah di Desa Cukangkawung yang akan membantu Anda:\n\n"
+        response += "• 🔍 Mengidentifikasi jenis sampah dari foto\n"
+        response += "• ♻️ Memberikan tips pengelolaan yang tepat\n"
+        response += "• 📍 Menunjukkan lokasi pengumpulan terdekat\n"
+        response += "• 🎓 Edukasi tentang pengelolaan sampah ramah lingkungan"
         
         return response

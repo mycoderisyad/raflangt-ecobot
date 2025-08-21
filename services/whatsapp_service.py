@@ -21,8 +21,8 @@ class WhatsAppService:
         self.environment = os.getenv('ENVIRONMENT', 'development')
         self.logger = logging.getLogger(__name__)
         
-        if not self.api_key:
-            raise ValueError("WhatsApp API key is required")
+        if not self.api_key and self.environment == 'production':
+            raise ValueError("WhatsApp API key is required for production")
         
         self.headers = {
             'X-Api-Key': self.api_key,

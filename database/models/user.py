@@ -176,7 +176,7 @@ class UserModel:
                 
                 # Check if user exists
                 cursor.execute(
-                    'SELECT  FROM users WHERE phone_number = ?',
+                    'SELECT phone_number FROM users WHERE phone_number = ?',
                     (phone_number,)
                 )
                 user = cursor.fetchone()
@@ -191,7 +191,7 @@ class UserModel:
                     
                     # Get updated user
                     cursor.execute(
-                        'SELECT  FROM users WHERE phone_number = ?',
+                        'SELECT * FROM users WHERE phone_number = ?',
                         (phone_number,)
                     )
                     user = cursor.fetchone()
@@ -207,7 +207,7 @@ class UserModel:
                     
                     # Get created user
                     cursor.execute(
-                        'SELECT  FROM users WHERE phone_number = ?',
+                        'SELECT * FROM users WHERE phone_number = ?',
                         (phone_number,)
                     )
                     user = cursor.fetchone()
@@ -261,7 +261,7 @@ class UserModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    'SELECT  FROM users WHERE phone_number = ?',
+                    'SELECT * FROM users WHERE phone_number = ?',
                     (phone_number,)
                 )
                 user = cursor.fetchone()

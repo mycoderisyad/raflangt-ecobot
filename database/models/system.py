@@ -45,7 +45,7 @@ class UserInteractionModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT  FROM user_interactions 
+                    SELECT * FROM user_interactions 
                     WHERE user_phone = ? 
                     ORDER BY created_at DESC 
                     LIMIT ?
@@ -149,7 +149,7 @@ class SystemLogModel:
                 cursor = conn.cursor()
                 
                 query = '''
-                    SELECT  FROM system_logs 
+                    SELECT * FROM system_logs 
                     WHERE created_at >= ?
                 '''
                 params = [datetime.now() - timedelta(days=days)]

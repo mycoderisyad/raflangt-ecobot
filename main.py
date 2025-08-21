@@ -75,6 +75,16 @@ def create_app(environment: str = None) -> Flask:
     logger = LoggerUtils.get_logger(__name__)
     
     @app.route('/', methods=['GET'])
+    def root():
+        """Root endpoint"""
+        return jsonify({
+            'status': 'healthy',
+            'service': app_config.name,
+            'version': app_config.version,
+            'environment': app_config.environment
+        })
+    
+    @app.route('/health', methods=['GET'])
     def health_check():
         """Health check endpoint"""
         return jsonify({
@@ -136,8 +146,8 @@ def run_application(environment: str = 'development'):
     config_manager = get_config()
     app_config = config_manager.get_app_config()
     
-    # Set port based on environment
-    port = 8000 if environment == 'production' else 5005
+    # Set port based on environment variable or environment type
+    port = int(os.getenv('PORT', 8000 if environment == 'production' else 5000))
     
     # Show startup info
     show_startup_info(app_config, port)

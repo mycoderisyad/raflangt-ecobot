@@ -54,7 +54,7 @@ class WasteClassificationModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT  FROM waste_classifications 
+                    SELECT * FROM waste_classifications 
                     WHERE user_phone = ? 
                     ORDER BY created_at DESC 
                     LIMIT ?
