@@ -57,47 +57,69 @@ class MessageService:
     def format_error_response(self, error_type: str, user_role: str = 'warga') -> str:
         """Format error response"""
         error_messages = {
-            'no_permission': "Maaf, Anda tidak memiliki izin untuk mengakses fitur ini.\n\nSilakan hubungi admin untuk informasi lebih lanjut.",
-            'feature_disabled': "Fitur ini sedang dalam maintenance.\n\nSilakan coba lagi nanti.",
-            'coming_soon': "Fitur ini akan segera hadir.\n\nTerima kasih atas kesabaran Anda.",
-            'invalid_command': "Perintah tidak dikenali.\n\nSilakan ketik 'help' untuk melihat daftar perintah.",
-            'general_error': "Terjadi kesalahan sistem.\n\nSilakan coba lagi atau hubungi admin jika masalah berlanjut.",
-            'registration_required': "Anda perlu mendaftar terlebih dahulu untuk menggunakan layanan ini."
+            'no_permission': {
+                'title': 'Akses Ditolak',
+                'message': '🔒 Maaf, Anda tidak memiliki izin untuk mengakses fitur ini.\n\n📞 Silakan hubungi admin untuk informasi lebih lanjut.'
+            },
+            'feature_disabled': {
+                'title': 'Fitur Dalam Maintenance',
+                'message': '🔧 Fitur ini sedang dalam pemeliharaan.\n\n⏰ Silakan coba lagi nanti.'
+            },
+            'coming_soon': {
+                'title': 'Segera Hadir',
+                'message': '🚀 Fitur ini akan segera tersedia.\n\n🙏 Terima kasih atas kesabaran Anda.'
+            },
+            'invalid_command': {
+                'title': 'Perintah Tidak Dikenali',
+                'message': '❓ Perintah tidak dikenali.\n\n💡 Silakan ketik *help* untuk melihat daftar perintah yang tersedia.'
+            },
+            'general_error': {
+                'title': 'Terjadi Kesalahan',
+                'message': '⚠️ Terjadi kesalahan sistem.\n\n🔄 Silakan coba lagi atau hubungi admin jika masalah berlanjut.'
+            },
+            'registration_required': {
+                'title': 'Registrasi Diperlukan',
+                'message': '📝 Anda perlu mendaftar terlebih dahulu untuk menggunakan layanan ini.\n\n💬 Ketik *daftar* untuk memulai pendaftaran.'
+            }
         }
         
-        message = error_messages.get(error_type, error_messages['general_error'])
-        return MessageFormatter.format_header("Error", ICONS['ERROR']) + message
+        error_data = error_messages.get(error_type, error_messages['general_error'])
+        return MessageFormatter.format_info_header(error_data['title']) + error_data['message']
     
     def format_success_response(self, message: str) -> str:
         """Format success response"""
-        return MessageFormatter.format_header("Success", ICONS['SUCCESS']) + message
+        return MessageFormatter.format_success_header("Berhasil") + f"✅ {message}"
     
     def format_education_response(self, content: Dict[str, Any]) -> str:
         """Format education response"""
         if not content:
             return self.format_error_response('general_error')
         
-        response = MessageFormatter.format_header("Tips Edukasi", ICONS['EDUCATION'])
+        response = MessageFormatter.format_info_header("💡 Tips Edukasi Pengelolaan Sampah")
         
         if 'tips' in content:
-            response += "Tips Pengelolaan Sampah:\n"
-            response += MessageFormatter.format_list(content['tips'])
+            response += "🌱 *Tips Pengelolaan Sampah:*\n\n"
+            tips_formatted = []
+            for i, tip in enumerate(content['tips'], 1):
+                tips_formatted.append(f"{i}. {tip}")
+            response += '\n'.join(tips_formatted)
             response += "\n\n"
         
         if 'additional_info' in content:
-            response += "Informasi Tambahan:\n"
+            response += "ℹ️ *Informasi Tambahan:*\n"
             response += content['additional_info']
         
         return MessageFormatter.ensure_length_limit(response)
     
     def format_schedule_response(self, schedule_data: Dict[str, Any]) -> str:
         """Format schedule response"""
-        response = MessageFormatter.format_header("Jadwal Pengumpulan", ICONS['SCHEDULE'])
+        response = MessageFormatter.format_info_header("📅 Jadwal Pengumpulan Sampah")
         
         if not schedule_data:
-            response += "Jadwal pengumpulan sampah akan diumumkan segera."
+            response += "⏰ Jadwal pengumpulan sampah akan diumumkan segera.\n\n"
+            response += "📞 Hubungi koordinator desa untuk informasi terbaru."
         else:
-            response += "Jadwal pengumpulan sampah:\n"
+            response += "🗓️ *Jadwal pengumpulan sampah:*\n\n"
             for day, info in schedule_data.items():
                 response += f"• {day}: {info}\n"
         

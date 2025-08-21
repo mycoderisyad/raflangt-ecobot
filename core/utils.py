@@ -34,14 +34,51 @@ class PhoneNumberUtils:
 
 
 class MessageFormatter:
-    """Message formatting utilities"""
+    """Message formatting utilities for user-friendly responses"""
     
     @staticmethod
-    def format_header(title: str, icon: str = None) -> str:
-        """Format message header"""
-        if icon:
-            return f"{icon} {title}\n{'=' * 30}\n\n"
-        return f"{title}\n{'=' * 30}\n\n"
+    def format_welcome_header(title: str) -> str:
+        """Format welcome message header"""
+        return f"🤖 {title}\n{'─' * 35}\n\n"
+    
+    @staticmethod
+    def format_info_header(title: str) -> str:
+        """Format information message header"""
+        return f"ℹ️ {title}\n{'─' * 35}\n\n"
+    
+    @staticmethod
+    def format_success_header(title: str) -> str:
+        """Format success message header"""
+        return f"✅ {title}\n{'─' * 35}\n\n"
+    
+    @staticmethod
+    def format_registration_form() -> str:
+        """Format registration form template"""
+        return """📝 *Formulir Pendaftaran EcoBot*
+─────────────────────────────────
+
+Silakan isi informasi berikut:
+
+*Format:*
+```
+Nama: (nama lengkap Anda)
+Alamat: (alamat lengkap Anda)
+```
+
+*Contoh:*
+```
+Nama: Budi Santoso
+Alamat: Jl. Merdeka No. 123, RT 02 RW 05
+```
+
+Kirim informasi Anda sesuai format di atas."""
+    
+    @staticmethod
+    def format_feature_list(title: str, features: list) -> str:
+        """Format feature list"""
+        header = f"🔧 {title}\n{'─' * 35}\n\n"
+        feature_list = '\n'.join([f"• {feature}" for feature in features])
+        return header + feature_list
     
     @staticmethod
     def ensure_length_limit(message: str, max_length: int = 1000) -> str:
