@@ -86,7 +86,7 @@ class CollectionPointModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT * FROM collection_points 
+                    SELECT  FROM collection_points 
                     WHERE id = ? AND is_active = 1
                 ''', (point_id,))
                 
@@ -235,7 +235,7 @@ class CollectionScheduleModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT * FROM collection_schedules 
+                    SELECT  FROM collection_schedules 
                     WHERE is_active = 1
                     ORDER BY location_name, schedule_day
                 ''')
@@ -322,4 +322,91 @@ class CollectionScheduleModel:
                 
         except Exception as e:
             logger.error(f"Error deleting schedule: {str(e)}")
+            return False
+    
+    # ========== ADMIN CRUD METHODS ==========
+    
+    def add_collection_point(self, data: Dict[str, Any]) -> bool:
+        """Add new collection point"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                point_id = f"cp_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                cursor.execute('''
+                    INSERT INTO collection_points 
+                    (id, name, type, latitude, longitude, accepted_waste_types, 
+                     schedule, contact, description, is_active)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    point_id,
+                    data['name'],
+                    data.get('type', 'umum'),
+                    data['latitude'],
+                    data['longitude'],
+                    json.dumps(data['accepted_waste_types']),
+                    data.get('operating_hours', '07:00-16:00'),
+                    data.get('contact_info', ''),
+                    data.get('address', ''),
+                    data.get('is_active', True)
+                ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error adding collection point: {str(e)}")
+            return False
+    
+    def get_collection_point(self, point_id: str) -> Optional[Dict[str, Any]]:
+        """Get single collection point by ID"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT  FROM collection_points WHERE id = ?
+                ''', (point_id,))
+                
+                row = cursor.fetchone()
+                if row:
+                    return dict(row)
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error getting collection point: {str(e)}")
+            return None
+    
+    def update_collection_point(self, point_id: str, field: str, value: str) -> bool:
+        """Update specific field of collection point"""
+        try:
+            valid_fields = {
+                'name': 'name',
+                'address': 'description', 
+                'hours': 'schedule',
+                'contact': 'contact',
+                'status': 'is_active'
+            }
+            
+            if field not in valid_fields:
+                return False
+            
+            db_field = valid_fields[field]
+            
+            # Special handling for status field
+            if field == 'status':
+                value = 1 if value.lower() in ['aktif', 'active', '1', 'true'] else 0
+            
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(f'''
+                    UPDATE collection_points 
+                    SET {db_field} = ?, updated_at = CURRENT_TIMESTAMP 
+                    WHERE id = ?
+                ''', (value, point_id))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+                
+        except Exception as e:
+            logger.error(f"Error updating collection point: {str(e)}")
             return False

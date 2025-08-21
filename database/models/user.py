@@ -20,20 +20,124 @@ class UserModel:
         self._admin_phones = self._load_admin_phones()
         self._koordinator_phones = self._load_koordinator_phones()
     
+    def _normalize_phone_number(self, phone_number: str) -> str:
+        """Normalize phone number by removing +, @c.us, and whitespace"""
+        if not phone_number:
+            return ""
+        
+        # Remove @c.us suffix if present
+        if '@c.us' in phone_number:
+            phone_number = phone_number.replace('@c.us', '')
+        
+        # Remove + prefix if present
+        if phone_number.startswith('+'):
+            phone_number = phone_number[1:]
+        
+        # Remove any whitespace
+        return phone_number.strip()
+    
     def _load_admin_phones(self) -> List[str]:
         """Load admin phone numbers from environment"""
         admin_phones = os.getenv('ADMIN_PHONE_NUMBERS', '')
         if admin_phones:
-            return [phone.strip() for phone in admin_phones.split(',') if phone.strip()]
+            return [self._normalize_phone_number(phone) for phone in admin_phones.split(',') if phone.strip()]
         return []
     
     def _load_koordinator_phones(self) -> List[str]:
         """Load koordinator phone numbers from environment"""
         koordinator_phones = os.getenv('KOORDINATOR_PHONE_NUMBERS', '')
         if koordinator_phones:
-            return [phone.strip() for phone in koordinator_phones.split(',') if phone.strip()]
+            return [self._normalize_phone_number(phone) for phone in koordinator_phones.split(',') if phone.strip()]
         return []
     
+    def get_user_registration_status(self, phone_number: str) -> str:
+        """Get user registration status"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'SELECT registration_status FROM users WHERE phone_number = ?',
+                    (phone_number,)
+                )
+                result = cursor.fetchone()
+                return result['registration_status'] if result else 'new'
+        except Exception as e:
+            logger.error(f"Error getting registration status: {str(e)}")
+            return 'new'
+    
+    def get_user(self, phone_number: str) -> Optional[Dict[str, Any]]:
+        """Get user details by phone number"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'SELECT * FROM users WHERE phone_number = ?',
+                    (phone_number,)
+                )
+                result = cursor.fetchone()
+                return dict(result) if result else None
+        except Exception as e:
+            logger.error(f"Error getting user: {str(e)}")
+            return None
+    
+    def create_pending_user(self, phone_number: str) -> bool:
+        """Create user with pending registration status"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Check if user already exists
+                cursor.execute(
+                    'SELECT phone_number FROM users WHERE phone_number = ?',
+                    (phone_number,)
+                )
+                if cursor.fetchone():
+                    return False  # User already exists
+                
+                # Determine initial role based on environment configuration
+                initial_role = self._determine_initial_role(phone_number)
+                
+                # Create new user with pending status
+                cursor.execute('''
+                    INSERT INTO users (phone_number, role, registration_status) 
+                    VALUES (?, ?, ?)
+                ''', (phone_number, initial_role, 'pending'))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error creating pending user: {str(e)}")
+            return False
+    
+    def complete_user_registration(self, phone_number: str, name: str, address: str) -> bool:
+        """Complete user registration with name and address"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Update user with registration info
+                cursor.execute('''
+                    UPDATE users 
+                    SET name = ?, address = ?, registration_status = ?, last_active = CURRENT_TIMESTAMP
+                    WHERE phone_number = ?
+                ''', (name, address, 'registered', phone_number))
+                
+                if cursor.rowcount > 0:
+                    conn.commit()
+                    return True
+                else:
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Error completing registration: {str(e)}")
+            return False
+    
+    def is_user_registered(self, phone_number: str) -> bool:
+        """Check if user is fully registered"""
+        status = self.get_user_registration_status(phone_number)
+        return status == 'registered'
+
     def create_user(self, phone_number: str, name: str = None) -> bool:
         """Create new user"""
         try:
@@ -72,7 +176,7 @@ class UserModel:
                 
                 # Check if user exists
                 cursor.execute(
-                    'SELECT * FROM users WHERE phone_number = ?',
+                    'SELECT  FROM users WHERE phone_number = ?',
                     (phone_number,)
                 )
                 user = cursor.fetchone()
@@ -87,7 +191,7 @@ class UserModel:
                     
                     # Get updated user
                     cursor.execute(
-                        'SELECT * FROM users WHERE phone_number = ?',
+                        'SELECT  FROM users WHERE phone_number = ?',
                         (phone_number,)
                     )
                     user = cursor.fetchone()
@@ -103,7 +207,7 @@ class UserModel:
                     
                     # Get created user
                     cursor.execute(
-                        'SELECT * FROM users WHERE phone_number = ?',
+                        'SELECT  FROM users WHERE phone_number = ?',
                         (phone_number,)
                     )
                     user = cursor.fetchone()
@@ -117,9 +221,10 @@ class UserModel:
     
     def _determine_initial_role(self, phone_number: str) -> str:
         """Determine initial role based on environment configuration"""
-        if phone_number in self._admin_phones:
+        normalized_phone = self._normalize_phone_number(phone_number)
+        if normalized_phone in self._admin_phones:
             return 'admin'
-        elif phone_number in self._koordinator_phones:
+        elif normalized_phone in self._koordinator_phones:
             return 'koordinator'
         else:
             return 'warga'
@@ -156,7 +261,7 @@ class UserModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    'SELECT * FROM users WHERE phone_number = ?',
+                    'SELECT  FROM users WHERE phone_number = ?',
                     (phone_number,)
                 )
                 user = cursor.fetchone()
@@ -330,7 +435,7 @@ class UserModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT role, COUNT(*) as count 
+                    SELECT role, COUNT() as count 
                     FROM users 
                     WHERE is_active = 1
                     GROUP BY role
@@ -399,3 +504,75 @@ class UserModel:
         except Exception as e:
             logger.error(f"Error adding user points: {str(e)}")
             return False
+    
+    # ========== ADMIN CRUD METHODS ==========
+    
+    def delete_user(self, phone_number: str) -> bool:
+        """Delete user from database"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM users WHERE phone_number = ?', (phone_number,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting user: {str(e)}")
+            return False
+    
+    def get_user_statistics(self) -> Dict[str, int]:
+        """Get comprehensive user statistics for admin"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Total users
+                cursor.execute('SELECT COUNT(*) as total FROM users')
+                total_users = cursor.fetchone()['total']
+                
+                # Users by role
+                cursor.execute('SELECT role, COUNT(*) as count FROM users GROUP BY role')
+                role_counts = {row['role']: row['count'] for row in cursor.fetchall()}
+                
+                # Active users today (based on last_active)
+                cursor.execute('''
+                    SELECT COUNT(*) as active_today 
+                    FROM users 
+                    WHERE DATE(last_active) = DATE('now')
+                ''')
+                active_today = cursor.fetchone()['active_today']
+                
+                # Total messages and images
+                cursor.execute('SELECT SUM(total_messages) as total_messages, SUM(total_images) as total_images FROM users')
+                activity = cursor.fetchone()
+                
+                # Get interactions today from user_interactions table
+                cursor.execute('''
+                    SELECT COUNT(*) as interactions_today 
+                    FROM user_interactions 
+                    WHERE DATE(created_at) = DATE('now')
+                ''')
+                interactions_today = cursor.fetchone()['interactions_today']
+                
+                return {
+                    'total_users': total_users,
+                    'admin_count': role_counts.get('admin', 0),
+                    'koordinator_count': role_counts.get('koordinator', 0),
+                    'warga_count': role_counts.get('warga', 0),
+                    'active_today': active_today,
+                    'total_messages': activity['total_messages'] or 0,
+                    'total_images': activity['total_images'] or 0,
+                    'interactions_today': interactions_today
+                }
+                
+        except Exception as e:
+            logger.error(f"Error getting user statistics: {str(e)}")
+            return {
+                'total_users': 0,
+                'admin_count': 0,
+                'koordinator_count': 0, 
+                'warga_count': 0,
+                'active_today': 0,
+                'total_messages': 0,
+                'total_images': 0,
+                'interactions_today': 0
+            }

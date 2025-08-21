@@ -54,7 +54,7 @@ class WasteClassificationModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT * FROM waste_classifications 
+                    SELECT  FROM waste_classifications 
                     WHERE user_phone = ? 
                     ORDER BY created_at DESC 
                     LIMIT ?
@@ -77,7 +77,7 @@ class WasteClassificationModel:
                 
                 # Total classifications
                 cursor.execute('''
-                    SELECT COUNT(*) as total 
+                    SELECT COUNT() as total 
                     FROM waste_classifications 
                     WHERE created_at >= ?
                 ''', (start_date,))
@@ -85,7 +85,7 @@ class WasteClassificationModel:
                 
                 # Classifications by waste type
                 cursor.execute('''
-                    SELECT waste_type, COUNT(*) as count 
+                    SELECT waste_type, COUNT() as count 
                     FROM waste_classifications 
                     WHERE created_at >= ?
                     GROUP BY waste_type
@@ -95,7 +95,7 @@ class WasteClassificationModel:
                 
                 # Classifications by method
                 cursor.execute('''
-                    SELECT classification_method, COUNT(*) as count 
+                    SELECT classification_method, COUNT() as count 
                     FROM waste_classifications 
                     WHERE created_at >= ?
                     GROUP BY classification_method
@@ -112,7 +112,7 @@ class WasteClassificationModel:
                 
                 # Daily breakdown
                 cursor.execute('''
-                    SELECT DATE(created_at) as date, COUNT(*) as count 
+                    SELECT DATE(created_at) as date, COUNT() as count 
                     FROM waste_classifications 
                     WHERE created_at >= ?
                     GROUP BY DATE(created_at)
@@ -142,7 +142,7 @@ class WasteClassificationModel:
                 start_date = datetime.now() - timedelta(days=days)
                 
                 cursor.execute('''
-                    SELECT user_phone, COUNT(*) as classification_count,
+                    SELECT user_phone, COUNT() as classification_count,
                            AVG(confidence) as avg_confidence
                     FROM waste_classifications 
                     WHERE created_at >= ?

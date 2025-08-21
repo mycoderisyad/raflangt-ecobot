@@ -48,6 +48,9 @@ class DatabaseManager:
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         phone_number TEXT UNIQUE NOT NULL,
+                        name TEXT,
+                        address TEXT,
+                        registration_status TEXT DEFAULT 'pending',
                         first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         total_messages INTEGER DEFAULT 0,
