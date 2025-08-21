@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  ecobot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecobot_app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT}
+      - PORT=${PORT}
+      
+    volumes:
+      # Persistent data volumes
+      - ./database:/app/database
+      - ./logs:/app/logs
+      - ./media:/app/media
+      - ./sessions:/app/sessions
+      
+    networks:
+      - ecobot_network
+      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-8000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  ecobot_network:
+    driver: bridge
+
+volumes:
+  ecobot_database:
+    driver: local
+  ecobot_logs:
+    driver: local
+  ecobot_media:
+    driver: local
+  ecobot_sessions:
+    driver: local
