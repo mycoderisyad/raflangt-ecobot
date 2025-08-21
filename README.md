@@ -1,94 +1,87 @@
-# EcoBot - Waste Management Assistant
+# EcoBot - Intelligent Waste Management Assistant
 
-Professional microservice-based WhatsApp bot for waste management, recycling education, and community coordination.
+A professional WhatsApp bot for waste classification, recycling education, and community waste management coordination.
 
-## 🏗️ Architecture
+## Features
 
-### Microservice Structure
-```
-ecobot/
-├── core/                   # Core application infrastructure
-│   ├── config.py          # Environment-based configuration
-│   ├── constants.py       # Clean constants without hardcoded emojis
-│   ├── utils.py           # Utility functions and logging
-│   └── application_handler.py  # Main application logic
-├── services/              # Business logic microservices
-│   ├── whatsapp_service.py     # WhatsApp communication
-│   ├── ai_service.py           # AI classification (prod/dev modes)
-│   ├── message_service.py      # Message formatting
-│   └── registration_service.py # User registration
-├── environments/          # Environment-specific configurations
-│   ├── development/       # Development with AI simulation
-│   └── production/        # Production with real APIs
-├── messages/              # JSON message templates
-├── database/              # Database models and management
-└── utils/                 # Legacy utilities (being phased out)
-```
+- **AI-Powered Waste Classification** - Automatic image analysis and waste categorization
+- **WhatsApp Integration** - Seamless communication through WhatsApp Business API
+- **Multi-Role System** - Admin, Coordinator, and Resident access levels
+- **Location Services** - Waste collection points and routing information
+- **Analytics & Reporting** - Usage statistics and environmental impact tracking
+- **Multi-Environment** - Development and production configurations
 
-## 🚀 Quick Start
+## Technology Stack
 
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **WhatsApp API** | [WAHA](https://github.com/devlikeapro/waha) | WhatsApp HTTP API for message handling |
+| **AI Services** | [Lunos.tech](https://lunos.tech/) & [Unli.dev](https://unli.dev/) | AI image classification and natural language processing |
+| **Email Service** | [Mailry.co](https://mailry.co/) | Automated email notifications and reports |
+| **Backend** | Flask + Python 3.10+ | Microservice architecture with REST API |
+| **Database** | SQLite | Lightweight embedded database |
+| **Deployment** | Gunicorn + Nginx | Production-ready web server setup |
+
+## Quick Start
+
+### Installation
 ```bash
+# Clone repository
+git clone https://github.com/mycoderisyad/raflangt-ecobot.git
+cd raflangt-ecobot/ecobot
+
 # Install dependencies
 pip install -r requirements.txt
 
-# Run in development mode (default)
+# Setup environment
+cp .env.example .env
+# Edit .env with your API keys
+```
+
+### Running
+```bash
+# Development mode
 python3 main.py
 
-# Run in production mode
+# Production mode
 python3 main.py --production
+
+# Production with Gunicorn
+gunicorn -w 4 -b 0.0.0.0:8000 'main:create_app("production")'
 ```
 
-## 🎯 Simple Usage
+## Configuration
 
-- **Development**: `python3 main.py` (AI simulation, debug enabled)
-- **Production**: `python3 main.py --production` (real APIs required)
-
-## 🔧 Configuration
-
-### Single Environment File
-EcoBot uses a single `.env` file in the root directory for all configurations:
-
+### Environment Variables
 ```env
-# Change this to switch environments
-ENVIRONMENT=development  # or 'production'
+# Application Mode
+ENVIRONMENT=development|production
 
-# Your API configurations here...
+# WhatsApp API (WAHA)
+WAHA_BASE_URL=https://your-waha-instance.com/api
+WAHA_API_KEY=your_waha_api_key
+WAHA_SESSION_NAME=default
+
+# AI Services
+LUNOS_API_KEY=your_lunos_api_key
+LUNOS_BASE_URL=https://api.lunos.tech/v1
+
+# Email Service
+MAILRY_API_KEY=your_mailry_api_key
+MAILRY_BASE_URL=https://api.mailry.co/ext
+
+# Admin Configuration
+ADMIN_PHONE_NUMBERS=+6281234567890,+6281234567891
 ```
 
-### Environment Modes
-- **Development**: AI simulation, debug enabled, no API keys required
-- **Production**: Real APIs, optimized performance, API keys required
-
-## 🎯 Features
-
-### Multi-Role System
-- **Admin**: Full system access, user management
-- **Koordinator**: Waste collection coordination
-- **Warga**: Basic waste classification and education
-
-### User Registration
-- Required registration with "daftar" command
-- Name and address collection
-- Role assignment by administrators
-
-### AI Integration
-- Waste classification from images
-- Smart conversation handling
-- Development simulation mode
-
-### WhatsApp Integration
-- WAHA API compatibility
-- Message formatting and templates
-- Phone number normalization
-
-## 📱 Usage Examples
+## Usage Examples
 
 ### User Registration
 ```
 User: daftar
 Bot: Silakan masukkan nama lengkap Anda:
-User: John Doe
-Bot: Terima kasih! Sekarang masukkan alamat lengkap Anda:
+User: John Doe  
+Bot: Sekarang masukkan alamat lengkap Anda:
 User: Jl. Merdeka No. 123
 Bot: Registrasi berhasil! Anda terdaftar sebagai warga.
 ```
@@ -96,108 +89,64 @@ Bot: Registrasi berhasil! Anda terdaftar sebagai warga.
 ### Waste Classification
 ```
 User: [sends image of plastic bottle]
-Bot: Sampah terdeteksi: Plastik
-     Cara daur ulang: [recycling instructions]
+Bot: Sampah terdeteksi: Plastik (PET)
+     Cara daur ulang: Kumpulkan di tempat sampah biru
+     Lokasi TPS terdekat: [map link]
 ```
 
-## 🔐 Environment Variables
+## Deployment
 
-### Required for Production
-```env
-# Set environment to production
-ENVIRONMENT=production
-
-# WhatsApp API
-WAHA_BASE_URL=https://your-waha-instance.com
-WAHA_API_KEY=your_api_key
-
-# AI Service
-LUNOS_API_KEY=your_ai_api_key
-LUNOS_BASE_URL=https://api.lunos.tech/v1
-
-# Admin Access
-ADMIN_PHONE_NUMBERS=+6281234567890,+6287654321098
-```
-
-### For Development
-```env
-# Default development mode
-ENVIRONMENT=development
-
-# APIs are optional - simulation will be used
-```
-
-## � Domain Setup
-
-### Webhook URL Configuration
-```env
-# Development (local)
-WEBHOOK_URL=http://localhost:5005/webhook
-
-# Production (with domain + SSL)
-WEBHOOK_URL=https://ecobot.rafgt.my.id/webhook
-```
-
-### SSL Setup for Production
+### Using Deployment Script
 ```bash
-# Run setup script to configure domain + SSL
-sudo bash setup_domain.sh
+# Run deployment preparation
+./deploy.sh
+
+# Start production server
+python3 main.py --production
 ```
 
-This will:
-- Configure Nginx reverse proxy
-- Setup SSL certificate with Let's Encrypt
-- Enable HTTPS for secure webhook communication
-
-## 🧪 Testing
-
+### Docker (Optional)
 ```bash
-# Test health endpoint
-curl http://localhost:5005/
+# Build image
+docker build -t ecobot .
 
-# Expected response:
-{
-    "status": "healthy",
-    "service": "EcoBot",
-    "version": "2.0.0",
-    "environment": "development"
-}
+# Run container
+docker run -p 8000:8000 --env-file .env ecobot
 ```
 
-## 📚 API Documentation
+## API Endpoints
 
-### Webhook Endpoint
-- **URL**: `/webhook`
-- **Method**: `POST`
-- **Purpose**: Receives WhatsApp messages from WAHA
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Health check and service status |
+| `/webhook` | POST | WhatsApp webhook for incoming messages |
 
-### Health Check
-- **URL**: `/`
-- **Method**: `GET`
-- **Purpose**: Service health monitoring
+## Contributing
 
-## 🔄 Migration from Legacy
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-The new microservice architecture maintains compatibility with legacy code while providing:
-- Clean separation of concerns
-- Environment-based configuration
-- Professional deployment options
-- Reduced code duplication
-- Better error handling
+## License
 
-## 🛠️ Development
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-### Adding New Features
-1. Create service in `services/` directory
-2. Add configuration to `core/config.py`
-3. Register with `ApplicationHandler`
-4. Update message templates if needed
+    http://www.apache.org/licenses/LICENSE-2.0
 
-### Environment Setup
-- Use `development` for local testing
-- Use `production` for deployment
-- All configurations managed through environment files
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
-## 📝 License
+## Support
 
-Professional waste management solution for community use.
+For support and questions, please open an issue on GitHub or contact the development team.
+
+---
+
+**EcoBot** - Making waste management smarter, one message at a time.
