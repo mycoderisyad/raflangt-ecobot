@@ -45,7 +45,7 @@ class UserInteractionModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT * FROM user_interactions 
+                    SELECT  FROM user_interactions 
                     WHERE user_phone = ? 
                     ORDER BY created_at DESC 
                     LIMIT ?
@@ -67,7 +67,7 @@ class UserInteractionModel:
                 
                 # Total interactions
                 cursor.execute('''
-                    SELECT COUNT(*) as total 
+                    SELECT COUNT() as total 
                     FROM user_interactions 
                     WHERE created_at >= ?
                 ''', (start_date,))
@@ -75,7 +75,7 @@ class UserInteractionModel:
                 
                 # Interactions by type
                 cursor.execute('''
-                    SELECT interaction_type, COUNT(*) as count 
+                    SELECT interaction_type, COUNT() as count 
                     FROM user_interactions 
                     WHERE created_at >= ?
                     GROUP BY interaction_type
@@ -86,7 +86,7 @@ class UserInteractionModel:
                 # Success rate
                 cursor.execute('''
                     SELECT 
-                        COUNT(*) as total,
+                        COUNT() as total,
                         SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful
                     FROM user_interactions 
                     WHERE created_at >= ?
@@ -149,7 +149,7 @@ class SystemLogModel:
                 cursor = conn.cursor()
                 
                 query = '''
-                    SELECT * FROM system_logs 
+                    SELECT  FROM system_logs 
                     WHERE created_at >= ?
                 '''
                 params = [datetime.now() - timedelta(days=days)]
@@ -197,7 +197,7 @@ class SystemLogModel:
                 
                 # Error count by level
                 cursor.execute('''
-                    SELECT level, COUNT(*) as count 
+                    SELECT level, COUNT() as count 
                     FROM system_logs 
                     WHERE created_at >= ? AND level IN ('WARNING', 'ERROR', 'CRITICAL')
                     GROUP BY level
@@ -216,7 +216,7 @@ class SystemLogModel:
                 
                 # Error trends by module
                 cursor.execute('''
-                    SELECT module, COUNT(*) as count 
+                    SELECT module, COUNT() as count 
                     FROM system_logs 
                     WHERE created_at >= ? AND level IN ('ERROR', 'CRITICAL')
                     GROUP BY module
@@ -272,3 +272,184 @@ class SystemLogModel:
         except Exception as e:
             logger.error(f"Error cleaning up logs: {str(e)}")
             return False
+
+
+class SystemModel:
+    """Main system model that aggregates various system statistics and operations"""
+    
+    def __init__(self):
+        from .base import DatabaseManager
+        self.db = DatabaseManager()
+        self.interaction_model = UserInteractionModel(self.db)
+        self.log_model = SystemLogModel(self.db)
+    
+    def get_user_statistics(self) -> Dict[str, Any]:
+        """Get comprehensive user statistics"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Basic user counts
+                cursor.execute('''
+                    SELECT 
+                        COUNT(*) as total_users,
+                        SUM(CASE WHEN role='admin' THEN 1 ELSE 0 END) as admin_count,
+                        SUM(CASE WHEN role='koordinator' THEN 1 ELSE 0 END) as koordinator_count,
+                        SUM(CASE WHEN role='warga' THEN 1 ELSE 0 END) as warga_count,
+                        SUM(CASE WHEN registration_status='registered' THEN 1 ELSE 0 END) as registered_count,
+                        SUM(CASE WHEN registration_status='pending' THEN 1 ELSE 0 END) as pending_count,
+                        SUM(CASE WHEN is_active=1 THEN 1 ELSE 0 END) as active_count
+                    FROM users
+                ''')
+                user_stats = dict(cursor.fetchone())
+                
+                # Active users today
+                cursor.execute('''
+                    SELECT COUNT(DISTINCT user_phone) as active_today
+                    FROM user_interactions 
+                    WHERE DATE(created_at) = DATE('now')
+                ''')
+                user_stats.update(cursor.fetchone())
+                
+                # Total points distributed
+                cursor.execute('SELECT SUM(points) as total_points FROM users')
+                user_stats.update(cursor.fetchone())
+                
+                return user_stats
+                
+        except Exception as e:
+            logger.error(f"Error getting user statistics: {str(e)}")
+            return {}
+    
+    def get_system_health(self) -> Dict[str, Any]:
+        """Get overall system health metrics"""
+        try:
+            # Get error counts from last 24 hours
+            error_summary = self.log_model.get_error_summary(days=1)
+            
+            # Get interaction stats
+            interaction_stats = self.interaction_model.get_interaction_stats(days=1)
+            
+            # Database size and performance
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Recent activity indicators
+                cursor.execute('''
+                    SELECT 
+                        (SELECT COUNT(*) FROM user_interactions WHERE DATE(created_at) = DATE('now')) as interactions_today,
+                        (SELECT COUNT(*) FROM waste_classifications WHERE DATE(created_at) = DATE('now')) as classifications_today,
+                        (SELECT COUNT(*) FROM system_logs WHERE level='ERROR' AND DATE(created_at) = DATE('now')) as errors_today
+                ''')
+                activity = dict(cursor.fetchone())
+                
+                # System status assessment
+                health_score = 100
+                status_messages = []
+                
+                # Check error rates
+                if activity['errors_today'] > 10:
+                    health_score -= 20
+                    status_messages.append("High error rate detected")
+                elif activity['errors_today'] > 5:
+                    health_score -= 10
+                    status_messages.append("Moderate error rate")
+                
+                # Check activity levels
+                if activity['interactions_today'] < 5:
+                    health_score -= 15
+                    status_messages.append("Low user activity")
+                
+                # Check response times
+                if interaction_stats.get('avg_response_time', 0) > 2.0:
+                    health_score -= 15
+                    status_messages.append("Slow response times")
+                
+                # Determine overall status
+                if health_score >= 90:
+                    status = "EXCELLENT"
+                elif health_score >= 75:
+                    status = "GOOD"
+                elif health_score >= 50:
+                    status = "WARNING"
+                else:
+                    status = "CRITICAL"
+                
+                return {
+                    'status': status,
+                    'health_score': health_score,
+                    'status_messages': status_messages,
+                    'activity': activity,
+                    'error_summary': error_summary,
+                    'interaction_stats': interaction_stats,
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            logger.error(f"Error getting system health: {str(e)}")
+            return {
+                'status': 'ERROR',
+                'health_score': 0,
+                'status_messages': [f"System health check failed: {str(e)}"],
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    def get_daily_report(self) -> Dict[str, Any]:
+        """Generate daily system report"""
+        try:
+            user_stats = self.get_user_statistics()
+            health = self.get_system_health()
+            
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Waste classification stats
+                cursor.execute('''
+                    SELECT 
+                        waste_type,
+                        COUNT(*) as count,
+                        AVG(confidence) as avg_confidence
+                    FROM waste_classifications 
+                    WHERE DATE(created_at) = DATE('now')
+                    GROUP BY waste_type
+                ''')
+                waste_stats = {row['waste_type']: {
+                    'count': row['count'],
+                    'avg_confidence': round(row['avg_confidence'], 2)
+                } for row in cursor.fetchall()}
+                
+                # Collection points status
+                cursor.execute('''
+                    SELECT 
+                        COUNT(*) as total_points,
+                        SUM(CASE WHEN is_active=1 THEN 1 ELSE 0 END) as active_points
+                    FROM collection_points
+                ''')
+                collection_stats = dict(cursor.fetchone())
+                
+                return {
+                    'date': datetime.now().strftime('%Y-%m-%d'),
+                    'user_stats': user_stats,
+                    'system_health': health,
+                    'waste_classifications': waste_stats,
+                    'collection_points': collection_stats,
+                    'generated_at': datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            logger.error(f"Error generating daily report: {str(e)}")
+            return {}
+    
+    def log_system_event(self, level: str, message: str, module: str = None, 
+                        user_phone: str = None, extra_data: Dict[str, Any] = None) -> bool:
+        """Convenience method to log system events"""
+        return self.log_model.log_event(level, message, module, user_phone, extra_data)
+    
+    def log_user_interaction(self, user_phone: str, interaction_type: str, 
+                           message_content: str = None, response_content: str = None,
+                           success: bool = True, response_time: float = None) -> bool:
+        """Convenience method to log user interactions"""
+        return self.interaction_model.log_interaction(
+            user_phone, interaction_type, message_content, 
+            response_content, success, response_time
+        )
