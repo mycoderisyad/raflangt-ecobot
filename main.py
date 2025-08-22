@@ -9,7 +9,7 @@ import sys
 import logging
 import argparse
 from pathlib import Path
-from flask import Flask, request, jsonify
+from flask import Flask
 from dotenv import load_dotenv
 
 # Add project root to Python path
@@ -17,7 +17,6 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 from core.config import init_config, get_config
-from core.application_handler import ApplicationHandler
 from core.utils import LoggerUtils
 
 
@@ -70,51 +69,16 @@ def create_app(environment: str = None) -> Flask:
     app = Flask(__name__)
     app.config['DEBUG'] = app_config.debug
     
-    # Initialize application handler
-    app_handler = ApplicationHandler()
+    # Register API blueprints
+    from api import health_bp, collection_points_bp, users_bp, webhook_bp
+    
+    app.register_blueprint(health_bp)
+    app.register_blueprint(collection_points_bp)
+    app.register_blueprint(users_bp)
+    app.register_blueprint(webhook_bp)
+    
+    # Log app creation
     logger = LoggerUtils.get_logger(__name__)
-    
-    @app.route('/', methods=['GET'])
-    def root():
-        """Root endpoint"""
-        return jsonify({
-            'status': 'healthy',
-            'service': app_config.name,
-            'version': app_config.version,
-            'environment': app_config.environment
-        })
-    
-    @app.route('/health', methods=['GET'])
-    def health_check():
-        """Health check endpoint"""
-        return jsonify({
-            'status': 'healthy',
-            'service': app_config.name,
-            'version': app_config.version,
-            'environment': app_config.environment
-        })
-    
-    @app.route('/webhook', methods=['POST'])
-    def webhook():
-        """WhatsApp webhook endpoint"""
-        try:
-            result = app_handler.handle_incoming_message(request)
-            return jsonify(result)
-        except Exception as e:
-            # Log error internally but return generic response in production
-            if environment == 'production':
-                logger.error(f"Webhook processing error: {str(e)}")
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Internal server error'
-                }), 500
-            else:
-                # Development: show detailed error
-                LoggerUtils.log_error(logger, e, "webhook processing")
-                return jsonify({
-                    'status': 'error',
-                    'message': str(e)
-                }), 500
     
     if environment != 'production':
         logger.info(f"Flask app created for {app_config.environment} environment")
