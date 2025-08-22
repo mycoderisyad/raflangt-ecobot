@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoBot Documentation - Intelligent Waste Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        nav {
+            background: #34495e;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-links a:hover {
+            background-color: #2c3e50;
+        }
+
+        main {
+            background: white;
+            margin: 2rem auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .content {
+            padding: 3rem;
+        }
+
+        h2 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin: 2rem 0 1rem 0;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            color: #34495e;
+            font-size: 1.5rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        h4 {
+            color: #5d6d7e;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: #f8f9fa;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+
+        th {
+            background-color: #e9ecef;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 1rem;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #ecf0f1;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .endpoint-table {
+            margin: 1rem 0;
+        }
+
+        .endpoint-table th {
+            background-color: #2c3e50;
+            color: white;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-public {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-auth {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 2rem 1.5rem;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            table {
+                font-size: 0.9rem;
+            }
+            
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>EcoBot</h1>
+            <p class="subtitle">Intelligent Waste Management Backend System</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <div class="nav-links">
+                <a href="#introduction">Introduction</a>
+                <a href="#use-cases">Use Cases</a>
+                <a href="#features">Features</a>
+                <a href="#overview">System Overview</a>
+                <a href="#getting-started">Getting Started</a>
+                <a href="#configuration">Configuration</a>
+                <a href="#api">API Documentation</a>
+                <a href="#usage">Usage Examples</a>
+                <a href="#deployment">Deployment</a>
+                <a href="#security">Security</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="content">
+            
+            <section id="introduction">
+                <h2>Introduction</h2>
+                <p>EcoBot is a professional Python Flask-based backend system designed to revolutionize community waste management through intelligent automation and seamless integration with messaging platforms. Built with security and scalability in mind, EcoBot serves as the core engine for waste classification, collection coordination, and environmental education initiatives.</p>
+                
+                <p>The system was created to address the growing challenge of waste management in communities by providing automated classification of waste materials, coordinating collection schedules, and educating residents about proper waste disposal and recycling practices. EcoBot bridges the gap between technology and environmental sustainability, making waste management more efficient and accessible.</p>
+            </section>
+
+            <section id="use-cases">
+                <h2>Use Cases / Functions</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>WhatsApp Chatbot Integration</h4>
+                        <p>Citizens can report waste collection needs, classify waste types, and receive instant feedback through WhatsApp messaging, making the service accessible to all community members.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Administrative Dashboard</h4>
+                        <p>Administrators can monitor waste collection statistics, manage user roles, track environmental impact, and coordinate collection schedules through REST API endpoints.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Automated Waste Classification</h4>
+                        <p>AI-powered image analysis automatically identifies waste types from photos, providing instant classification and recycling guidance to users.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Collection Point Management</h4>
+                        <p>Dynamic mapping and routing for waste collection points, helping users find the nearest appropriate disposal locations and optimizing collection routes.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="features">
+                <h2>Features</h2>
+                <ul>
+                    <li><strong>Secure REST API</strong> - Authentication-protected endpoints with rate limiting</li>
+                    <li><strong>Health Monitoring</strong> - Real-time system status and health check endpoints</li>
+                    <li><strong>Message Processing</strong> - WhatsApp webhook handling with automatic response generation</li>
+                    <li><strong>User Management</strong> - Multi-role system supporting admins, coordinators, and residents</li>
+                    <li><strong>AI Integration</strong> - Lunos.tech and Unli.dev AI services for intelligent waste classification</li>
+                    <li><strong>Location Services</strong> - Google Maps integration for collection point mapping</li>
+                    <li><strong>Email Notifications</strong> - Automated reporting via Mailry email service</li>
+                    <li><strong>Database Management</strong> - SQLite database with connection pooling and transaction support</li>
+                    <li><strong>Comprehensive Logging</strong> - Structured logging with environment-specific configurations</li>
+                    <li><strong>Production Ready</strong> - Gunicorn WSGI server with Nginx reverse proxy support</li>
+                </ul>
+            </section>
+
+            <section id="overview">
+                <h2>System Overview</h2>
+                <p>EcoBot follows a microservice architecture pattern built on Flask framework. The system consists of several key components:</p>
+                
+                <h3>Architecture Components</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Technology</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>API Layer</strong></td>
+                            <td>Flask Blueprints</td>
+                            <td>REST endpoints for health checks, webhooks, user management, and collection points</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Core Engine</strong></td>
+                            <td>Python 3.10+</td>
+                            <td>Business logic, configuration management, and utility functions</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Database</strong></td>
+                            <td>SQLite</td>
+                            <td>User data, message logs, and application state storage</td>
+                        </tr>
+                        <tr>
+                            <td><strong>WhatsApp API</strong></td>
+                            <td>WAHA Integration</td>
+                            <td>Message receiving and sending through WhatsApp Business API</td>
+                        </tr>
+                        <tr>
+                            <td><strong>AI Services</strong></td>
+                            <td>Lunos.tech & Unli.dev</td>
+                            <td>Natural language processing and image classification</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Data Flow</h3>
+                <div class="alert alert-info">
+                    <strong>Request Flow:</strong> WhatsApp Message → WAHA Webhook → EcoBot API → AI Processing → Database Storage → Response Generation → WhatsApp Reply
+                </div>
+            </section>
+
+            <section id="getting-started">
+                <h2>Getting Started</h2>
+                
+                <h3>Requirements</h3>
+                <ul>
+                    <li>Python 3.10 or higher</li>
+                    <li>pip (Python package installer)</li>
+                    <li>Virtual environment (recommended)</li>
+                    <li>Git for version control</li>
+                </ul>
+
+                <h3>Installation</h3>
+                <pre><code># Clone the repository
+git clone https://github.com/mycoderisyad/raflangt-ecobot.git
+cd raflangt-ecobot
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Setup environment configuration
+cp .env.example .env
+# Edit .env file with your API keys and configuration</code></pre>
+
+                <h3>Running the Application</h3>
+                <pre><code># Development mode (default)
+python3 main.py
+
+# Production mode
+python3 main.py --production
+
+# Production with Gunicorn
+gunicorn -w 4 -b 0.0.0.0:8000 'main:create_app("production")'</code></pre>
+            </section>
+
+            <section id="configuration">
+                <h2>Configuration</h2>
+                
+                <h3>Environment Variables</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Required</th>
+                            <th>Description</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>ENVIRONMENT</code></td>
+                            <td>No</td>
+                            <td>Application environment</td>
+                            <td>development, production</td>
+                        </tr>
+                        <tr>
+                            <td><code>PORT</code></td>
+                            <td>No</td>
+                            <td>Server port (default: 8000)</td>
+                            <td>8000</td>
+                        </tr>
+                        <tr>
+                            <td><code>WAHA_BASE_URL</code></td>
+                            <td>Yes</td>
+                            <td>WhatsApp HTTP API base URL</td>
+                            <td>https://waha.example.com/api</td>
+                        </tr>
+                        <tr>
+                            <td><code>WAHA_API_KEY</code></td>
+                            <td>Yes</td>
+                            <td>WAHA authentication key</td>
+                            <td>your_waha_api_key</td>
+                        </tr>
+                        <tr>
+                            <td><code>LUNOS_API_KEY</code></td>
+                            <td>Yes</td>
+                            <td>Lunos.tech AI service key</td>
+                            <td>sk-xxx</td>
+                        </tr>
+                        <tr>
+                            <td><code>ADMIN_PHONE_NUMBERS</code></td>
+                            <td>Yes</td>
+                            <td>Comma-separated admin phone numbers</td>
+                            <td>+1234567890,+0987654321</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-warning">
+                    <strong>Security Note:</strong> Never commit API keys to version control. Use environment variables or secure key management services. Rotate API keys regularly and monitor their usage.
+                </div>
+            </section>
+
+            <section id="api">
+                <h2>API Documentation</h2>
+                
+                <h3>Base URLs</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Environment</th>
+                            <th>Base URL</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Production</td>
+                            <td>https://ecobot.rafgt.my.id</td>
+                            <td>Live production environment</td>
+                        </tr>
+                        <tr>
+                            <td>Development</td>
+                            <td>http://localhost:5000</td>
+                            <td>Local development server</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>API Endpoints</h3>
+                <table class="endpoint-table">
+                    <thead>
+                        <tr>
+                            <th>Path</th>
+                            <th>Method</th>
+                            <th>Description</th>
+                            <th>Authentication</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>/</code></td>
+                            <td>GET</td>
+                            <td>Root endpoint and health check</td>
+                            <td><span class="status-badge status-public">Public</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>/health</code></td>
+                            <td>GET</td>
+                            <td>Detailed health check with system status</td>
+                            <td><span class="status-badge status-public">Public</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>/webhook</code></td>
+                            <td>POST</td>
+                            <td>WhatsApp webhook for incoming messages</td>
+                            <td><span class="status-badge status-auth">API Key</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>/users</code></td>
+                            <td>GET</td>
+                            <td>List registered users</td>
+                            <td><span class="status-badge status-auth">Admin</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>/collection-points</code></td>
+                            <td>GET</td>
+                            <td>Get waste collection points</td>
+                            <td><span class="status-badge status-public">Public</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Response Examples</h3>
+                
+                <h4>Health Check Response</h4>
+                <pre><code>GET /health
+
+{
+    "status": "healthy",
+    "service": "EcoBot",
+    "version": "1.0.0",
+    "environment": "production"
+}</code></pre>
+
+                <h4>Error Response Format</h4>
+                <pre><code>{
+    "error": {
+        "code": 400,
+        "message": "Invalid request format",
+        "details": "Missing required field: phone_number"
+    }
+}</code></pre>
+            </section>
+
+            <section id="usage">
+                <h2>Usage Examples</h2>
+                
+                <h3>Health Check</h3>
+                <pre><code># Using curl
+curl -X GET https://ecobot.rafgt.my.id/health
+
+# Using Python requests
+import requests
+
+response = requests.get('https://ecobot.rafgt.my.id/health')
+print(response.json())</code></pre>
+
+                <h3>WhatsApp Webhook Integration</h3>
+                <pre><code># Example webhook payload processing
+{
+    "messages": [{
+        "from": "+1234567890",
+        "body": "daftar",
+        "type": "text",
+        "timestamp": "1640995200"
+    }]
+}</code></pre>
+
+                <h3>Workflow Integration</h3>
+                <div class="alert alert-info">
+                    <strong>Typical Flow:</strong> User sends message → Webhook receives → EcoBot processes → AI analyzes (if image) → Database stores → Response sent → User receives guidance
+                </div>
+            </section>
+
+            <section id="deployment">
+                <h2>Deployment Guide</h2>
+                
+                <h3>Production Deployment with Systemd</h3>
+                <pre><code># Create systemd service file: /etc/systemd/system/ecobot.service
+[Unit]
+Description=EcoBot - Waste Management Assistant
+After=network.target
+
+[Service]
+Type=simple
+User=ecobot
+WorkingDirectory=/opt/ecobot
+Environment=PATH=/opt/ecobot/venv/bin
+ExecStart=/opt/ecobot/venv/bin/python main.py --production
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+
+# Enable and start service
+sudo systemctl daemon-reload
+sudo systemctl enable ecobot
+sudo systemctl start ecobot</code></pre>
+
+                <h3>Nginx Configuration</h3>
+                <pre><code>server {
+    listen 443 ssl http2;
+    server_name ecobot.example.com;
+    
+    ssl_certificate /path/to/ssl/cert.pem;
+    ssl_certificate_key /path/to/ssl/key.pem;
+    
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+            </section>
+
+            <section id="security">
+                <h2>Security Best Practices</h2>
+                
+                <h3>API Security</h3>
+                <ul>
+                    <li><strong>API Key Protection:</strong> Store keys in environment variables, never in code</li>
+                    <li><strong>HTTPS Only:</strong> Always use SSL/TLS encryption in production</li>
+                    <li><strong>Rate Limiting:</strong> Implement rate limiting on webhook endpoints</li>
+                    <li><strong>Input Validation:</strong> Validate all incoming data and sanitize inputs</li>
+                </ul>
+
+                <h3>Infrastructure Security</h3>
+                <ul>
+                    <li><strong>Reverse Proxy:</strong> Use Nginx as reverse proxy with security headers</li>
+                    <li><strong>Firewall Rules:</strong> Restrict access to necessary ports only</li>
+                    <li><strong>Regular Updates:</strong> Keep system and dependencies updated</li>
+                    <li><strong>Monitoring:</strong> Implement logging and monitoring for security events</li>
+                </ul>
+
+                <h3>Data Protection</h3>
+                <div class="alert alert-warning">
+                    <strong>Privacy Compliance:</strong> Ensure compliance with data protection regulations. Implement data retention policies and secure deletion procedures for user data.
+                </div>
+            </section>
+
+            <section id="changelog">
+                <h2>Changelog / Future Work</h2>
+                
+                <h3>Version History</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Version</th>
+                            <th>Date</th>
+                            <th>Changes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1.0.0</td>
+                            <td>2025-08-22</td>
+                            <td>Initial production release with core features</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Planned Improvements</h3>
+                <ul>
+                    <li>Enhanced AI model training for better waste classification accuracy</li>
+                    <li>Real-time dashboard for collection statistics and analytics</li>
+                    <li>Mobile application for collection coordinators</li>
+                    <li>Advanced reporting and environmental impact tracking</li>
+                    <li>Multi-language support for diverse communities</li>
+                </ul>
+            </section>
+
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 EcoBot. Licensed under Apache License 2.0. Making waste management smarter, one message at a time.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -27,7 +27,7 @@ class ImageAnalysisService:
         self.config = get_config()
         self.api_key = os.getenv('UNLI_API_KEY')
         self.base_url = os.getenv('UNLI_BASE_URL', 'https://api.unli.dev/v1')
-        self.model = os.getenv('UNLI_IMAGE_MODEL')
+        self.model = os.getenv('UNLI_MODEL', 'auto')
         
         # Initialize OpenAI client if available
         if OPENAI_AVAILABLE and self.api_key:

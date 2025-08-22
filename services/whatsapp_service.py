@@ -32,12 +32,17 @@ class WhatsAppService:
     def send_message(self, phone_number: str, message: str) -> bool:
         """Send WhatsApp message"""
         try:
-            url = f"{self.base_url}/sendText"
+            url = f"{self.base_url}/api/sendText"
             payload = {
                 'session': self.session_name,
                 'chatId': phone_number,
                 'text': message
             }
+            
+            # Debug logging
+            if self.environment == 'development':
+                self.logger.info(f"Sending message to URL: {url}")
+                self.logger.info(f"Payload: {payload}")
             
             response = requests.post(url, json=payload, headers=self.headers, timeout=30)
             
@@ -46,7 +51,7 @@ class WhatsAppService:
                     self.logger.info(f"Message sent successfully to {phone_number}")
                 return True
             else:
-                self.logger.error(f"Failed to send message: {response.status_code}")
+                self.logger.error(f"Failed to send message: {response.status_code} - Response: {response.text}")
                 return False
                 
         except Exception as e:
