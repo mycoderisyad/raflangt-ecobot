@@ -22,7 +22,14 @@ sys.path.insert(0, str(project_root))
 load_dotenv(project_root / '.env')
 
 app = Flask(__name__)
-app.secret_key = os.getenv('ADMIN_PANEL_SECRET_KEY', 'default-secret-key')
+# Admin panel security configuration
+ADMIN_PANEL_SECRET_KEY = os.getenv('ADMIN_PANEL_SECRET_KEY')
+if not ADMIN_PANEL_SECRET_KEY:
+    logger.error("ADMIN_PANEL_SECRET_KEY not found in environment variables!")
+    logger.error("Please set a secure secret key in your .env file")
+    sys.exit(1)
+
+app.secret_key = ADMIN_PANEL_SECRET_KEY
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -535,9 +542,13 @@ def health():
 if __name__ == '__main__':
     port = int(os.getenv('ADMIN_PANEL_PORT', 3001))
     debug = os.getenv('ENVIRONMENT', 'production') != 'production'
+    environment = os.getenv('ENVIRONMENT', 'production')
     
-    print(f"🚀 EcoBot Admin Panel starting on port {port}")
-    print(f"🔑 Login with credentials from .env file")
-    print(f"🌐 Access: http://localhost:{port}")
+    if environment == 'development':
+        print(f"EcoBot Admin Panel starting on port {port}")
+        print(f"Login with credentials from .env file")
+        print(f"Access: http://localhost:{port}")
+    else:
+        print(f"[INFO] EcoBot Admin Panel started - Port: {port}")
     
     app.run(host='0.0.0.0', port=port, debug=debug)
