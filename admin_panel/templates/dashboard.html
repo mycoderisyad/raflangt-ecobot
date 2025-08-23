@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - EcoBot Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Overview of your EcoBot community</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_users or 0 }}</div>
+        <div class="stat-label">Total Users</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.active_users or 0 }}</div>
+        <div class="stat-label">Active Users</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_messages or 0 }}</div>
+        <div class="stat-label">Messages</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_points or 0 }}</div>
+        <div class="stat-label">Total Points</div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <h3 class="card-title">User Roles</h3>
+        {% if stats.role_distribution %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Role</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for role, count in stats.role_distribution.items() %}
+                <tr>
+                    <td><span class="badge badge-{{ role }}">{{ role.title() }}</span></td>
+                    <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #9b9a97; font-size: 14px;">No data available</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3 class="card-title">Recent Activity</h3>
+        {% if stats.recent_activity %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Messages</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in stats.recent_activity %}
+                <tr>
+                    <td>{{ activity.phone_number.replace('@c.us', '') }}</td>
+                    <td><span class="badge badge-{{ activity.role or 'warga' }}">{{ (activity.role or 'warga').title() }}</span></td>
+                    <td>{{ activity.total_messages or 0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #9b9a97; font-size: 14px;">No recent activity</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h3 class="card-title">Quick Actions</h3>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <a href="{{ url_for('users') }}" class="btn">View Users</a>
+        <a href="{{ url_for('locations') }}" class="btn">Manage Locations</a>
+        <a href="{{ url_for('analytics') }}" class="btn">View Analytics</a>
+        <a href="{{ url_for('settings') }}" class="btn">Settings</a>
+        <button class="btn" onclick="refreshData()">Refresh Data</button>
+    </div>
+</div>
+
+<script>
+function refreshData() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to refresh data');
+        });
+}
+</script>
+
+{% endblock %}

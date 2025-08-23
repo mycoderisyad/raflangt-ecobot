@@ -12,10 +12,11 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #ffffff;
+            color: #37352f;
             line-height: 1.6;
-            color: #333;
-            background-color: #f8f9fa;
+            min-height: 100vh;
         }
 
         .container {
@@ -25,26 +26,29 @@
         }
 
         header {
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            color: white;
-            padding: 2rem 0;
+            border-bottom: 1px solid #e9e9e7;
+            padding: 48px 0;
+            background: #ffffff;
             text-align: center;
         }
 
         h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
+            font-size: 32px;
+            font-weight: 700;
+            color: #37352f;
+            margin-bottom: 8px;
         }
 
         .subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            font-weight: 300;
+            font-size: 16px;
+            color: #6f6e69;
+            font-weight: 400;
         }
 
         nav {
-            background: #34495e;
-            padding: 1rem 0;
+            background: #ffffff;
+            border-bottom: 1px solid #e9e9e7;
+            padding: 0;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -54,184 +58,250 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 2rem;
+            list-style: none;
+            overflow-x: auto;
+        }
+
+        .nav-links li {
+            border-right: 1px solid #e9e9e7;
+        }
+
+        .nav-links li:last-child {
+            border-right: none;
         }
 
         .nav-links a {
-            color: white;
+            display: block;
+            padding: 12px 16px;
+            color: #6f6e69;
             text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            transition: background-color 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.15s ease;
         }
 
         .nav-links a:hover {
-            background-color: #2c3e50;
+            background: #f7f6f3;
+            color: #37352f;
         }
 
         main {
-            background: white;
-            margin: 2rem auto;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: hidden;
+            background: #ffffff;
+            margin: 0;
         }
 
         .content {
-            padding: 3rem;
+            padding: 48px 0;
+        }
+
+        section {
+            margin-bottom: 48px;
         }
 
         h2 {
-            color: #2c3e50;
-            font-size: 2rem;
-            margin: 2rem 0 1rem 0;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 0.5rem;
+            color: #37352f;
+            font-size: 24px;
+            font-weight: 700;
+            margin: 32px 0 16px 0;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e9e9e7;
         }
 
         h3 {
-            color: #34495e;
-            font-size: 1.5rem;
-            margin: 1.5rem 0 1rem 0;
+            color: #37352f;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 24px 0 12px 0;
         }
 
         h4 {
-            color: #5d6d7e;
-            margin: 1rem 0 0.5rem 0;
+            color: #37352f;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 16px 0 8px 0;
+        }
+
+        p {
+            color: #6f6e69;
+            margin-bottom: 16px;
+        }
+
+        ul {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        li {
+            color: #6f6e69;
+            margin-bottom: 8px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 1rem 0;
-            background: #f8f9fa;
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 16px 0;
         }
 
         th, td {
-            padding: 1rem;
+            padding: 12px;
             text-align: left;
-            border: 1px solid #dee2e6;
+            border-bottom: 1px solid #e9e9e7;
+            font-size: 14px;
         }
 
         th {
-            background-color: #e9ecef;
+            background: #f7f6f3;
             font-weight: 600;
-            color: #495057;
+            color: #37352f;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            color: #6f6e69;
+        }
+
+        tr:hover {
+            background: #f7f6f3;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
         }
 
         code {
-            background: #f4f4f4;
-            padding: 0.2rem 0.4rem;
+            background: #f7f6f3;
+            padding: 2px 6px;
             border-radius: 3px;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 0.9rem;
+            font-size: 13px;
+            color: #37352f;
         }
 
         pre {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 1rem;
-            border-radius: 5px;
+            background: #37352f;
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 3px;
             overflow-x: auto;
-            margin: 1rem 0;
+            margin: 16px 0;
         }
 
         pre code {
             background: none;
             padding: 0;
-            color: #ecf0f1;
+            color: #ffffff;
         }
 
         .alert {
-            padding: 1rem;
-            border-radius: 5px;
-            margin: 1rem 0;
+            padding: 16px;
+            border-radius: 3px;
+            margin: 16px 0;
+            font-size: 14px;
+            border-left: 3px solid;
         }
 
         .alert-info {
-            background: #d1ecf1;
-            border-left: 4px solid #17a2b8;
-            color: #0c5460;
+            background: #f0f8ff;
+            color: #0c4a6e;
+            border-left-color: #0ea5e9;
         }
 
         .alert-warning {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            color: #856404;
+            background: #fff8f0;
+            color: #9a3412;
+            border-left-color: #f97316;
         }
 
         .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
         }
 
         .feature-card {
-            background: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 8px;
-            border-left: 4px solid #3498db;
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            padding: 16px;
         }
 
-        .endpoint-table {
-            margin: 1rem 0;
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            background: #37352f;
+            color: #ffffff;
+            text-decoration: none;
+            border: 1px solid #37352f;
+            border-radius: 3px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
 
-        .endpoint-table th {
-            background-color: #2c3e50;
-            color: white;
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .status-public {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-auth {
-            background: #fff3cd;
-            color: #856404;
+        .btn:hover {
+            background: #2f2d29;
+            border-color: #2f2d29;
         }
 
         footer {
-            background: #2c3e50;
-            color: white;
+            background: #f7f6f3;
+            border-top: 1px solid #e9e9e7;
+            color: #6f6e69;
             text-align: center;
-            padding: 2rem 0;
-            margin-top: 3rem;
+            padding: 48px 0;
         }
 
         @media (max-width: 768px) {
             .container {
-                padding: 0 15px;
+                padding: 0 12px;
+            }
+            
+            header {
+                padding: 32px 0;
             }
             
             h1 {
-                font-size: 2rem;
+                font-size: 24px;
             }
             
             .content {
-                padding: 2rem 1.5rem;
+                padding: 32px 0;
             }
             
             .nav-links {
                 flex-direction: column;
-                gap: 0.5rem;
+            }
+            
+            .nav-links li {
+                border-right: none;
+                border-bottom: 1px solid #e9e9e7;
+            }
+            
+            .nav-links li:last-child {
+                border-bottom: none;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
             }
             
             table {
-                font-size: 0.9rem;
+                font-size: 12px;
             }
             
             th, td {
-                padding: 0.75rem 0.5rem;
+                padding: 8px;
             }
         }
     </style>
@@ -246,18 +316,19 @@
 
     <nav>
         <div class="container">
-            <div class="nav-links">
-                <a href="#introduction">Introduction</a>
-                <a href="#use-cases">Use Cases</a>
-                <a href="#features">Features</a>
-                <a href="#overview">System Overview</a>
-                <a href="#getting-started">Getting Started</a>
-                <a href="#configuration">Configuration</a>
-                <a href="#api">API Documentation</a>
-                <a href="#usage">Usage Examples</a>
-                <a href="#deployment">Deployment</a>
-                <a href="#security">Security</a>
-            </div>
+            <ul class="nav-links">
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#use-cases">Use Cases</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#overview">System Overview</a></li>
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+                <li><a href="#api">API Documentation</a></li>
+                <li><a href="#usage">Usage Examples</a></li>
+                <li><a href="#deployment">Deployment</a></li>
+                <li><a href="#security">Security</a></li>
+                <li><a href="https://wa.me/6287875366731" target="_blank" rel="noopener">Contact Bot</a></li>
+            </ul>
         </div>
     </nav>
 
@@ -469,7 +540,7 @@ gunicorn -w 4 -b 0.0.0.0:8000 'main:create_app("production")'</code></pre>
                         <tr>
                             <td>Production</td>
                             <td>https://ecobot.rafgt.my.id</td>
-                            <td>Live production environment</td>
+                            <td>Live production environment (public access to health & public endpoints only)</td>
                         </tr>
                         <tr>
                             <td>Development</td>
@@ -479,49 +550,17 @@ gunicorn -w 4 -b 0.0.0.0:8000 'main:create_app("production")'</code></pre>
                     </tbody>
                 </table>
 
-                <h3>API Endpoints</h3>
-                <table class="endpoint-table">
-                    <thead>
-                        <tr>
-                            <th>Path</th>
-                            <th>Method</th>
-                            <th>Description</th>
-                            <th>Authentication</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>/</code></td>
-                            <td>GET</td>
-                            <td>Root endpoint and health check</td>
-                            <td><span class="status-badge status-public">Public</span></td>
-                        </tr>
-                        <tr>
-                            <td><code>/health</code></td>
-                            <td>GET</td>
-                            <td>Detailed health check with system status</td>
-                            <td><span class="status-badge status-public">Public</span></td>
-                        </tr>
-                        <tr>
-                            <td><code>/webhook</code></td>
-                            <td>POST</td>
-                            <td>WhatsApp webhook for incoming messages</td>
-                            <td><span class="status-badge status-auth">API Key</span></td>
-                        </tr>
-                        <tr>
-                            <td><code>/users</code></td>
-                            <td>GET</td>
-                            <td>List registered users</td>
-                            <td><span class="status-badge status-auth">Admin</span></td>
-                        </tr>
-                        <tr>
-                            <td><code>/collection-points</code></td>
-                            <td>GET</td>
-                            <td>Get waste collection points</td>
-                            <td><span class="status-badge status-public">Public</span></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="alert alert-warning">
+                    <strong>Access control:</strong> Sensitive or administrative API endpoints are not published in the public documentation for security reasons. If you need programmatic access to the private API (for integrations or administrative tasks), request access using the button below. Access is granted only after verification and will use API keys, OAuth, or other authentication methods.
+                </div>
+
+                <p style="margin-top:1rem">
+                    Public endpoints (for users and health checks) remain reachable and are documented in the SDK or by request. To request API credentials or see the full API reference, click the button below to contact the bot/maintainer.
+                </p>
+
+                <p style="margin:20px 0">
+                    <a class="btn" href="https://wa.me/6287875366731" target="_blank" rel="noopener">Request API Access via WhatsApp</a>
+                </p>
 
                 <h3>Response Examples</h3>
                 
@@ -544,6 +583,35 @@ gunicorn -w 4 -b 0.0.0.0:8000 'main:create_app("production")'</code></pre>
     }
 }</code></pre>
             </section>
+
+            <!-- Contact / CTA floating button -->
+            <div aria-hidden="false">
+                <style>
+                    .whatsapp-fab {
+                        position: fixed;
+                        right: 20px;
+                        bottom: 20px;
+                        background: #37352f;
+                        color: #ffffff;
+                        width: 48px;
+                        height: 48px;
+                        border-radius: 3px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        text-decoration: none;
+                        z-index: 200;
+                        border: 1px solid #e9e9e7;
+                        font-size: 12px;
+                        font-weight: 500;
+                        transition: all 0.15s ease;
+                    }
+                    .whatsapp-fab:hover {
+                        background: #2f2d29;
+                    }
+                </style>
+                <a class="whatsapp-fab" href="https://wa.me/6287875366731" target="_blank" rel="noopener" aria-label="Chat with EcoBot on WhatsApp">WA</a>
+            </div>
 
             <section id="usage">
                 <h2>Usage Examples</h2>

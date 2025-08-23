@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Users - EcoBot Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Users</h1>
+    <p class="page-subtitle">Manage community members</p>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 class="card-title">User List ({{ users|length }} users)</h3>
+        <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('create_user') }}" class="btn btn-primary">Add User</a>
+            <button class="btn" onclick="exportUsers()">Export CSV</button>
+        </div>
+    </div>
+
+    {% if users %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Phone Number</th>
+                    <th>Role</th>
+                    <th>Points</th>
+                    <th>Messages</th>
+                    <th>Images</th>
+                    <th>Status</th>
+                    <th>Last Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.phone_number.replace('@c.us', '') if user.phone_number else 'N/A' }}</td>
+                    <td><span class="badge badge-{{ user.role or 'warga' }}">{{ (user.role or 'warga').title() }}</span></td>
+                    <td>{{ user.points or 0 }}</td>
+                    <td>{{ user.total_messages or 0 }}</td>
+                    <td>{{ user.total_images or 0 }}</td>
+                    <td>
+                        {% if user.is_active == 1 %}
+                            <span class="badge" style="background: #f0f9f0; color: #28a745;">Active</span>
+                        {% else %}
+                            <span class="badge" style="background: #fdf2f2; color: #dc3545;">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.last_active or 'Never' }}</td>
+                    <td>
+                        <div style="display: flex; gap: 4px;">
+                            <a href="{{ url_for('edit_user', phone_number=user.phone_number) }}" 
+                               class="btn" style="padding: 4px 8px; font-size: 12px;">Edit</a>
+                            <form method="POST" action="{{ url_for('delete_user', phone_number=user.phone_number) }}" 
+                                  style="display: inline;" 
+                                  onsubmit="return confirm('Are you sure you want to delete this user?')">
+                                <button type="submit" class="btn" 
+                                        style="padding: 4px 8px; font-size: 12px; background: #fdf2f2; color: #dc3545; border-color: #dc3545;">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 48px; color: #9b9a97;">
+        <p>No users found</p>
+        <p style="font-size: 12px; margin-top: 8px;">Users will appear here once they interact with the bot</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- User Statistics -->
+<div class="grid-3">
+    <div class="card">
+        <h3 class="card-title">Admin Users</h3>
+        <div class="stat-number">{{ users|selectattr("role", "equalto", "admin")|list|length }}</div>
+        <div class="stat-label">System Administrators</div>
+    </div>
+    
+    <div class="card">
+        <h3 class="card-title">Koordinator</h3>
+        <div class="stat-number">{{ users|selectattr("role", "equalto", "koordinator")|list|length }}</div>
+        <div class="stat-label">Community Coordinators</div>
+    </div>
+    
+    <div class="card">
+        <h3 class="card-title">Warga</h3>
+        <div class="stat-number">{{ users|selectattr("role", "equalto", "warga")|list|length + users|rejectattr("role")|list|length }}</div>
+        <div class="stat-label">Community Members</div>
+    </div>
+</div>
+
+<script>
+function exportUsers() {
+    // Simple CSV export
+    let csv = "Phone Number,Role,Points,Messages,Images,Status,Last Active\n";
+    
+    {% for user in users %}
+    csv += "{{ user.phone_number.replace('@c.us', '') if user.phone_number else 'N/A' }}," +
+           "{{ (user.role or 'warga').title() }}," +
+           "{{ user.points or 0 }}," +
+           "{{ user.total_messages or 0 }}," +
+           "{{ user.total_images or 0 }}," +
+           "{{ 'Active' if user.is_active == 1 else 'Inactive' }}," +
+           "{{ user.last_active or 'Never' }}\n";
+    {% endfor %}
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ecobot-users-' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+
+{% endblock %}

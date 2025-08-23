@@ -7,6 +7,15 @@ import logging
 from flask import Blueprint, jsonify
 from database.models.base import DatabaseManager
 from database.models.collection import CollectionPointModel
+# If some collection point endpoints should be restricted (e.g. create/update/delete or
+# private data), use the require_api_key decorator from core.api_key_auth:
+# from core.api_key_auth import require_api_key
+#
+# Example (commented):
+# @collection_points_bp.route('/collection-points/<point_id>', methods=['GET'])
+# @require_api_key
+# def get_collection_point(point_id):
+#     ...
 
 # Create blueprint
 collection_points_bp = Blueprint('collection_points', __name__, url_prefix='/api')

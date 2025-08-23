@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - EcoBot Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Analytics & Reports</h1>
+    <p class="page-subtitle">Detailed insights into your EcoBot community</p>
+</div>
+
+<!-- Key Metrics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_users or 0 }}</div>
+        <div class="stat-label">Total Users</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.active_users or 0 }}</div>
+        <div class="stat-label">Active Users</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_messages or 0 }}</div>
+        <div class="stat-label">Total Messages</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_images or 0 }}</div>
+        <div class="stat-label">Images Processed</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_points or 0 }}</div>
+        <div class="stat-label">Total Points</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number">{{ "%.1f"|format((stats.active_users or 0) / (stats.total_users or 1) * 100) }}%</div>
+        <div class="stat-label">Engagement Rate</div>
+    </div>
+</div>
+
+<!-- Data Tables -->
+<div class="grid-2">
+    <div class="card">
+        <h3 class="card-title">Monthly Statistics</h3>
+        {% if monthly_stats %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>New Users</th>
+                    <th>Messages</th>
+                    <th>Images</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in monthly_stats %}
+                <tr>
+                    <td style="font-weight: 500;">{{ stat.month or 'N/A' }}</td>
+                    <td>{{ stat.new_users or 0 }}</td>
+                    <td>{{ stat.messages or 0 }}</td>
+                    <td>{{ stat.images or 0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #9b9a97; text-align: center; padding: 24px;">No monthly data available</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3 class="card-title">Top Contributors</h3>
+        {% if top_users %}
+        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto;">
+            {% for user in top_users %}
+            <div style="padding: 12px; background: #f7f6f3; border-radius: 3px; border: 1px solid #e9e9e7;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-weight: 500; font-size: 14px; color: #37352f;">
+                        {{ user.phone_number.replace('@c.us', '') if user.phone_number else 'Unknown' }}
+                    </span>
+                    <span class="badge badge-{{ user.role or 'warga' }}">{{ (user.role or 'warga').title() }}</span>
+                </div>
+                <div style="font-size: 12px; color: #6f6e69; display: flex; gap: 16px;">
+                    <span>{{ user.points or 0 }} points</span>
+                    <span>{{ user.total_messages or 0 }} messages</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color: #9b9a97; text-align: center; padding: 24px;">No user data available</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Performance Insights -->
+<div class="card">
+    <h3 class="card-title">Performance Insights</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+        <div style="padding: 16px; background: #f7f6f3; border-radius: 3px; border: 1px solid #e9e9e7;">
+            <div style="font-size: 14px; font-weight: 500; color: #37352f; margin-bottom: 8px;">User Engagement</div>
+            <div style="font-size: 24px; font-weight: 700; color: #37352f; margin-bottom: 4px;">
+                {{ "%.1f"|format((stats.active_users or 0) / (stats.total_users or 1) * 100) }}%
+            </div>
+            <div style="font-size: 12px; color: #6f6e69;">
+                {{ stats.active_users or 0 }} of {{ stats.total_users or 0 }} users are active
+            </div>
+        </div>
+        
+        <div style="padding: 16px; background: #f7f6f3; border-radius: 3px; border: 1px solid #e9e9e7;">
+            <div style="font-size: 14px; font-weight: 500; color: #37352f; margin-bottom: 8px;">Avg. Messages per User</div>
+            <div style="font-size: 24px; font-weight: 700; color: #37352f; margin-bottom: 4px;">
+                {{ "%.1f"|format((stats.total_messages or 0) / (stats.total_users or 1)) }}
+            </div>
+            <div style="font-size: 12px; color: #6f6e69;">Messages sent per registered user</div>
+        </div>
+        
+        <div style="padding: 16px; background: #f7f6f3; border-radius: 3px; border: 1px solid #e9e9e7;">
+            <div style="font-size: 14px; font-weight: 500; color: #37352f; margin-bottom: 8px;">Image Processing Rate</div>
+            <div style="font-size: 24px; font-weight: 700; color: #37352f; margin-bottom: 4px;">
+                {{ "%.1f"|format((stats.total_images or 0) / (stats.total_messages or 1) * 100) }}%
+            </div>
+            <div style="font-size: 12px; color: #6f6e69;">Of messages contain images</div>
+        </div>
+        
+        <div style="padding: 16px; background: #f7f6f3; border-radius: 3px; border: 1px solid #e9e9e7;">
+            <div style="font-size: 14px; font-weight: 500; color: #37352f; margin-bottom: 8px;">Avg. Points per User</div>
+            <div style="font-size: 24px; font-weight: 700; color: #37352f; margin-bottom: 4px;">
+                {{ "%.0f"|format((stats.total_points or 0) / (stats.total_users or 1)) }}
+            </div>
+            <div style="font-size: 12px; color: #6f6e69;">Points earned per user</div>
+        </div>
+    </div>
+</div>
+
+<!-- Export and Actions -->
+<div class="card">
+    <h3 class="card-title">Actions</h3>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button class="btn" onclick="refreshData()">Refresh Data</button>
+        <button class="btn btn-primary" onclick="exportReport()">Export Report</button>
+        <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+    </div>
+</div>
+
+<script>
+function refreshData() {
+    location.reload();
+}
+
+function exportReport() {
+    // Create a simple CSV report
+    let csv = "EcoBot Analytics Report - Generated on " + new Date().toLocaleString() + "\n\n";
+    
+    csv += "OVERVIEW\n";
+    csv += "Total Users,{{ stats.total_users or 0 }}\n";
+    csv += "Active Users,{{ stats.active_users or 0 }}\n";
+    csv += "Total Messages,{{ stats.total_messages or 0 }}\n";
+    csv += "Total Images,{{ stats.total_images or 0 }}\n";
+    csv += "Total Points,{{ stats.total_points or 0 }}\n";
+    csv += "Engagement Rate,{{ '%.1f'|format((stats.active_users or 0) / (stats.total_users or 1) * 100) }}%\n\n";
+    
+    {% if monthly_stats %}
+    csv += "MONTHLY STATISTICS\n";
+    csv += "Month,New Users,Messages,Images\n";
+    {% for stat in monthly_stats %}
+    csv += "{{ stat.month }},{{ stat.new_users or 0 }},{{ stat.messages or 0 }},{{ stat.images or 0 }}\n";
+    {% endfor %}
+    csv += "\n";
+    {% endif %}
+    
+    {% if top_users %}
+    csv += "TOP CONTRIBUTORS\n";
+    csv += "Phone Number,Role,Points,Messages\n";
+    {% for user in top_users %}
+    csv += "{{ user.phone_number.replace('@c.us', '') if user.phone_number else 'Unknown' }},{{ (user.role or 'warga').title() }},{{ user.points or 0 }},{{ user.total_messages or 0 }}\n";
+    {% endfor %}
+    {% endif %}
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ecobot-analytics-report-' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Show success message
+    alert('Analytics report exported successfully!');
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if action == 'create' %}Create User{% else %}Edit User{% endif %} - EcoBot Admin
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        {% if action == 'create' %}Create New User{% else %}Edit User{% endif %}
+    </h1>
+    <p class="page-subtitle">Manage user accounts and permissions</p>
+</div>
+
+<div class="card">
+    <form method="POST">
+        {% if action == 'create' %}
+        <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="text" class="form-input" name="phone_number" id="phone_number" 
+                   placeholder="e.g., 628123456789@c.us" required>
+            <div style="font-size: 12px; color: #6f6e69; margin-top: 4px;">
+                Format: country code + number + @c.us (e.g., 628123456789@c.us)
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label class="form-label">Role</label>
+            <select class="form-input" name="role" id="role" required>
+                <option value="">Select Role</option>
+                <option value="admin" {{ 'selected' if user and user.role == 'admin' else '' }}>Admin</option>
+                <option value="koordinator" {{ 'selected' if user and user.role == 'koordinator' else '' }}>Koordinator</option>
+                <option value="warga" {{ 'selected' if user and user.role == 'warga' else '' }}>Warga</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Points</label>
+            <input type="number" class="form-input" name="points" 
+                   value="{{ user.points if user else 0 }}" min="0">
+            <div style="font-size: 12px; color: #6f6e69; margin-top: 4px;">
+                Reward points earned by the user
+            </div>
+        </div>
+
+        {% if action == 'edit' %}
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="is_active" {{ 'checked' if user and user.is_active == 1 else '' }}>
+                <span class="form-label" style="margin-bottom: 0;">Active User</span>
+            </label>
+            <div style="font-size: 12px; color: #6f6e69; margin-top: 4px;">
+                Inactive users cannot interact with the bot
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="submit" class="btn btn-primary">
+                {% if action == 'create' %}Create User{% else %}Update User{% endif %}
+            </button>
+            <a href="{{ url_for('users') }}" class="btn">Cancel</a>
+            {% if action == 'edit' and user %}
+            <button 
+                type="button" 
+                class="btn" 
+                onclick="deleteUser('{{ user.phone_number }}')"
+                style="margin-left: auto; background: #fdf2f2; color: #dc3545; border-color: #f5c6cb;"
+            >
+                Delete User
+            </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% if action == 'edit' and user %}
+<div class="card">
+    <h3 class="card-title">User Statistics</h3>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ user.total_messages or 0 }}</div>
+            <div class="stat-label">Total Messages</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number">{{ user.total_images or 0 }}</div>
+            <div class="stat-label">Images Sent</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number">{{ user.points or 0 }}</div>
+            <div class="stat-label">Points Earned</div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 16px; padding: 12px; background: #f7f6f3; border-radius: 3px;">
+        <div style="font-size: 12px; color: #6f6e69; margin-bottom: 4px;">Account Information</div>
+        <div style="font-size: 14px; color: #37352f;">
+            <strong>First Seen:</strong> {{ user.first_seen or 'Unknown' }}<br>
+            <strong>Last Active:</strong> {{ user.last_active or 'Never' }}<br>
+            <strong>Status:</strong> 
+            {% if user.is_active == 1 %}
+                <span class="badge badge-warga">Active</span>
+            {% else %}
+                <span class="badge" style="background: #fdf2f2; color: #dc3545;">Inactive</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function deleteUser(phoneNumber) {
+    if (confirm('Are you sure you want to delete this user?\n\nThis action cannot be undone and will remove all user data.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("delete_user", phone_number="PHONE_PLACEHOLDER") }}'.replace('PHONE_PLACEHOLDER', encodeURIComponent(phoneNumber));
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Form validation and auto-formatting
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const phoneInput = document.getElementById('phone_number');
+    
+    {% if action == 'create' %}
+    // Auto-focus phone input for create form
+    phoneInput.focus();
+    
+    // Auto-format phone number
+    phoneInput.addEventListener('input', function(e) {
+        let value = e.target.value;
+        
+        // Remove any existing @c.us suffix for editing
+        value = value.replace('@c.us', '');
+        
+        // Remove any non-digit characters except for the initial '+'
+        if (value.startsWith('+')) {
+            value = '+' + value.slice(1).replace(/\D/g, '');
+        } else {
+            value = value.replace(/\D/g, '');
+        }
+        
+        // Update the input value
+        e.target.value = value;
+    });
+    
+    // Ensure @c.us suffix on form submission
+    form.addEventListener('submit', function(e) {
+        let phoneValue = phoneInput.value.trim();
+        
+        if (phoneValue && !phoneValue.endsWith('@c.us')) {
+            phoneInput.value = phoneValue + '@c.us';
+        }
+        
+        // Basic validation
+        if (phoneValue && !phoneValue.match(/^\+?[1-9]\d{1,14}@c\.us$/)) {
+            e.preventDefault();
+            alert('Please enter a valid phone number.\n\nExample: 628123456789@c.us');
+            phoneInput.focus();
+            return false;
+        }
+    });
+    {% else %}
+    // Focus role input for edit form
+    document.getElementById('role').focus();
+    {% endif %}
+});
+</script>
+
+{% endblock %}
