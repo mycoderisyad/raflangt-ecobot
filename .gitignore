@@ -1,167 +1,287 @@
-# EcoBot - Clean Gitignore for Microservice Architecture
+# ============================================================================
+# EcoBot - Production-Ready Gitignore
+# ============================================================================
 
+# ============================================================================
+# Environment & Configuration
+# ============================================================================
+.env
+.env.*
+!.env.example
+
+# ============================================================================
 # Python
+# ============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-
-# Environment
-.env
-.env.local
-.env.production
-.env.development
-
-# Database
-*.db
-*.sqlite3
-database/*.db
-
-# Logs
-logs/*.log
-*.log
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Dependencies
-node_modules/
-.pip-cache/
-
-# Build
+*.egg-info/
 dist/
 build/
-*.egg-info/
+.pip-cache/
 
-# Test coverage
-htmlcov/
-.coverage
-.pytest_cache/
-
-# Temporary files
-*.tmp
-*.temp
-temp/
-
-# Production specific
-/var/log/ecobot/
-*.pid
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
+# Virtual environments
+.venv/
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# Python testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
 
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
+# Type checkers
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Pyre type checker
 .pyre/
 
-# Database files
+# ============================================================================
+# Database Files
+# ============================================================================
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+database/*.db
+!database/schema.sql
+!database/dummy_data.sql
 
-# Logs
+# ============================================================================
+# Logs & Temporary Files
+# ============================================================================
 logs/
 *.log
+*.tmp
+*.temp
+temp/
+*.pid
 
-# IDE
+# ============================================================================
+# IDE & Editors
+# ============================================================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
+# Vim
+*.un~
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# ============================================================================
+# Operating System
+# ============================================================================
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
+.AppleDouble
+.LSOverride
+
+# Windows
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
 
-# Production specific
-.env.production
-.env.local
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
 
-# Backup files
+# ============================================================================
+# Web Development
+# ============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# ============================================================================
+# Flask Specific
+# ============================================================================
+instance/
+.webassets-cache
+flask_session/
+
+# ============================================================================
+# Media & Uploads
+# ============================================================================
+uploads/
+media/temp/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.svg
+!static/assets/**/*
+
+# ============================================================================
+# Documentation
+# ============================================================================
+docs/_build/
+*.pdf
+!docs/**/*.pdf
+site/
+
+# ============================================================================
+# Backup & Archives
+# ============================================================================
 *.bak
 *.backup
-*~
+*.old
+*.orig
+*.save
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
 
-# Temporary files
-tmp/
-temp/
-*.tmp
+# ============================================================================
+# Production & Deployment
+# ============================================================================
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
+
+# Process management
+*.pid
+*.seed
+*.pid.lock
+
+# Runtime data
+pids/
+*.sock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# ============================================================================
+# Jupyter Notebook
+# ============================================================================
+.ipynb_checkpoints
+
+# ============================================================================
+# pyenv
+# ============================================================================
+.python-version
+
+# ============================================================================
+# Celery
+# ============================================================================
+celerybeat-schedule
+celerybeat.pid
+
+# ============================================================================
+# SageMath
+# ============================================================================
+*.sage.py
+
+# ============================================================================
+# Rope
+# ============================================================================
+.ropeproject
+
+# ============================================================================
+# mkdocs
+# ============================================================================
+/site
+
+# ============================================================================
+# Scrapy
+# ============================================================================
+.scrapy
+
+# ============================================================================
+# Sphinx
+# ============================================================================
+docs/_build/
+
+# ============================================================================
+# PyBuilder
+# ============================================================================
+target/
+
+# ============================================================================
+# Pipenv
+# ============================================================================
+Pipfile.lock
+
+# ============================================================================
+# PEP 582
+# ============================================================================
+__pypackages__/
+
+# ============================================================================
+# IPython
+# ============================================================================
+profile_default/
+ipython_config.py
+
+# ============================================================================
+# Spyder
+# ============================================================================
+.spyderproject
+.spyproject
+
+# ============================================================================
+# End of Gitignore
+# ============================================================================

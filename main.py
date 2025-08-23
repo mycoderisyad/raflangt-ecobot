@@ -25,31 +25,42 @@ def setup_logging(environment: str = 'development'):
     log_dir = Path(__file__).parent / 'logs'
     log_dir.mkdir(exist_ok=True)
     
-    # Production logging: minimal, errors only to file
+    # Production logging: structured, minimal, errors to file
     if environment == 'production':
         logging.basicConfig(
-            level=logging.ERROR,
-            format='%(asctime)s - %(levelname)s - %(message)s',
+            level=logging.WARNING,
+            format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
             handlers=[
-                logging.FileHandler(log_dir / 'app.log'),
+                logging.FileHandler(log_dir / 'ecobot.log'),
+                logging.StreamHandler(sys.stdout)  # Keep minimal console output for monitoring
             ]
         )
-        # Disable debug logging for production
+        # Production: only log errors and warnings from external libraries
         logging.getLogger('werkzeug').setLevel(logging.ERROR)
         logging.getLogger('urllib3').setLevel(logging.ERROR)
+        logging.getLogger('requests').setLevel(logging.ERROR)
+        
+        # Create separate error log for critical issues
+        error_handler = logging.FileHandler(log_dir / 'error.log')
+        error_handler.setLevel(logging.ERROR)
+        error_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s')
+        error_handler.setFormatter(error_formatter)
+        logging.getLogger().addHandler(error_handler)
+        
     else:
-        # Development logging: detailed, includes console output
+        # Development logging: detailed, includes debug info
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            format='%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s',
             handlers=[
-                logging.FileHandler(log_dir / 'app.log'),
+                logging.FileHandler(log_dir / 'ecobot.log'),
                 logging.StreamHandler(sys.stdout)
             ]
         )
-        # Reduce noise from external libraries
+        # Development: reduce noise from external libraries but keep some info
         logging.getLogger('werkzeug').setLevel(logging.WARNING)
         logging.getLogger('urllib3').setLevel(logging.WARNING)
+        logging.getLogger('requests').setLevel(logging.INFO)
 
 
 def create_app(environment: str = None) -> Flask:
@@ -90,15 +101,15 @@ def show_startup_info(app_config, port: int):
     """Show application startup information"""
     if app_config.environment == 'development':
         print("=" * 50)
-        print("🤖 EcoBot - Waste Management Assistant")
+        print("EcoBot - Waste Management Assistant")
         print("=" * 50)
-        print(f"🌍 Environment: {app_config.environment}")
-        print(f"🏘️ Village: {app_config.village_name}")
-        print(f"🚀 Server: http://localhost:{port}")
+        print(f"Environment: {app_config.environment}")
+        print(f"Village: {app_config.village_name}")
+        print(f"Server: http://localhost:{port}")
         print("-" * 50)
     else:
-        # Production: minimal console output
-        print(f"EcoBot started - Environment: {app_config.environment} - Port: {port}")
+        # Production: minimal structured output
+        print(f"[INFO] EcoBot started - Environment: {app_config.environment} - Port: {port}")
 
 
 def run_application(environment: str = 'development'):
@@ -158,14 +169,14 @@ Examples:
         run_application(environment)
     except KeyboardInterrupt:
         if environment == 'development':
-            print("\n👋 EcoBot stopped")
+            print("\nEcoBot stopped")
         else:
-            print("EcoBot stopped")
+            print("[INFO] EcoBot stopped")
     except Exception as e:
         if environment == 'development':
-            print(f"❌ Error: {str(e)}")
-        else:
             print(f"Error: {str(e)}")
+        else:
+            print(f"[ERROR] EcoBot startup failed: {str(e)}")
         sys.exit(1)
 
 

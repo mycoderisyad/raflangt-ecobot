@@ -79,7 +79,7 @@ class ConfigManager:
                 webhook_url=os.getenv('WEBHOOK_URL', 'http://localhost:5001/webhook')
             ),
             'ai': AIConfig(
-                enabled=self.environment == 'production',
+                enabled=os.getenv('AI_ENABLED', 'true' if self.environment == 'production' else 'false').lower() == 'true',
                 api_key=os.getenv('LUNOS_API_KEY'),
                 base_url=os.getenv('LUNOS_BASE_URL'),
                 text_model=os.getenv('LUNOS_TEXT_MODEL'),
@@ -93,12 +93,12 @@ class ConfigManager:
             ),
             'maps': MapsConfig(
                 api_key=os.getenv('GOOGLE_MAPS_API_KEY', ''),
-                enabled=self.environment == 'production'
+                enabled=os.getenv('MAPS_ENABLED', 'true' if self.environment == 'production' else 'false').lower() == 'true'
             ),
             'app': AppConfig(
                 name=os.getenv('APP_NAME', 'EcoBot'),
                 version=os.getenv('APP_VERSION', '1.0.0'),
-                debug=self.environment == 'development',
+                debug=os.getenv('DEBUG', 'true' if self.environment == 'development' else 'false').lower() == 'true',
                 environment=self.environment,
                 village_name=os.getenv('VILLAGE_NAME', 'Desa Cukangkawung'),
                 village_coordinates=os.getenv('VILLAGE_COORDINATES', '-6.2088,106.8456'),
