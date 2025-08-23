@@ -21,6 +21,10 @@ sys.path.insert(0, str(project_root))
 # Load environment variables
 load_dotenv(project_root / '.env')
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 # Admin panel security configuration
 ADMIN_PANEL_SECRET_KEY = os.getenv('ADMIN_PANEL_SECRET_KEY')
@@ -30,10 +34,6 @@ if not ADMIN_PANEL_SECRET_KEY:
     sys.exit(1)
 
 app.secret_key = ADMIN_PANEL_SECRET_KEY
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Admin credentials from .env
 ADMIN_USERNAME = os.getenv('ADMIN_PANEL_USERNAME', 'admin')
