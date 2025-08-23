@@ -98,7 +98,7 @@ class TextAIService:
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_message}
             ],
-            'max_tokens': 400,
+            'max_tokens': 700,
             'temperature': 0.7
         }
         
@@ -310,6 +310,6 @@ Respon yang lebih natural:"""
                 'Location-based',
                 'Schedule-based'
             ],
-            'max_tokens': 400,
+            'max_tokens': 700,
             'use_ai': self.use_ai
         }

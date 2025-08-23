@@ -136,7 +136,7 @@ Klasifikasikan jenis sampah dalam gambar ini dengan akurat. Berikan response dal
                                 ]
                             }
                         ],
-                        max_tokens=300,
+                        max_tokens=700,
                         temperature=0.1
                     )
                     content = response.choices[0].message.content.strip()
@@ -161,7 +161,7 @@ Klasifikasikan jenis sampah dalam gambar ini dengan akurat. Berikan response dal
                                 ]
                             }
                         ],
-                        "max_tokens": 300,
+                        "max_tokens": 700,
                         "temperature": 0.1
                     }
                     
