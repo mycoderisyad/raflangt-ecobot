@@ -23,8 +23,8 @@ EcoBot is a professional Python Flask-based backend system designed to revolutio
 | **Backend Framework** | Flask + Python 3.10+ | REST API and business logic |
 | **Database** | SQLite | User data and application state |
 | **WhatsApp API** | WAHA Integration | Message handling and webhook processing |
-| **AI Services** | Lunos.tech & Unli.dev | Waste classification and NLP |
-| **Email Service** | Mailry.co | Automated notifications |
+| **AI Services** | [Lunos.tech](https://lunos.tech/) & [Unli.dev](https://unli.dev/) | Waste classification and NLP |
+| **Email Service** | [Mailry.co](https://mailry.co/) | Automated notifications |
 | **Web Server** | Gunicorn + Nginx | Production deployment |
 | **Admin Panel** | Flask + Jinja2 | Web-based administration interface |
 
@@ -35,7 +35,7 @@ EcoBot is a professional Python Flask-based backend system designed to revolutio
 - Python 3.10 or higher
 - pip (Python package installer)
 - Virtual environment (recommended)
-- Valid API keys for WAHA, Lunos.tech, and Mailry.co services
+- Valid API keys for WAHA, [Lunos.tech](https://lunos.tech/), and [Mailry.co](https://mailry.co/) services
 
 ### Installation
 
@@ -129,6 +129,171 @@ DATABASE_PATH=database/ecobot.db
 2. **Waste Classification**: Users send images for AI-powered waste identification
 3. **Collection Coordination**: System provides collection schedules and locations
 4. **Analytics**: Administrators monitor usage and environmental impact
+
+## WhatsApp Bot Commands
+
+### User Registration Commands
+
+| Command | Description | Example |
+|---------|-------------|----------|
+| `daftar` | Start user registration process | `daftar` |
+| `register` | Alternative registration command | `register` |
+
+### Information Commands
+
+| Command | Description | Example |
+|---------|-------------|----------|
+| `info` | Get general information about EcoBot | `info` |
+| `help` | Show available commands and help | `help` |
+| `bantuan` | Show help in Indonesian | `bantuan` |
+| `jadwal` | Get waste collection schedule | `jadwal` |
+| `lokasi` | Find nearest collection points | `lokasi` |
+| `tps` | Find nearest TPS (Tempat Pembuangan Sementara) | `tps` |
+
+### Waste Classification Commands
+
+| Command | Description | Example |
+|---------|-------------|----------|
+| Send image | Upload waste image for classification | *[Send photo]* |
+| `klasifikasi` | Request waste classification help | `klasifikasi` |
+| `jenis sampah` | Learn about waste types | `jenis sampah` |
+| `cara buang` | Get disposal instructions | `cara buang plastik` |
+
+### Points and Rewards Commands
+
+| Command | Description | Example |
+|---------|-------------|----------|
+| `poin` | Check current points balance | `poin` |
+| `point` | Alternative points check command | `point` |
+| `saldo` | Check points balance | `saldo` |
+| `riwayat` | View points history | `riwayat` |
+
+### Educational Commands
+
+| Command | Description | Example |
+|---------|-------------|----------|
+| `edukasi` | Get environmental education content | `edukasi` |
+| `tips` | Get waste management tips | `tips` |
+| `daur ulang` | Learn about recycling | `daur ulang` |
+| `lingkungan` | Environmental facts and tips | `lingkungan` |
+
+### Status and Profile Commands
+
+| Command | Description | Example |
+|---------|-------------|----------|
+| `profil` | View user profile information | `profil` |
+| `status` | Check account status | `status` |
+| `statistik` | View personal waste management stats | `statistik` |
+
+### Admin Commands (Coordinators and Admins only)
+
+| Command | Description | Example |
+|---------|-------------|----------|
+| `admin` | Access admin functions | `admin` |
+| `laporan` | Generate reports | `laporan` |
+| `broadcast` | Send broadcast message | `broadcast [message]` |
+| `user list` | List registered users | `user list` |
+
+### General Interaction
+
+| Input Type | Description | Bot Response |
+|------------|-------------|---------------|
+| **Text Message** | General questions about waste | AI-powered response with guidance |
+| **Image** | Photo of waste item | Automatic classification and disposal instructions |
+| **Location** | Share location | Nearest collection points and schedule |
+| **Contact** | Share contact | Add to user profile for notifications |
+
+### Response Examples
+
+**Registration Flow:**
+```
+User: daftar
+Bot: Silakan masukkan nama lengkap Anda:
+User: John Doe
+Bot: Sekarang masukkan alamat lengkap Anda:
+User: Jl. Merdeka No. 123, Jakarta
+Bot: Registrasi berhasil! Anda terdaftar sebagai warga.
+```
+
+**Waste Classification:**
+```
+User: [sends image of plastic bottle]
+Bot: Sampah terdeteksi: Plastik (PET)
+Cara daur ulang: Kumpulkan di tempat sampah biru
+Lokasi TPS terdekat: TPS Jalan Mawar (0.5 km)
+Jadwal pengambilan: Senin, Rabu, Jumat - 08:00
+```
+
+**Points Check:**
+```
+User: poin
+Bot: Saldo poin Anda: 150 poin
+Total sampah yang sudah didaur ulang: 25 item
+Level: Bronze Recycler
+```
+
+## Command Reference
+
+### Development Commands
+
+| Command | Description |
+|---------|-------------|
+| `python3 main.py` | Start application in development mode |
+| `python3 main.py --production` | Start application in production mode |
+| `pip install -r requirements.txt` | Install project dependencies |
+| `python3 -m venv venv` | Create virtual environment |
+| `source venv/bin/activate` | Activate virtual environment (Linux/Mac) |
+| `venv\Scripts\activate` | Activate virtual environment (Windows) |
+| `deactivate` | Deactivate virtual environment |
+
+### Production Commands
+
+| Command | Description |
+|---------|-------------|
+| `gunicorn -w 4 -b 0.0.0.0:8000 'main:create_app("production")'` | Start with Gunicorn (4 workers) |
+| `sudo systemctl start ecobot` | Start EcoBot service |
+| `sudo systemctl stop ecobot` | Stop EcoBot service |
+| `sudo systemctl restart ecobot` | Restart EcoBot service |
+| `sudo systemctl status ecobot` | Check EcoBot service status |
+| `sudo systemctl enable ecobot` | Enable EcoBot service on boot |
+| `sudo systemctl disable ecobot` | Disable EcoBot service on boot |
+
+### Admin Panel Commands
+
+| Command | Description |
+|---------|-------------|
+| `sudo systemctl start ecobot-admin` | Start admin panel service |
+| `sudo systemctl stop ecobot-admin` | Stop admin panel service |
+| `sudo systemctl restart ecobot-admin` | Restart admin panel service |
+| `sudo systemctl status ecobot-admin` | Check admin panel service status |
+
+### Database Commands
+
+| Command | Description |
+|---------|-------------|
+| `sqlite3 database/ecobot.db` | Access SQLite database directly |
+| `sqlite3 database/ecobot.db ".tables"` | List all database tables |
+| `sqlite3 database/ecobot.db ".schema"` | Show database schema |
+| `sqlite3 database/ecobot.db "SELECT * FROM users;"` | Query users table |
+
+### Log and Monitoring Commands
+
+| Command | Description |
+|---------|-------------|
+| `sudo journalctl -u ecobot -f` | Follow EcoBot service logs |
+| `sudo journalctl -u ecobot-admin -f` | Follow admin panel service logs |
+| `tail -f logs/ecobot.log` | Follow application logs (if file logging enabled) |
+| `curl http://localhost:8000/health` | Check application health status |
+| `curl https://yourdomain.com/health` | Check production health status |
+
+### Nginx Commands
+
+| Command | Description |
+|---------|-------------|
+| `sudo nginx -t` | Test Nginx configuration |
+| `sudo systemctl reload nginx` | Reload Nginx configuration |
+| `sudo systemctl restart nginx` | Restart Nginx service |
+| `sudo systemctl status nginx` | Check Nginx service status |
 
 ## Production Deployment
 
