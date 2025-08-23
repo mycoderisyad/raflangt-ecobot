@@ -11,6 +11,12 @@ openai>=1.0.0
 # Image processing (for AI classification)
 Pillow==10.0.1
 
+# PDF generation for reports
+reportlab==4.0.4
+
+# Cloudflare bypass for email service
+cloudscraper==1.2.71
+
 # Production server
 gunicorn==21.2.0
 

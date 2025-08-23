@@ -5,6 +5,7 @@ Clean microservice-based message processing
 
 import json
 from typing import Dict, Any, Optional
+from datetime import datetime
 from core.config import get_config
 from core.utils import LoggerUtils
 from core.constants import USER_ROLES, COMMAND_MAPPING, FEATURE_STATUS
@@ -185,6 +186,8 @@ class ApplicationHandler:
         # For critical commands, use direct AI queries with specific context
         if handler in ['help']:
             return self._get_help_message(phone_number)
+        elif handler == 'report':
+            return self._handle_report_request(phone_number, user_role)
         elif handler in ['schedule', 'location', 'points', 'statistics']:
             # Try AI response with specific context
             context_message = f"User asking about {handler}: {args or ''}"
@@ -261,7 +264,69 @@ Apa yang bisa saya bantu hari ini? 🌱"""
     
     def _handle_report_request(self, phone_number: str, user_role: str) -> str:
         """Handle report request"""
-        return self.message_service.format_report_response(user_role)
+        if user_role == 'warga':
+            return self.message_service.format_report_response(user_role)
+        
+        # For coordinators and admins, generate and send email report
+        try:
+            from services.email_service import EmailService
+            
+            email_service = EmailService()
+            
+            # Check if email service is configured
+            if not email_service.mailry_api_key:
+                return "Error: Email service tidak dikonfigurasi dengan benar.\n\nSilakan hubungi admin untuk konfigurasi MAILRY_API_KEY."
+            
+            # Generate initial response
+            response = self.message_service.format_report_response(user_role)
+            
+            # Start background report generation
+            import threading
+            
+            def generate_report_async():
+                try:
+                    success = email_service.generate_and_send_report(phone_number)
+                    
+                    if success:
+                        # Send success confirmation
+                        confirmation_msg = f"""✅ LAPORAN BERHASIL DIKIRIM
+
+Laporan PDF telah dikirim ke: {email_service.to_email}
+
+Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M WIB')}
+
+Silakan cek email Anda.
+
+Jika tidak menerima dalam 10 menit, periksa folder spam."""
+                    else:
+                        # Send error message
+                        confirmation_msg = f"""❌ LAPORAN GAGAL DIKIRIM
+
+Terjadi kesalahan saat mengirim laporan.
+
+Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M WIB')}
+
+Silakan coba lagi atau hubungi support."""
+                    
+                    # Send follow-up message
+                    if self.whatsapp_service:
+                        self.whatsapp_service.send_message(phone_number, confirmation_msg)
+                        
+                except Exception as e:
+                    error_msg = f"Error generating report: {str(e)}"
+                    if self.whatsapp_service:
+                        self.whatsapp_service.send_message(phone_number, f"❌ Laporan gagal: {error_msg}")
+            
+            # Start background thread
+            report_thread = threading.Thread(target=generate_report_async)
+            report_thread.daemon = True
+            report_thread.start()
+            
+            return response
+            
+        except Exception as e:
+            return f"Error: {str(e)}"
+    
     
     def _handle_general_conversation(self, message: str) -> str:
         """Handle general conversation"""

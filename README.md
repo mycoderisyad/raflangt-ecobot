@@ -24,7 +24,7 @@ EcoBot is a professional Python Flask-based backend system designed to revolutio
 | **Database** | SQLite | User data and application state |
 | **WhatsApp API** | WAHA Integration | Message handling and webhook processing |
 | **AI Services** | [Lunos.tech](https://lunos.tech/) & [Unli.dev](https://unli.dev/) | Waste classification and NLP |
-| **Email Service** | [Mailry.co](https://mailry.co/) | Automated notifications |
+| **Email Service** | [Mailry.co](https://mailry.co/) | Automated notifications and PDF reports |
 | **Web Server** | Gunicorn + Nginx | Production deployment |
 | **Admin Panel** | Flask + Jinja2 | Web-based administration interface |
 
@@ -190,9 +190,10 @@ DATABASE_PATH=database/ecobot.db
 | Command | Description | Example |
 |---------|-------------|----------|
 | `admin` | Access admin functions | `admin` |
-| `laporan` | Generate reports | `laporan` |
+| `laporan` | Generate PDF reports via email | `laporan` |
 | `broadcast` | Send broadcast message | `broadcast [message]` |
 | `user list` | List registered users | `user list` |
+| `/admin report` | Generate comprehensive PDF report | `/admin report` |
 
 ### General Interaction
 

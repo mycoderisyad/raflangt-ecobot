@@ -40,7 +40,7 @@ class AdminCommandHandler:
         valid_commands = [
             'help', 'user_list', 'user_add', 'user_delete', 'user_role', 'user_info',
             'point_list', 'point_add', 'point_delete', 'point_update', 
-            'stats', 'logs', 'backup', 'reset_stats', 'broadcast'
+            'stats', 'logs', 'backup', 'reset_stats', 'broadcast', 'report'
         ]
         
         if command in valid_commands:
@@ -93,6 +93,8 @@ class AdminCommandHandler:
             return self._reset_statistics()
         elif command == 'broadcast':
             return self._broadcast_message(args)
+        elif command == 'report':
+            return self._generate_email_report(from_number)
         else:
             return {
                 'success': False,
@@ -122,6 +124,7 @@ SISTEM & MONITORING:
 • /admin backup - Backup database
 • /admin reset_stats - Reset statistik
 • /admin broadcast <pesan> - Broadcast ke semua user
+• /admin report - Generate laporan PDF via email
 
 ROLE TERSEDIA: admin, koordinator, warga
 
@@ -793,3 +796,96 @@ Waktu broadcast: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"""
     def _get_system_stats(self) -> Dict[str, Any]:
         """Get system statistics - legacy method for compatibility"""
         return self._get_comprehensive_stats()
+
+    def _generate_email_report(self, from_number: str) -> Dict[str, Any]:
+        """Generate and send PDF report via email"""
+        try:
+            # Import email service
+            from services.email_service import EmailService
+            
+            email_service = EmailService()
+            
+            # Check if email service is properly configured
+            if not email_service.mailry_api_key:
+                return {
+                    'success': False,
+                    'message': 'Error: Email service tidak dikonfigurasi dengan benar.\n\nPastikan MAILRY_API_KEY sudah diset di environment variables.'
+                }
+            
+            # Start the report generation process
+            initial_response = {
+                'success': True,
+                'message': f"""GENERATE LAPORAN EMAIL
+
+Proses pembuatan laporan dimulai...
+
+Laporan akan berisi:
+• Statistik sistem dan kesehatan
+• Data pengguna dan aktivitas
+• Klasifikasi sampah hari ini
+• Status titik pengumpulan
+• Metrik performa sistem
+
+Laporan PDF akan dikirim ke: {email_service.to_email}
+
+Mohon tunggu 2-3 menit untuk proses pengiriman.
+
+Status: 📝 Generating PDF..."""
+            }
+            
+            # Generate and send report asynchronously (in background)
+            import threading
+            
+            def generate_report_async():
+                try:
+                    success = email_service.generate_and_send_report(from_number)
+                    
+                    if success:
+                        # Send confirmation message
+                        confirmation_msg = f"""LAPORAN BERHASIL DIKIRIM
+
+Laporan PDF telah berhasil dikirim ke: {email_service.to_email}
+
+Waktu pengiriman: {datetime.now().strftime('%d/%m/%Y %H:%M WIB')}
+
+Silakan cek email Anda untuk melihat laporan lengkap.
+
+Jika tidak menerima email dalam 10 menit, periksa folder spam atau hubungi support.
+
+Status: ✅ Email Sent Successfully"""
+                        
+                        # Send follow-up confirmation via WhatsApp
+                        if hasattr(self, 'whatsapp_service') and self.whatsapp_service:
+                            self.whatsapp_service.send_message(from_number, confirmation_msg)
+                    else:
+                        # Send error message
+                        error_msg = f"""GAGAL MENGIRIM LAPORAN
+
+Terjadi kesalahan saat mengirim laporan email.
+
+Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M WIB')}
+
+Silakan coba lagi atau hubungi support jika masalah berlanjut.
+
+Status: ❌ Email Failed"""
+                        
+                        if hasattr(self, 'whatsapp_service') and self.whatsapp_service:
+                            self.whatsapp_service.send_message(from_number, error_msg)
+                            
+                except Exception as e:
+                    error_msg = f"Error dalam background report generation: {str(e)}"
+                    if hasattr(self, 'whatsapp_service') and self.whatsapp_service:
+                        self.whatsapp_service.send_message(from_number, f"Laporan gagal dibuat: {error_msg}")
+            
+            # Start background thread
+            report_thread = threading.Thread(target=generate_report_async)
+            report_thread.daemon = True
+            report_thread.start()
+            
+            return initial_response
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Error generating report: {str(e)}'
+            }

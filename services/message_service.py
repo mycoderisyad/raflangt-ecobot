@@ -172,13 +172,18 @@ class MessageService:
         if user_role == 'warga':
             return response + "Fitur laporan hanya tersedia untuk Koordinator dan Admin.\n\nSilakan hubungi koordinator desa untuk informasi lebih lanjut."
         
-        response += "Laporan sedang diproses...\n\n"
-        response += "Laporan akan dikirim ke email Anda dalam beberapa menit.\n\n"
-        response += "Isi Laporan:\n"
-        response += "• Statistik penggunaan\n"
+        response += "📧 Laporan PDF akan dikirim via email...\n\n"
+        response += "Proses pembuatan laporan dimulai:\n"
+        response += "• Mengumpulkan data sistem\n"
+        response += "• Generating PDF report\n"
+        response += "• Mengirim ke email admin\n\n"
+        response += "Laporan berisi:\n"
+        response += "• Statistik penggunaan harian\n"
         response += "• Data klasifikasi sampah\n"
-        response += "• Analisis pengguna\n"
-        response += "• Rekomendasi\n\n"
-        response += "Periksa email Anda dalam 5-10 menit."
+        response += "• Analisis pengguna aktif\n"
+        response += "• Status sistem kesehatan\n"
+        response += "• Metrik performa\n\n"
+        response += "⏰ Email akan diterima dalam 2-3 menit.\n"
+        response += "📬 Periksa inbox dan folder spam."
         
         return response
