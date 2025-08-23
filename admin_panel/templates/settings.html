@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - EcoBot Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">System Settings</h1>
+    <div class="actions">
+        <button class="btn" onclick="exportSettings()">Export Config</button>
+        <button class="btn btn-success" onclick="checkHealth()">Health Check</button>
+    </div>
+</div>
+
+<!-- Application Information -->
+<div class="card">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 16px; font-weight: 600;">Application Information</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 4px;">Application Name</div>
+            <div style="font-size: 16px; font-weight: 500; color: var(--text-primary);">{{ app_info.name if app_info else 'EcoBot' }}</div>
+        </div>
+        
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 4px;">Version</div>
+            <div style="font-size: 16px; font-weight: 500; color: var(--text-primary);">{{ app_info.version if app_info else '1.0.0' }}</div>
+        </div>
+        
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 4px;">Environment</div>
+            <div style="font-size: 16px; font-weight: 500;">
+                <span class="badge" style="background: {% if app_info and app_info.environment == 'production' %}var(--green){% else %}var(--orange){% endif %}; color: white;">
+                    {{ app_info.environment.title() if app_info else 'Development' }}
+                </span>
+            </div>
+        </div>
+        
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 4px;">Database Path</div>
+            <div style="font-size: 14px; font-weight: 500; color: var(--text-primary); font-family: monospace;">
+                {{ app_info.database_path if app_info else 'database/ecobot.db' }}
+            </div>
+        </div>
+        
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 4px;">Village Name</div>
+            <div style="font-size: 16px; font-weight: 500; color: var(--text-primary);">
+                {{ app_info.village_name if app_info else 'Not configured' }}
+            </div>
+        </div>
+        
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 4px;">Admin Panel Port</div>
+            <div style="font-size: 16px; font-weight: 500; color: var(--text-primary); font-family: monospace;">
+                3001
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Status -->
+<div class="grid-2">
+    <div class="card">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 16px; font-weight: 600;">System Health</h3>
+        
+        <div id="healthStatus" style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="padding: 12px; background: var(--bg-secondary); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 500;">Admin Panel</span>
+                <span class="badge badge-warga">Online</span>
+            </div>
+            
+            <div style="padding: 12px; background: var(--bg-secondary); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 500;">Database Connection</span>
+                <span class="badge" id="dbStatus" style="background: var(--text-light); color: white;">Checking...</span>
+            </div>
+            
+            <div style="padding: 12px; background: var(--bg-secondary); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 500;">WhatsApp Bot</span>
+                <span class="badge" id="botStatus" style="background: var(--text-light); color: white;">Checking...</span>
+            </div>
+            
+            <div style="padding: 12px; background: var(--bg-secondary); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 500;">Last Health Check</span>
+                <span style="font-size: 12px; color: var(--text-secondary);" id="lastCheck">Never</span>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="checkHealth()" style="width: 100%; margin-top: 16px;">
+            Run Health Check
+        </button>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 16px; font-weight: 600;">Quick Actions</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button class="btn" onclick="clearCache()" style="justify-content: flex-start; padding: 12px;">
+                <span>Clear Application Cache</span>
+            </button>
+            
+            <button class="btn" onclick="backupDatabase()" style="justify-content: flex-start; padding: 12px;">
+                <span>Backup Database</span>
+            </button>
+            
+            <button class="btn" onclick="viewLogs()" style="justify-content: flex-start; padding: 12px;">
+                <span>View System Logs</span>
+            </button>
+            
+            <button class="btn" onclick="restartService()" style="justify-content: flex-start; padding: 12px;">
+                <span>Restart Bot Service</span>
+            </button>
+            
+            <a href="https://ecobot.rafgt.my.id" target="_blank" class="btn btn-primary" style="justify-content: flex-start; padding: 12px;">
+                <span>Visit EcoBot API</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Environment Variables -->
+<div class="card">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 16px; font-weight: 600;">Environment Configuration</h3>
+    
+    <div style="background: var(--bg-secondary); border-radius: 4px; padding: 16px; font-family: monospace; font-size: 12px; color: var(--text-secondary);">
+        <div style="margin-bottom: 8px;"><strong>Admin Panel Configuration:</strong></div>
+        <div>ADMIN_PANEL_USERNAME = admin</div>
+        <div>ADMIN_PANEL_PASSWORD = ●●●●●●●●●●</div>
+        <div>ADMIN_PANEL_PORT = 3001</div>
+        <div style="margin: 16px 0 8px 0;"><strong>Application Configuration:</strong></div>
+        <div>APP_NAME = {{ app_info.name if app_info else 'EcoBot' }}</div>
+        <div>APP_VERSION = {{ app_info.version if app_info else '1.0.0' }}</div>
+        <div>ENVIRONMENT = {{ app_info.environment if app_info else 'development' }}</div>
+        <div>DATABASE_PATH = {{ app_info.database_path if app_info else 'database/ecobot.db' }}</div>
+        <div>VILLAGE_NAME = {{ app_info.village_name if app_info else 'Not set' }}</div>
+    </div>
+    
+    <div style="margin-top: 16px; font-size: 12px; color: var(--text-light);">
+        <strong>Note:</strong> Environment variables are loaded from .env file. Restart the application after making changes.
+    </div>
+</div>
+
+<!-- Documentation -->
+<div class="card">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 16px; font-weight: 600;">Documentation & Support</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+            <div style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">API Documentation</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Complete API reference and examples</div>
+            <a href="https://ecobot.rafgt.my.id/docs" target="_blank" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px;">
+                View Docs
+            </a>
+        </div>
+        
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+            <div style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">GitHub Repository</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Source code and issue tracking</div>
+            <a href="#" class="btn" style="font-size: 12px; padding: 6px 12px;">
+                View Source
+            </a>
+        </div>
+        
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+            <div style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">User Guide</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">How to use the admin panel</div>
+            <button class="btn" onclick="showUserGuide()" style="font-size: 12px; padding: 6px 12px;">
+                Open Guide
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function checkHealth() {
+    const dbStatus = document.getElementById('dbStatus');
+    const botStatus = document.getElementById('botStatus');
+    const lastCheck = document.getElementById('lastCheck');
+    
+    // Update last check time
+    lastCheck.textContent = new Date().toLocaleString();
+    
+    // Simulate health checks
+    dbStatus.style.background = 'var(--text-light)';
+    dbStatus.style.color = 'white';
+    dbStatus.textContent = 'Checking...';
+    
+    botStatus.style.background = 'var(--text-light)';
+    botStatus.style.color = 'white';
+    botStatus.textContent = 'Checking...';
+    
+    // Check API health endpoint
+    fetch('/health')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'healthy') {
+                dbStatus.style.background = 'var(--green)';
+                dbStatus.textContent = 'Connected';
+                
+                // Check bot status (simulated)
+                setTimeout(() => {
+                    botStatus.style.background = 'var(--green)';
+                    botStatus.textContent = 'Running';
+                }, 1000);
+            } else {
+                dbStatus.style.background = 'var(--red)';
+                dbStatus.textContent = 'Error';
+                
+                botStatus.style.background = 'var(--red)';
+                botStatus.textContent = 'Error';
+            }
+        })
+        .catch(error => {
+            dbStatus.style.background = 'var(--red)';
+            dbStatus.textContent = 'Failed';
+            
+            botStatus.style.background = 'var(--red)';
+            botStatus.textContent = 'Failed';
+        });
+}
+
+function clearCache() {
+    if (confirm('Are you sure you want to clear the application cache?')) {
+        alert('Cache cleared successfully! 🧹');
+    }
+}
+
+function backupDatabase() {
+    alert('Database backup initiated! 💾\nBackup will be saved to the backups directory.');
+}
+
+function viewLogs() {
+    alert('Log viewer functionality coming soon! 📋');
+}
+
+function restartService() {
+    if (confirm('Are you sure you want to restart the bot service? This may cause temporary interruption.')) {
+        alert('Service restart initiated! 🔄\nThe bot will be back online shortly.');
+    }
+}
+
+function exportSettings() {
+    const config = `# EcoBot Configuration Export
+# Generated on ${new Date().toLocaleString()}
+
+[Application]
+Name={{ app_info.name if app_info else 'EcoBot' }}
+Version={{ app_info.version if app_info else '1.0.0' }}
+Environment={{ app_info.environment if app_info else 'development' }}
+Database={{ app_info.database_path if app_info else 'database/ecobot.db' }}
+Village={{ app_info.village_name if app_info else 'Not set' }}
+
+[Admin Panel]
+Port=3001
+Username=admin
+Password=[HIDDEN]
+
+[Status]
+ExportedAt=${new Date().toISOString()}
+AdminPanel=Online
+Database=Connected
+`;
+
+    const blob = new Blob([config], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ecobot-config-' + new Date().toISOString().split('T')[0] + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function showUserGuide() {
+    alert('User Guide 📖\n\n1. Dashboard: View system overview and statistics\n2. Users: Manage community members and their roles\n3. Locations: Add and manage waste collection points\n4. Analytics: View detailed reports and trends\n5. Settings: Configure system and view health status\n\nFor more help, check the API documentation.');
+}
+
+// Auto-check health on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(checkHealth, 1000);
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Locations - EcoBot Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Collection Points</h1>
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <a href="{{ url_for('create_location') }}" class="btn btn-primary">Add Location</a>
+        <button class="btn" onclick="refreshLocations()">Refresh</button>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+        Location Management ({{ locations|length }} locations)
+    </h3>
+
+    {% if locations %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Location</th>
+                    <th>Waste Types</th>
+                    <th>Schedule</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for location in locations %}
+                <tr>
+                    <td style="font-weight: 500;">{{ location.name or 'Unnamed Location' }}</td>
+                    <td>
+                        <span class="badge" style="background: var(--bg-secondary);">
+                            {{ location.type or 'TPS' }}
+                        </span>
+                    </td>
+                    <td style="font-size: 12px; color: var(--text-light);">
+                        {% if location.latitude and location.longitude %}
+                            {{ "%.4f"|format(location.latitude) }}, {{ "%.4f"|format(location.longitude) }}
+                        {% else %}
+                            Not set
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 12px;">
+                        {{ location.accepted_waste_types or 'All types' }}
+                    </td>
+                    <td style="font-size: 12px;">
+                        {{ location.schedule or 'Not specified' }}
+                    </td>
+                    <td style="font-size: 12px;">
+                        {{ location.contact or 'No contact' }}
+                    </td>
+                    <td>
+                        {% if location.is_active == 1 %}
+                            <span class="badge badge-warga">Active</span>
+                        {% else %}
+                            <span class="badge" style="background: #fdf2f2; color: var(--red);">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 4px;">
+                            <a href="{{ url_for('edit_location', location_id=location.id) }}" 
+                               class="btn" style="padding: 4px 8px; font-size: 12px;">Edit</a>
+                            <form method="POST" action="{{ url_for('delete_location', location_id=location.id) }}" 
+                                  style="display: inline;" 
+                                  onsubmit="return confirm('Are you sure you want to delete this location?')">
+                                <button type="submit" class="btn" 
+                                        style="padding: 4px 8px; font-size: 12px; background: #fdf2f2; color: #dc3545; border-color: #dc3545;">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 48px; color: var(--text-light);">
+        <div style="font-size: 48px; margin-bottom: 16px;">📍</div>
+        <p style="font-size: 16px; margin-bottom: 8px;">No collection points found</p>
+        <p style="font-size: 14px;">Add collection points to help community members find waste disposal locations</p>
+        <a href="{{ url_for('create_location') }}" class="btn btn-primary" style="margin-top: 16px;">
+            Add First Location
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Location Statistics -->
+<div class="grid-2">
+    <div class="card">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 16px; font-weight: 600;">Location Types</h3>
+        {% set location_types = {} %}
+        {% for location in locations %}
+            {% set type = location.type or 'TPS' %}
+            {% set _ = location_types.update({type: location_types.get(type, 0) + 1}) %}
+        {% endfor %}
+        
+        {% if location_types %}
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                {% for type, count in location_types.items() %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 4px;">
+                    <span style="font-weight: 500;">{{ type }}</span>
+                    <span style="font-weight: 600; color: var(--text-primary);">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: var(--text-light); text-align: center; padding: 24px;">No data available</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 16px; font-weight: 600;">Quick Stats</h3>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+                <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ locations|length }}</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Total Locations</div>
+            </div>
+            <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+                <div style="font-size: 24px; font-weight: 700; color: var(--green);">
+                    {{ locations|selectattr("is_active", "equalto", 1)|list|length }}
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Active Locations</div>
+            </div>
+            <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+                <div style="font-size: 24px; font-weight: 700; color: var(--text-secondary);">
+                    {{ locations|selectattr("contact")|list|length }}
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary);">With Contact Info</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshLocations() {
+    location.reload();
+}
+
+// Export locations function
+function exportLocations() {
+    let csv = "Name,Type,Latitude,Longitude,Waste Types,Schedule,Contact,Status\n";
+    
+    {% for location in locations %}
+    csv += '"{{ location.name or "Unnamed Location" }}",' +
+           '"{{ location.type or "TPS" }}",' +
+           '"{{ location.latitude or "" }}",' +
+           '"{{ location.longitude or "" }}",' +
+           '"{{ location.accepted_waste_types or "All types" }}",' +
+           '"{{ location.schedule or "Not specified" }}",' +
+           '"{{ location.contact or "No contact" }}",' +
+           '"{{ "Active" if location.is_active == 1 else "Inactive" }}"\n';
+    {% endfor %}
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ecobot-locations-' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+
+{% endblock %}

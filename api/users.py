@@ -5,6 +5,7 @@ Mengelola data pengguna sistem
 
 import logging
 from flask import Blueprint, jsonify
+from core.api_key_auth import require_api_key
 from database.models.base import DatabaseManager
 from database.models.user import UserModel
 
@@ -14,6 +15,7 @@ users_bp = Blueprint('users', __name__, url_prefix='/api')
 logger = logging.getLogger(__name__)
 
 @users_bp.route('/users', methods=['GET'])
+@require_api_key
 def get_users():
     """Get all users"""
     try:
@@ -33,6 +35,7 @@ def get_users():
         }), 500
 
 @users_bp.route('/users/stats', methods=['GET'])
+@require_api_key
 def get_user_stats():
     """Get user statistics"""
     try:
@@ -74,6 +77,7 @@ def get_user_stats():
         }), 500
 
 @users_bp.route('/users/<phone_number>', methods=['GET'])
+@require_api_key
 def get_user(phone_number):
     """Get specific user by phone number"""
     try:

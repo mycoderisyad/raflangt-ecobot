@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if action == 'create' %}Create Location{% else %}Edit Location{% endif %} - EcoBot Admin
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        {% if action == 'create' %}Create New Collection Point{% else %}Edit Collection Point{% endif %}
+    </h1>
+    <p class="page-subtitle">Manage waste collection points and disposal locations</p>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Location Name</label>
+            <input type="text" class="form-input" name="name" 
+                   value="{{ location.name if location else '' }}"
+                   placeholder="e.g., TPS Jalan Mawar" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Location Type</label>
+            <select class="form-input" name="type" required>
+                <option value="">Select Type</option>
+                <option value="TPS" {{ 'selected' if location and location.type == 'TPS' else '' }}>TPS (Tempat Pembuangan Sementara)</option>
+                <option value="TPA" {{ 'selected' if location and location.type == 'TPA' else '' }}>TPA (Tempat Pembuangan Akhir)</option>
+                <option value="Recycling Center" {{ 'selected' if location and location.type == 'Recycling Center' else '' }}>Recycling Center</option>
+                <option value="Compost Site" {{ 'selected' if location and location.type == 'Compost Site' else '' }}>Compost Site</option>
+                <option value="Collection Point" {{ 'selected' if location and location.type == 'Collection Point' else '' }}>Collection Point</option>
+            </select>
+        </div>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Latitude</label>
+                <input type="number" class="form-input" name="latitude" id="latitude"
+                       value="{{ location.latitude if location else '' }}"
+                       placeholder="-6.175110" step="any">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Longitude</label>
+                <input type="number" class="form-input" name="longitude" id="longitude"
+                       value="{{ location.longitude if location else '' }}"
+                       placeholder="106.865036" step="any">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Accepted Waste Types</label>
+            <textarea class="form-input" name="waste_types" rows="3"
+                      placeholder="e.g., Organic waste, Plastic bottles, Paper, Glass">{{ location.accepted_waste_types if location else '' }}</textarea>
+            <div class="field-help">
+                List the types of waste accepted at this location
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Collection Schedule</label>
+            <input type="text" class="form-input" name="schedule"
+                   value="{{ location.schedule if location else '' }}"
+                   placeholder="e.g., Monday, Wednesday, Friday - 08:00 AM">
+            <div class="field-help">
+                When waste is collected from this location
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Contact Information</label>
+            <input type="text" class="form-input" name="contact"
+                   value="{{ location.contact if location else '' }}"
+                   placeholder="e.g., John Doe - 08123456789">
+            <div class="field-help">
+                Contact person or phone number for this location
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-input" name="description" rows="3"
+                      placeholder="Additional notes about this location...">{{ location.description if location else '' }}</textarea>
+        </div>
+
+        {% if action == 'edit' %}
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="is_active" {{ 'checked' if location and location.is_active == 1 else '' }}>
+                <span class="form-label" style="margin-bottom: 0;">Active Location</span>
+            </label>
+            <div class="field-help">
+                Inactive locations are hidden from users
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="submit" class="btn btn-primary">
+                {% if action == 'create' %}Create Location{% else %}Update Location{% endif %}
+            </button>
+            <a href="{{ url_for('locations') }}" class="btn">Cancel</a>
+            {% if action == 'edit' and location %}
+            <button type="button" class="btn" 
+                    onclick="deleteLocation('{{ location.id }}')"
+                    style="margin-left: auto; background: #fdf2f2; color: #dc3545; border-color: #f5c6cb;">
+                Delete Location
+            </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Location Tools -->
+<div class="card">
+    <h3 class="card-title">Location Tools</h3>
+    
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button type="button" class="btn" onclick="getCurrentLocation()">
+            Use Current Location
+        </button>
+        
+        <button type="button" class="btn" onclick="openMaps()">
+            Open in Google Maps
+        </button>
+        
+        <button type="button" class="btn" onclick="validateCoordinates()">
+            Validate Coordinates
+        </button>
+    </div>
+    
+    <div class="info-box">
+        <strong>Coordinate Helper:</strong><br>
+        • Latitude: North/South position (-90 to 90)<br>
+        • Longitude: East/West position (-180 to 180)<br>
+        • Jakarta area: Lat ~-6.2, Lng ~106.8
+    </div>
+</div>
+
+<script>
+function deleteLocation(locationId) {
+    if (confirm('Are you sure you want to delete this location?\n\nThis action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("delete_location", location_id="LOCATION_PLACEHOLDER") }}'.replace('LOCATION_PLACEHOLDER', encodeURIComponent(locationId));
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function getCurrentLocation() {
+    if (navigator.geolocation) {
+        const latInput = document.getElementById('latitude');
+        const lngInput = document.getElementById('longitude');
+        
+        latInput.style.background = '#f7f6f3';
+        lngInput.style.background = '#f7f6f3';
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                latInput.value = position.coords.latitude.toFixed(6);
+                lngInput.value = position.coords.longitude.toFixed(6);
+                latInput.style.background = '#ffffff';
+                lngInput.style.background = '#ffffff';
+                alert('Location updated!\n\nLatitude: ' + latInput.value + '\nLongitude: ' + lngInput.value);
+            },
+            function(error) {
+                latInput.style.background = '#ffffff';
+                lngInput.style.background = '#ffffff';
+                alert('Error getting location: ' + error.message);
+            }
+        );
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+}
+
+function openMaps() {
+    const lat = document.getElementById('latitude').value;
+    const lng = document.getElementById('longitude').value;
+    
+    if (lat && lng) {
+        const url = `https://www.google.com/maps?q=${lat},${lng}`;
+        window.open(url, '_blank');
+    } else {
+        alert('Please enter latitude and longitude first.');
+    }
+}
+
+function validateCoordinates() {
+    const lat = parseFloat(document.getElementById('latitude').value);
+    const lng = parseFloat(document.getElementById('longitude').value);
+    
+    let message = 'Coordinate Validation:\n\n';
+    
+    if (isNaN(lat) || isNaN(lng)) {
+        message += 'Please enter valid numeric coordinates';
+    } else {
+        // Check if coordinates are in valid range
+        if (lat < -90 || lat > 90) {
+            message += 'Latitude must be between -90 and 90\n';
+        } else {
+            message += 'Latitude is valid\n';
+        }
+        
+        if (lng < -180 || lng > 180) {
+            message += 'Longitude must be between -180 and 180\n';
+        } else {
+            message += 'Longitude is valid\n';
+        }
+        
+        // Check if coordinates are in Indonesia area (rough approximation)
+        if (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141) {
+            message += 'Coordinates appear to be in Indonesia';
+        } else {
+            message += 'Coordinates may not be in Indonesia';
+        }
+    }
+    
+    alert(message);
+}
+
+// Form validation and initialization
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const nameInput = document.querySelector('input[name="name"]');
+    
+    // Auto-focus name input for create form
+    {% if action == 'create' %}
+    if (nameInput) {
+        nameInput.focus();
+    }
+    {% endif %}
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const lat = document.getElementById('latitude').value;
+        const lng = document.getElementById('longitude').value;
+        
+        // Validate coordinates if provided
+        if (lat || lng) {
+            const latNum = parseFloat(lat);
+            const lngNum = parseFloat(lng);
+            
+            if (isNaN(latNum) || isNaN(lngNum)) {
+                e.preventDefault();
+                alert('Please enter valid numeric coordinates or leave both fields empty.');
+                return false;
+            }
+            
+            if (latNum < -90 || latNum > 90 || lngNum < -180 || lngNum > 180) {
+                e.preventDefault();
+                alert('Coordinates are out of valid range.\n\nLatitude: -90 to 90\nLongitude: -180 to 180');
+                return false;
+            }
+        }
+    });
+    
+    // Enhanced input validation feedback
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    
+    [latInput, lngInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                const isLat = this.id === 'latitude';
+                const min = isLat ? -90 : -180;
+                const max = isLat ? 90 : 180;
+                
+                if (this.value && (isNaN(value) || value < min || value > max)) {
+                    this.style.borderColor = '#dc3545';
+                } else {
+                    this.style.borderColor = '#e9e9e7';
+                }
+            });
+        }
+    });
+});
+</script>
+
+{% endblock %}

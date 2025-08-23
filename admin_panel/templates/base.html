@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EcoBot Admin{% endblock %}</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #ffffff;
+            color: #37352f;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            border-bottom: 1px solid #e9e9e7;
+            padding: 12px 0;
+            background: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 40px;
+        }
+
+        .logo {
+            font-size: 16px;
+            font-weight: 600;
+            color: #37352f;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #6f6e69;
+        }
+
+        /* Navigation */
+        .nav {
+            background: #ffffff;
+            border-bottom: 1px solid #e9e9e7;
+            padding: 0;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            overflow-x: auto;
+        }
+
+        .nav-links li {
+            border-right: 1px solid #e9e9e7;
+        }
+
+        .nav-links li:last-child {
+            border-right: none;
+        }
+
+        .nav-links a {
+            display: block;
+            padding: 12px 16px;
+            color: #6f6e69;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+
+        .nav-links a:hover {
+            background: #f7f6f3;
+            color: #37352f;
+        }
+
+        .nav-links a.active {
+            background: #f7f6f3;
+            color: #37352f;
+            font-weight: 600;
+        }
+
+        /* Main content */
+        .main {
+            padding: 24px 0;
+            min-height: calc(100vh - 120px);
+        }
+
+        /* Page header */
+        .page-header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e9e9e7;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #37352f;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: #6f6e69;
+        }
+
+        /* Cards */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #37352f;
+            margin-bottom: 12px;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #37352f;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6f6e69;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            background: #ffffff;
+            color: #37352f;
+            text-decoration: none;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background: #f7f6f3;
+            border-color: #d3d1cb;
+        }
+
+        .btn-primary {
+            background: #37352f;
+            color: #ffffff;
+            border-color: #37352f;
+        }
+
+        .btn-primary:hover {
+            background: #2f2d29;
+            border-color: #2f2d29;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #37352f;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            font-size: 14px;
+            color: #37352f;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #37352f;
+        }
+
+        /* Form helpers */
+        .field-help {
+            font-size: 12px;
+            color: #6f6e69;
+            margin-top: 4px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-box {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f7f6f3;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #6f6e69;
+        }
+
+        /* Tables */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9e9e7;
+            font-size: 14px;
+        }
+
+        .table th {
+            background: #f7f6f3;
+            font-weight: 600;
+            color: #37352f;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            color: #6f6e69;
+        }
+
+        .table tr:hover {
+            background: #f7f6f3;
+        }
+
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 3px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            border-left: 3px solid;
+        }
+
+        .alert-success {
+            background: #f0f9f0;
+            color: #0d4f0d;
+            border-left-color: #28a745;
+        }
+
+        .alert-error {
+            background: #fdf2f2;
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+
+        .alert-info {
+            background: #f0f8ff;
+            color: #0c4a6e;
+            border-left-color: #0ea5e9;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #e9e9e7;
+            color: #37352f;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background: #fdf2f2;
+            color: #dc3545;
+        }
+
+        .badge-koordinator {
+            background: #fff8f0;
+            color: #fd7e14;
+        }
+
+        .badge-warga {
+            background: #f0f9f0;
+            color: #28a745;
+        }
+
+        /* Grid layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 12px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 8px;
+                height: auto;
+                padding: 8px 0;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+            }
+            
+            .nav-links li {
+                border-right: none;
+                border-bottom: 1px solid #e9e9e7;
+            }
+            
+            .nav-links li:last-child {
+                border-bottom: none;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% if session.authenticated %}
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">EcoBot Admin</div>
+                <div class="user-info">
+                    <span>{{ session.username }}</span>
+                    <a href="{{ url_for('logout') }}" class="btn" style="padding: 4px 8px; font-size: 12px;">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav">
+        <div class="container">
+            <ul class="nav-links">
+                <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+                <li><a href="{{ url_for('users') }}" class="{% if request.endpoint == 'users' %}active{% endif %}">Users</a></li>
+                <li><a href="{{ url_for('locations') }}" class="{% if request.endpoint == 'locations' %}active{% endif %}">Locations</a></li>
+                <li><a href="{{ url_for('schedules') }}" class="{% if request.endpoint == 'schedules' %}active{% endif %}">Schedules</a></li>
+                <li><a href="{{ url_for('analytics') }}" class="{% if request.endpoint == 'analytics' %}active{% endif %}">Analytics</a></li>
+                <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">Settings</a></li>
+            </ul>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="main">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EcoBot Admin{% endblock %}</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #ffffff;
+            color: #37352f;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            border-bottom: 1px solid #e9e9e7;
+            padding: 12px 0;
+            background: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 40px;
+        }
+
+        .logo {
+            font-size: 16px;
+            font-weight: 600;
+            color: #37352f;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #6f6e69;
+        }
+
+        /* Navigation */
+        .nav {
+            background: #ffffff;
+            border-bottom: 1px solid #e9e9e7;
+            padding: 0;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            overflow-x: auto;
+        }
+
+        .nav-links li {
+            border-right: 1px solid #e9e9e7;
+        }
+
+        .nav-links li:last-child {
+            border-right: none;
+        }
+
+        .nav-links a {
+            display: block;
+            padding: 12px 16px;
+            color: #6f6e69;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+
+        .nav-links a:hover {
+            background: #f7f6f3;
+            color: #37352f;
+        }
+
+        .nav-links a.active {
+            background: #f7f6f3;
+            color: #37352f;
+            font-weight: 600;
+        }
+
+        /* Main content */
+        .main {
+            padding: 24px 0;
+            min-height: calc(100vh - 120px);
+        }
+
+        /* Page header */
+        .page-header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e9e9e7;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #37352f;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: #6f6e69;
+        }
+
+        /* Cards */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #37352f;
+            margin-bottom: 12px;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #37352f;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6f6e69;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            background: #ffffff;
+            color: #37352f;
+            text-decoration: none;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background: #f7f6f3;
+            border-color: #d3d1cb;
+        }
+
+        .btn-primary {
+            background: #37352f;
+            color: #ffffff;
+            border-color: #37352f;
+        }
+
+        .btn-primary:hover {
+            background: #2f2d29;
+            border-color: #2f2d29;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #37352f;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            font-size: 14px;
+            color: #37352f;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #37352f;
+        }
+
+        /* Tables */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border: 1px solid #e9e9e7;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9e9e7;
+            font-size: 14px;
+        }
+
+        .table th {
+            background: #f7f6f3;
+            font-weight: 600;
+            color: #37352f;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            color: #6f6e69;
+        }
+
+        .table tr:hover {
+            background: #f7f6f3;
+        }
+
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 3px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            border-left: 3px solid;
+        }
+
+        .alert-success {
+            background: #f0f9f0;
+            color: #0d4f0d;
+            border-left-color: #28a745;
+        }
+
+        .alert-error {
+            background: #fdf2f2;
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+
+        .alert-info {
+            background: #f0f8ff;
+            color: #0c4a6e;
+            border-left-color: #0ea5e9;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #e9e9e7;
+            color: #37352f;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background: #fdf2f2;
+            color: #dc3545;
+        }
+
+        .badge-koordinator {
+            background: #fff8f0;
+            color: #fd7e14;
+        }
+
+        .badge-warga {
+            background: #f0f9f0;
+            color: #28a745;
+        }
+
+        /* Grid layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 12px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 8px;
+                height: auto;
+                padding: 8px 0;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+            }
+            
+            .nav-links li {
+                border-right: none;
+                border-bottom: 1px solid #e9e9e7;
+            }
+            
+            .nav-links li:last-child {
+                border-bottom: none;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% if session.authenticated %}
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">EcoBot Admin</div>
+                <div class="user-info">
+                    <span>{{ session.username }}</span>
+                    <a href="{{ url_for('logout') }}" class="btn" style="padding: 4px 8px; font-size: 12px;">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav">
+        <div class="container">
+            <ul class="nav-links">
+                <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+                <li><a href="{{ url_for('users') }}" class="{% if request.endpoint == 'users' %}active{% endif %}">Users</a></li>
+                <li><a href="{{ url_for('locations') }}" class="{% if request.endpoint == 'locations' %}active{% endif %}">Locations</a></li>
+                <li><a href="{{ url_for('schedules') }}" class="{% if request.endpoint == 'schedules' %}active{% endif %}">Schedules</a></li>
+                <li><a href="{{ url_for('analytics') }}" class="{% if request.endpoint == 'analytics' %}active{% endif %}">Analytics</a></li>
+                <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">Settings</a></li>
+            </ul>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="main">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</body>
+</html>

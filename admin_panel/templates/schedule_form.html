@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if action == 'create' %}Create Schedule{% else %}Edit Schedule{% endif %} - EcoBot Admin
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        {% if action == 'create' %}Create New Schedule{% else %}Edit Schedule{% endif %}
+    </h1>
+    <p class="page-subtitle">Manage collection schedules for waste pickup</p>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Location Name</label>
+            <input type="text" class="form-input" name="location_name" 
+                   value="{{ schedule.location_name if schedule else '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Address</label>
+            <input type="text" class="form-input" name="address" 
+                   value="{{ schedule.address if schedule else '' }}" required>
+        </div>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Schedule Day</label>
+                <select class="form-input" name="schedule_day" required>
+                    <option value="">Select Day</option>
+                    <option value="senin" {{ 'selected' if schedule and schedule.schedule_day == 'senin' else '' }}>Monday (Senin)</option>
+                    <option value="selasa" {{ 'selected' if schedule and schedule.schedule_day == 'selasa' else '' }}>Tuesday (Selasa)</option>
+                    <option value="rabu" {{ 'selected' if schedule and schedule.schedule_day == 'rabu' else '' }}>Wednesday (Rabu)</option>
+                    <option value="kamis" {{ 'selected' if schedule and schedule.schedule_day == 'kamis' else '' }}>Thursday (Kamis)</option>
+                    <option value="jumat" {{ 'selected' if schedule and schedule.schedule_day == 'jumat' else '' }}>Friday (Jumat)</option>
+                    <option value="sabtu" {{ 'selected' if schedule and schedule.schedule_day == 'sabtu' else '' }}>Saturday (Sabtu)</option>
+                    <option value="minggu" {{ 'selected' if schedule and schedule.schedule_day == 'minggu' else '' }}>Sunday (Minggu)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Schedule Time</label>
+                <input type="time" class="form-input" name="schedule_time" 
+                       value="{{ schedule.schedule_time if schedule else '' }}" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Waste Types</label>
+            <input type="text" class="form-input" name="waste_types" 
+                   value="{{ schedule.waste_types if schedule else '' }}" 
+                   placeholder="e.g., Organic, Plastic, Paper" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Contact Information</label>
+            <input type="text" class="form-input" name="contact" 
+                   value="{{ schedule.contact if schedule else '' }}" 
+                   placeholder="Phone number or contact person">
+        </div>
+
+        {% if action == 'edit' %}
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="is_active" {{ 'checked' if schedule and schedule.is_active == 1 else '' }}>
+                <span class="form-label" style="margin-bottom: 0;">Active Schedule</span>
+            </label>
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="submit" class="btn btn-primary">
+                {% if action == 'create' %}Create Schedule{% else %}Update Schedule{% endif %}
+            </button>
+            <a href="{{ url_for('schedules') }}" class="btn">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

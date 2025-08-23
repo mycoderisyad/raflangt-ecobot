@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Schedules - EcoBot Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Collection Schedules</h1>
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <a href="{{ url_for('create_schedule') }}" class="btn btn-primary">Add Schedule</a>
+        <button class="btn" onclick="refreshSchedules()">Refresh</button>
+    </div>
+</div>
+
+<div class="card">
+    <h3 class="card-title">
+        Schedule Management ({{ schedules|length }} schedules)
+    </h3>
+
+    {% if schedules %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Location</th>
+                    <th>Type</th>
+                    <th>Collector</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for schedule in schedules %}
+                <tr>
+                    <td style="font-weight: 500;">
+                        <span class="badge">{{ schedule.schedule_day or 'Not set' }}</span>
+                    </td>
+                    <td style="font-family: monospace; font-size: 12px;">
+                        {{ schedule.schedule_time or 'Not set' }}
+                    </td>
+                    <td>{{ schedule.location_name or 'Unknown Location' }}</td>
+                    <td>
+                        <span class="badge badge-warga">{{ schedule.collection_type or 'General' }}</span>
+                    </td>
+                    <td style="font-size: 12px;">
+                        {{ schedule.collector_name or 'Not assigned' }}
+                    </td>
+                    <td>
+                        {% if schedule.is_active == 1 %}
+                            <span class="badge badge-warga">Active</span>
+                        {% else %}
+                            <span class="badge" style="background: #fdf2f2; color: #dc3545;">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                        {{ schedule.notes or 'No notes' }}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 4px;">
+                            <a href="{{ url_for('edit_schedule', schedule_id=schedule.id) }}" 
+                               class="btn" style="padding: 4px 8px; font-size: 12px;">Edit</a>
+                            <form method="POST" action="{{ url_for('delete_schedule', schedule_id=schedule.id) }}" 
+                                  style="display: inline;" 
+                                  onsubmit="return confirm('Are you sure you want to delete this schedule?')">
+                                <button type="submit" class="btn" 
+                                        style="padding: 4px 8px; font-size: 12px; background: #fdf2f2; color: #dc3545; border-color: #dc3545;">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 48px; color: #6f6e69;">
+        <div style="font-size: 48px; margin-bottom: 16px;">📅</div>
+        <p style="font-size: 16px; margin-bottom: 8px;">No collection schedules found</p>
+        <p style="font-size: 14px;">Create schedules to organize waste collection activities</p>
+        <a href="{{ url_for('create_schedule') }}" class="btn btn-primary" style="margin-top: 16px;">
+            Create First Schedule
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Schedule Statistics -->
+<div class="grid-2">
+    <div class="card">
+        <h3 class="card-title">Daily Distribution</h3>
+        
+        <!-- Day mapping for display -->
+        {% set day_display = {
+            'senin': 'Monday (Senin)',
+            'selasa': 'Tuesday (Selasa)', 
+            'rabu': 'Wednesday (Rabu)',
+            'kamis': 'Thursday (Kamis)',
+            'jumat': 'Friday (Jumat)',
+            'sabtu': 'Saturday (Sabtu)',
+            'minggu': 'Sunday (Minggu)',
+            'Monday': 'Monday',
+            'Tuesday': 'Tuesday',
+            'Wednesday': 'Wednesday',
+            'Thursday': 'Thursday',
+            'Friday': 'Friday',
+            'Saturday': 'Saturday',
+            'Sunday': 'Sunday'
+        } %}
+        
+        {% set daily_count = {} %}
+        {% for schedule in schedules %}
+            {% set day = schedule.schedule_day or 'Unknown' %}
+            {% set _ = daily_count.update({day: daily_count.get(day, 0) + 1}) %}
+        {% endfor %}
+        
+        {% if daily_count %}
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                {% for day, count in daily_count.items() %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f7f6f3; border-radius: 3px;">
+                    <span style="font-weight: 500;">{{ day_display.get(day, day) }}</span>
+                    <span style="font-weight: 600; color: #37352f;">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: #6f6e69; text-align: center; padding: 24px;">No data available</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3 class="card-title">Schedule Overview</h3>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="text-align: center; padding: 16px; background: #f7f6f3; border-radius: 3px;">
+                <div style="font-size: 24px; font-weight: 700; color: #37352f;">{{ schedules|length }}</div>
+                <div style="font-size: 12px; color: #6f6e69;">Total Schedules</div>
+            </div>
+            <div style="text-align: center; padding: 16px; background: #f7f6f3; border-radius: 3px;">
+                <div style="font-size: 24px; font-weight: 700; color: #28a745;">
+                    {{ schedules|selectattr("is_active", "equalto", 1)|list|length }}
+                </div>
+                <div style="font-size: 12px; color: #6f6e69;">Active Schedules</div>
+            </div>
+            <div style="text-align: center; padding: 16px; background: #f7f6f3; border-radius: 3px;">
+                <div style="font-size: 24px; font-weight: 700; color: #37352f;">
+                    {{ schedules|selectattr("collector_name")|list|length }}
+                </div>
+                <div style="font-size: 12px; color: #6f6e69;">Assigned Collectors</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Weekly Calendar View -->
+<div class="card">
+    <h3 class="card-title">Weekly Calendar</h3>
+    
+    <!-- Day mapping for Indonesian to English -->
+    {% set day_mapping = {
+        'senin': 'Monday',
+        'selasa': 'Tuesday', 
+        'rabu': 'Wednesday',
+        'kamis': 'Thursday',
+        'jumat': 'Friday',
+        'sabtu': 'Saturday',
+        'minggu': 'Sunday'
+    } %}
+    
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 16px;">
+        {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+        {% set indonesian_days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'] %}
+        
+        {% for i in range(7) %}
+        {% set day = days[i] %}
+        {% set indonesian_day = indonesian_days[i] %}
+        <div style="text-align: center; padding: 12px; background: #f7f6f3; border-radius: 3px; min-height: 120px; border: 1px solid #e9e9e7;">
+            <div style="font-size: 12px; font-weight: 600; color: #37352f; margin-bottom: 8px;">{{ day }}</div>
+            
+            <!-- Look for schedules with both English and Indonesian day names -->
+            {% set day_schedules = schedules|selectattr("schedule_day", "equalto", day)|list + schedules|selectattr("schedule_day", "equalto", indonesian_day)|list %}
+            
+            {% if day_schedules %}
+                {% for schedule in day_schedules[:3] %}
+                <div style="font-size: 10px; padding: 4px 6px; background: #37352f; color: #ffffff; border-radius: 2px; margin-bottom: 4px; line-height: 1.2;">
+                    <div style="font-weight: 600;">{{ schedule.schedule_time or 'Time TBD' }}</div>
+                    <div style="opacity: 0.8;">{{ schedule.location_name[:15] }}{% if schedule.location_name|length > 15 %}...{% endif %}</div>
+                </div>
+                {% endfor %}
+                {% if day_schedules|length > 3 %}
+                <div style="font-size: 9px; color: #6f6e69; margin-top: 4px;">+{{ day_schedules|length - 3 }} more</div>
+                {% endif %}
+            {% else %}
+                <div style="font-size: 10px; color: #6f6e69; margin-top: 20px;">No schedules</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div style="font-size: 12px; color: #6f6e69; display: flex; justify-content: space-between; align-items: center;">
+        <span><strong>Note:</strong> Calendar shows collection schedules for each day of the week.</span>
+        <span style="font-size: 10px;">Total: {{ schedules|length }} schedules</span>
+    </div>
+</div>
+
+<script>
+function refreshSchedules() {
+    location.reload();
+}
+
+function addSchedule() {
+    // Simple form simulation - in a real app, this would open a modal or redirect to a form
+    const day = prompt('Enter day of the week (e.g., Monday):');
+    const time = prompt('Enter collection time (e.g., 08:00):');
+    const location = prompt('Enter location name:');
+    
+    if (day && time && location) {
+        alert('Schedule creation functionality will be implemented in the backend.\n\nProposed schedule:\n' + 
+              'Day: ' + day + '\n' + 
+              'Time: ' + time + '\n' + 
+              'Location: ' + location);
+    }
+}
+
+function exportSchedules() {
+    let csv = "Day,Time,Location,Type,Collector,Status,Notes\n";
+    
+    {% for schedule in schedules %}
+    csv += '"{{ schedule.schedule_day or "Not set" }}",' +
+           '"{{ schedule.schedule_time or "Not set" }}",' +
+           '"{{ schedule.location_name or "Unknown Location" }}",' +
+           '"{{ schedule.collection_type or "General" }}",' +
+           '"{{ schedule.collector_name or "Not assigned" }}",' +
+           '"{{ "Active" if schedule.is_active == 1 else "Inactive" }}",' +
+           '"{{ schedule.notes or "No notes" }}"\n';
+    {% endfor %}
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ecobot-schedules-' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+
+{% endblock %}
