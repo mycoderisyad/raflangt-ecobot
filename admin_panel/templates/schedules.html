@@ -225,15 +225,29 @@ function addSchedule() {
 function exportSchedules() {
     let csv = "Day,Time,Location,Type,Contact,Status,Address\n";
     
-    {% for schedule in schedules %}
-    csv += '"{{ schedule.schedule_day or "Not set" }}",' +
-           '"{{ schedule.schedule_time or "Not set" }}",' +
-           '"{{ schedule.location_name or "Unknown Location" }}",' +
-           '"{{ schedule.waste_types or "General" }}",' +
-           '"{{ schedule.contact or "Not assigned" }}",' +
-           '"{{ "Active" if schedule.is_active == 1 else "Inactive" }}",' +
-           '"{{ schedule.address or "No address" }}"\n';
-    {% endfor %}
+    // Get all schedule rows from the table
+    const scheduleRows = document.querySelectorAll('table tbody tr');
+    
+    scheduleRows.forEach(function(row) {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 7) {
+            const day = cells[0].textContent.trim();
+            const time = cells[1].textContent.trim();
+            const location = cells[2].textContent.trim();
+            const type = cells[3].textContent.trim();
+            const contact = cells[4].textContent.trim();
+            const status = cells[5].textContent.trim();
+            const address = cells[6].textContent.trim();
+            
+            csv += '"' + day + '",' +
+                   '"' + time + '",' +
+                   '"' + location + '",' +
+                   '"' + type + '",' +
+                   '"' + contact + '",' +
+                   '"' + status + '",' +
+                   '"' + address + '"\n';
+        }
+    });
     
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
