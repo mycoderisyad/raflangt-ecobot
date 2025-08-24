@@ -16,179 +16,187 @@ from services.whatsapp_service import WhatsAppService
 from services.ai_service import AIService
 from services.message_service import MessageService
 from services.registration_service import RegistrationService
-from database.models import UserModel, DatabaseManager
+from database.models import UserModel
+from core.database_manager import get_database_manager
 
 
 class ApplicationHandler:
     """Main application handler for processing messages"""
-    
+
     def __init__(self):
         self.config = get_config()
         self.logger = LoggerUtils.get_logger(__name__)
-        
+
         # Initialize services
         self.whatsapp_service = WhatsAppService()
         self.ai_service = AIService()
         self.message_service = MessageService()
-        
+
         # Initialize database and user management
-        self.db_manager = DatabaseManager()
+        self.db_manager = get_database_manager()
         self.user_model = UserModel(self.db_manager)
         self.role_manager = RoleManager()
         self.command_parser = CommandParser()
-        self.admin_handler = AdminCommandHandler(self.whatsapp_service, self.message_service)
+        self.admin_handler = AdminCommandHandler(
+            self.whatsapp_service, self.message_service
+        )
         self.registration_service = RegistrationService(self.user_model)
-        
+        self.report_service = None  # Will be initialized when needed
+
         self.logger.info("Application handler initialized successfully")
-    
+
     def handle_incoming_message(self, request) -> Dict[str, Any]:
         """Process incoming WhatsApp message"""
         try:
             webhook_data = request.get_json()
             if not webhook_data:
                 return {"status": "error", "message": "No data received"}
-            
+
             # Parse message data
             message_data = self.whatsapp_service.parse_webhook_message(webhook_data)
             if not message_data:
                 return {"status": "ignored", "message": "Not a message event"}
-            
+
             # Route message based on type
-            if message_data['message_type'] == 'image':
+            if message_data["message_type"] == "image":
                 reply = self._handle_image_message(
-                    message_data['media_url'], 
-                    message_data['from_number'],
-                    message_data.get('media_info', {})
+                    message_data["media_url"],
+                    message_data["from_number"],
+                    message_data.get("media_info", {}),
                 )
-                self.user_model.increment_user_stats(message_data['from_number'], 'image')
-            elif message_data['message_type'] == 'text' and message_data['message_body']:
+                self.user_model.increment_user_stats(
+                    message_data["from_number"], "image"
+                )
+            elif (
+                message_data["message_type"] == "text" and message_data["message_body"]
+            ):
                 reply = self._handle_text_message(
-                    message_data['message_body'], 
-                    message_data['from_number']
+                    message_data["message_body"], message_data["from_number"]
                 )
-                self.user_model.increment_user_stats(message_data['from_number'], 'message')
+                self.user_model.increment_user_stats(
+                    message_data["from_number"], "message"
+                )
             else:
-                reply = self._get_help_message(message_data['from_number'])
-            
+                reply = self._get_help_message(message_data["from_number"])
+
             # Send reply
-            success = self.whatsapp_service.send_message(message_data['from_number'], reply)
-            
+            success = self.whatsapp_service.send_message(
+                message_data["from_number"], reply
+            )
+
             return {
                 "status": "success" if success else "partial_success",
-                "message": "Message processed"
+                "message": "Message processed",
             }
-            
+
         except Exception as e:
             LoggerUtils.log_error(self.logger, e, "handling incoming message")
             return {"status": "error", "message": str(e)}
-    
-    def _handle_image_message(self, media_url: str, phone_number: str, media_info: dict = None) -> str:
-        """Handle image classification"""
+
+    def _handle_image_message(self, media_url: str, media_info: Dict[str, Any], phone_number: str) -> str:
+        """Handle image message with AI analysis"""
         try:
-            # Check registration
-            if self.registration_service.is_registration_required(phone_number):
-                return self.registration_service.get_unregistered_user_message()
-            
+            # Auto-create user if not exists (no manual registration required)
+            self.user_model.create_or_update_user(phone_number)
+
             # Download and classify image
             image_data = self.whatsapp_service.download_media(media_url, media_info)
             if not image_data:
-                return self.message_service.format_error_response('general_error')
-            
+                return self.message_service.format_error_response("general_error")
+
             # Analyze with AI
             ai_analysis = self.ai_service.analyze_image(image_data, phone_number)
             if ai_analysis:
                 return ai_analysis
-            
+
             # Fallback to classification
             classification_result = self.ai_service.classify_waste_image(image_data)
             if classification_result:
                 # Save classification to database
                 try:
                     from database.models import WasteClassificationModel
+
                     waste_model = WasteClassificationModel(self.db_manager)
                     waste_model.save_classification(
                         phone_number,
-                        classification_result['waste_type'],
-                        classification_result['confidence'],
-                        classification_result.get('method', 'ai')
+                        classification_result["waste_type"],
+                        classification_result["confidence"],
+                        classification_result.get("method", "ai"),
                     )
                 except Exception as e:
                     LoggerUtils.log_error(self.logger, e, "saving classification")
-                
+
                 # Get education content
-                education_content = self._get_waste_education(classification_result['waste_type'])
+                education_content = self._get_waste_education(
+                    classification_result["waste_type"]
+                )
                 return self.message_service.format_education_response(education_content)
-            
-            return self.message_service.format_error_response('general_error')
-            
+
+            return self.message_service.format_error_response("general_error")
+
         except Exception as e:
             LoggerUtils.log_error(self.logger, e, "handling image message")
-            return self.message_service.format_error_response('general_error')
-    
+            return self.message_service.format_error_response("general_error")
+
     def _handle_text_message(self, message_body: str, phone_number: str) -> str:
         """Handle text message with AI-first approach"""
         try:
-            # Check registration first
-            if self.registration_service.is_registration_required(phone_number):
-                reg_result = self.registration_service.handle_registration_command(
-                    phone_number, message_body
-                )
-                
-                if reg_result['status'] == 'not_registration':
-                    return self.registration_service.get_unregistered_user_message()
-                else:
-                    return reg_result['message']
-            
-            # Update user activity
+            # Auto-create user if not exists (no manual registration required)
             self.user_model.create_or_update_user(phone_number)
-            
+
             # Check for admin commands
             admin_command = self.admin_handler.parse_admin_command(message_body)
             if admin_command:
                 admin_result = self.admin_handler.handle_admin_command(
-                    admin_command['command'],
-                    admin_command['args'],
-                    phone_number
+                    admin_command["command"], admin_command["args"], phone_number
                 )
-                return admin_result.get('message', 'Admin command executed')
+                return admin_result.get("message", "Admin command executed")
+
+            # Use AI Agent for natural conversation (primary approach)
+            from services.ai_agent import get_ai_agent
+            ai_agent = get_ai_agent()
             
-            # Use AI for natural conversation (primary approach)
-            ai_response = self.ai_service.generate_conversation_response(
-                message_body, phone_number
-            )
+            # Process message with AI Agent (includes long-term memory)
+            ai_result = ai_agent.process_message(message_body, phone_number)
             
-            if ai_response:
-                return ai_response
-            
+            if ai_result and ai_result.get("status") == "success":
+                return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
+
             # Fallback to command parsing only if AI fails
             command_info = self.command_parser.parse_command(message_body, phone_number)
             user_role = self.role_manager.get_user_role(phone_number)
-            
-            if command_info['status'] == 'no_permission':
-                return self.message_service.format_error_response('no_permission', user_role)
-            elif command_info['status'] == 'coming_soon':
-                return self.message_service.format_error_response('coming_soon')
-            elif command_info['status'] == 'available':
-                return self._route_command_fallback(command_info, phone_number, user_role)
+
+            if command_info["status"] == "no_permission":
+                return self.message_service.format_error_response(
+                    "no_permission", user_role
+                )
+            elif command_info["status"] == "coming_soon":
+                return self.message_service.format_error_response("coming_soon")
+            elif command_info["status"] == "available":
+                return self._route_command_fallback(
+                    command_info, phone_number, user_role
+                )
             else:
                 # Ultimate fallback
                 return self._get_help_message(phone_number)
-                
+
         except Exception as e:
             LoggerUtils.log_error(self.logger, e, "handling text message")
-            return self.message_service.format_error_response('general_error')
-    
-    def _route_command_fallback(self, command_info: Dict[str, Any], phone_number: str, user_role: str) -> str:
+            return self.message_service.format_error_response("general_error")
+
+    def _route_command_fallback(
+        self, command_info: Dict[str, Any], phone_number: str, user_role: str
+    ) -> str:
         """Fallback command routing when AI fails"""
-        handler = command_info['handler']
-        args = command_info['args']
-        
+        handler = command_info["handler"]
+        args = command_info["args"]
+
         # For critical commands, use direct AI queries with specific context
-        if handler in ['help']:
+        if handler in ["help"]:
             return self._get_help_message(phone_number)
-        elif handler == 'report':
+        elif handler == "report":
             return self._handle_report_request(phone_number, user_role)
-        elif handler in ['schedule', 'location', 'points', 'statistics']:
+        elif handler in ["schedule", "location", "points", "statistics"]:
             # Try AI response with specific context
             context_message = f"User asking about {handler}: {args or ''}"
             ai_response = self.ai_service.generate_conversation_response(
@@ -196,7 +204,7 @@ class ApplicationHandler:
             )
             if ai_response:
                 return ai_response
-        
+
         # Ultimate fallback for unsupported features
         return """🤖 Maaf, fitur ini sedang dalam pengembangan. 
 
@@ -207,13 +215,17 @@ Info lokasi dan jadwal pengumpulan
 🎓 Tips dan edukasi lingkungan
 
 Coba tanyakan hal lain atau kirim foto sampah ya! 🌱"""
-    
-    def _handle_general_conversation(self, message: str, phone_number: str = None) -> str:
+
+    def _handle_general_conversation(
+        self, message: str, phone_number: str = None
+    ) -> str:
         """Handle general conversation using AI"""
-        ai_response = self.ai_service.generate_conversation_response(message, phone_number)
+        ai_response = self.ai_service.generate_conversation_response(
+            message, phone_number
+        )
         if ai_response:
             return ai_response
-        
+
         # Fallback response
         return """🤖 Halo! Saya EcoBot, asisten pengelolaan sampah untuk desa kita.
 
@@ -222,123 +234,77 @@ Tanyakan tentang: edukasi, jadwal, lokasi
 Ketik 'help' untuk melihat semua fitur
 
 Apa yang bisa saya bantu hari ini? 🌱"""
-    
+
     def _handle_schedule_request(self) -> str:
         """Handle schedule request"""
         # Mock schedule data
         schedule_data = {
-            'Senin': 'Sampah Organik - 07:00-09:00',
-            'Rabu': 'Sampah Anorganik - 07:00-09:00',
-            'Jumat': 'Sampah B3 - 08:00-10:00'
+            "Senin": "Sampah Organik - 07:00-09:00",
+            "Rabu": "Sampah Anorganik - 07:00-09:00",
+            "Jumat": "Sampah B3 - 08:00-10:00",
         }
         return self.message_service.format_schedule_response(schedule_data)
-    
+
     def _handle_location_request(self) -> str:
         """Handle location request"""
         maps_data = self.message_service.get_maps_data()
         return self.message_service.format_location_response(maps_data)
-    
+
     def _handle_points_request(self, phone_number: str) -> str:
         """Handle points request"""
-        return self.message_service.format_error_response('coming_soon')
-    
+        return self.message_service.format_error_response("coming_soon")
+
     def _handle_redeem_request(self) -> str:
         """Handle redeem request"""
-        return self.message_service.format_error_response('coming_soon')
-    
+        return self.message_service.format_error_response("coming_soon")
+
     def _handle_statistics_request(self, user_role: str) -> str:
         """Handle statistics request"""
         # Mock statistics
         stats = {
-            'active_users': 45,
-            'images_processed': 123,
-            'successful_classifications': 118,
-            'total_users': 67,
-            'organic_count': 78,
-            'inorganic_count': 45,
-            'b3_count': 12,
-            'system_status': 'Normal',
-            'uptime': '99.8%'
+            "active_users": 45,
+            "images_processed": 123,
+            "successful_classifications": 118,
+            "total_users": 67,
+            "organic_count": 78,
+            "inorganic_count": 45,
+            "b3_count": 12,
+            "system_status": "Normal",
+            "uptime": "99.8%",
         }
         return self.message_service.format_statistics_response(stats, user_role)
-    
+
     def _handle_report_request(self, phone_number: str, user_role: str) -> str:
         """Handle report request"""
-        if user_role == 'warga':
+        if user_role == "warga":
             return self.message_service.format_report_response(user_role)
-        
+
         # For coordinators and admins, generate and send email report
         try:
-            from services.email_service import EmailService
+            # Import ReportService when needed to avoid circular import
+            if self.report_service is None:
+                from services.report_service import ReportService
+                self.report_service = ReportService(self.whatsapp_service)
             
-            email_service = EmailService()
-            
-            # Check if email service is configured
-            if not email_service.mailry_api_key:
-                return "Error: Email service tidak dikonfigurasi dengan benar.\n\nSilakan hubungi admin untuk konfigurasi MAILRY_API_KEY."
-            
-            # Generate initial response
-            response = self.message_service.format_report_response(user_role)
-            
-            # Start background report generation
-            import threading
-            
-            def generate_report_async():
-                try:
-                    success = email_service.generate_and_send_report(phone_number)
-                    
-                    if success:
-                        # Send success confirmation
-                        confirmation_msg = f"""✅ LAPORAN BERHASIL DIKIRIM
+            # Use ReportService for report generation
+            result = self.report_service.generate_and_send_report_async(
+                phone_number, user_role
+            )
 
-Laporan PDF telah dikirim ke: {email_service.to_email}
+            if result["success"]:
+                return result["message"]
+            else:
+                return result["message"]
 
-Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M WIB')}
-
-Silakan cek email Anda.
-
-Jika tidak menerima dalam 10 menit, periksa folder spam."""
-                    else:
-                        # Send error message
-                        confirmation_msg = f"""❌ LAPORAN GAGAL DIKIRIM
-
-Terjadi kesalahan saat mengirim laporan.
-
-Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M WIB')}
-
-Silakan coba lagi atau hubungi support."""
-                    
-                    # Send follow-up message
-                    if self.whatsapp_service:
-                        self.whatsapp_service.send_message(phone_number, confirmation_msg)
-                        
-                except Exception as e:
-                    error_msg = f"Error generating report: {str(e)}"
-                    if self.whatsapp_service:
-                        self.whatsapp_service.send_message(phone_number, f"❌ Laporan gagal: {error_msg}")
-            
-            # Start background thread
-            report_thread = threading.Thread(target=generate_report_async)
-            report_thread.daemon = True
-            report_thread.start()
-            
-            return response
-            
         except Exception as e:
             return f"Error: {str(e)}"
-    
-    
-    def _handle_general_conversation(self, message: str) -> str:
-        """Handle general conversation"""
-        response = self.ai_service.generate_conversation_response(message)
-        if response:
-            return response
-        return self.message_service.format_error_response('invalid_command')
-    
+
+
+
     def _get_help_message(self, phone_number: str) -> str:
         """Generate comprehensive help message"""
         user_role = self.role_manager.get_user_role(phone_number)
-        
+
         response = """🤖 EcoBot - Menu Lengkap
 Halo warga Desa Cukangkawung! Berikut fitur yang tersedia:
 
@@ -358,15 +324,15 @@ Fitur Poin (Coming Soon):
 • daftar - Daftar sistem poin
 • point - Cek poin reward
 • redeem - Tukar poin dengan hadiah"""
-        
+
         # Add role-specific features
-        if user_role in ['koordinator', 'admin']:
+        if user_role in ["koordinator", "admin"]:
             response += """
 
 👥 Fitur Koordinator:
 • statistik - Data pengguna & aktivitas
 • laporan - Generate laporan email"""
-        
+
         response += """
 
 Cara Pakai:
@@ -375,10 +341,10 @@ Cara Pakai:
 • Tanya apa saja tentang sampah!
 
 Mari bersama jaga lingkungan desa kita!"""
-        
+
         return response
-    
+
     def _get_waste_education(self, waste_type: str) -> Dict[str, Any]:
         """Get education content for waste type"""
         education_data = self.message_service.get_education_messages()
-        return education_data.get(waste_type.lower(), education_data.get('general', {}))
+        return education_data.get(waste_type.lower(), education_data.get("general", {}))

@@ -8,6 +8,11 @@ python-dotenv==1.0.0
 # AI Services
 openai>=1.0.0
 
+# AI Agent & Memory Management
+redis==5.0.1
+apscheduler==3.10.4
+psycopg2-binary==2.9.7
+
 # Image processing (for AI classification)
 Pillow==10.0.1
 
