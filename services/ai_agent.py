@@ -1,17 +1,7 @@
 """
-AI Agent Service - Minimal Version
-This is a minimal version for git commit purposes
-"""
-
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-"""
-AI Agent Service with Long-Term Memory
+AI Agent Service with Long-Term Memory and Database Integration
 Advanced AI agent that can memorize conversations, remember user details, 
-and adapt communication style based on user history
+and adapt communication style based on user history and mode
 """
 
 import os
@@ -33,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class AIAgent:
-    """AI Agent with long-term memory capabilities"""
+    """AI Agent with long-term memory capabilities and database integration"""
 
     def __init__(self):
         self.config = get_config()
@@ -68,6 +58,28 @@ class AIAgent:
             ],
         }
 
+        # AI Agent modes
+        self.modes = {
+            "ecobot": {
+                "name": "EcoBot Service Mode",
+                "description": "Mode khusus untuk layanan EcoBot (database + rules)",
+                "scope": "database_only",
+                "personality": "Fokus pada data EcoBot, jadwal, lokasi, dan fitur spesifik"
+            },
+            "general": {
+                "name": "General Waste Management Mode", 
+                "description": "Mode umum untuk edukasi sampah (AI + internet knowledge)",
+                "scope": "general_waste",
+                "personality": "Edukasi umum tentang pengelolaan sampah dan lingkungan"
+            },
+            "hybrid": {
+                "name": "Hybrid Mode",
+                "description": "Kombinasi database EcoBot + pengetahuan umum",
+                "scope": "hybrid",
+                "personality": "Memberikan informasi spesifik EcoBot + edukasi umum"
+            }
+        }
+
         if not self.api_key:
             logger.warning("Lunos API key not found. AI Agent will not function.")
             self.use_ai = False
@@ -75,10 +87,10 @@ class AIAgent:
             self.use_ai = True
             logger.info(f"AI Agent initialized with model: {self.model}")
 
-    def process_message(self, user_message: str, user_phone: str) -> Dict[str, Any]:
-        """Process user message with long-term memory capabilities"""
+    def process_message(self, user_message: str, user_phone: str, mode: str = "hybrid") -> Dict[str, Any]:
+        """Process user message with specified mode"""
         if not self.use_ai:
-            fallback_response = self._fallback_response(user_message, user_phone)
+            fallback_response = self._fallback_response(user_message, user_phone, mode)
             return {"status": "success", "reply_sent": fallback_response}
 
         try:
@@ -89,27 +101,154 @@ class AIAgent:
                 user_phone, 20
             )
 
-            # Build comprehensive context
+            # Build comprehensive context based on mode
             context = self._build_context(
-                user_phone, user_context, user_facts, conversation_history
+                user_phone, user_context, user_facts, conversation_history, mode
             )
 
-            # Generate response
-            response = self._generate_response_with_memory(user_message, context)
+            # Generate response based on mode
+            if mode == "ecobot":
+                response = self._generate_ecobot_response(user_message, context)
+            elif mode == "general":
+                response = self._generate_general_response(user_message, context)
+            else:  # hybrid mode
+                response = self._generate_hybrid_response(user_message, context)
 
             # Extract and save facts from the conversation
-            self._extract_and_save_facts(user_phone, user_message, response)
+            try:
+                self._extract_and_save_facts(user_phone, user_message, response)
+            except Exception as e:
+                logger.error(f"Error extracting and saving facts: {str(e)}")
 
             # Save conversation to history
-            self.conversation_model.add_message(user_phone, "user", user_message)
-            self.conversation_model.add_message(user_phone, "assistant", response)
+            try:
+                self.conversation_model.add_message(user_phone, "user", user_message)
+                self.conversation_model.add_message(user_phone, "assistant", response)
+            except Exception as e:
+                logger.error(f"Error saving conversation history: {str(e)}")
 
             return {"status": "success", "reply_sent": response}
 
         except Exception as e:
             logger.error(f"AI Agent error: {str(e)}")
-            fallback_response = self._fallback_response(user_message, user_phone)
+            fallback_response = self._fallback_response(user_message, user_phone, mode)
             return {"status": "error", "reply_sent": fallback_response, "error": str(e)}
+
+    def process_image_message(self, image_data: bytes, user_phone: str, mode: str = "hybrid") -> Dict[str, Any]:
+        """Process image message with AI agent context and image analysis"""
+        try:
+            # Get user context for personalized response
+            user_context = self._get_user_context(user_phone)
+            user_name = user_context.get("name", "Teman")
+            user_facts = self.memory_model.get_all_user_facts(user_phone)
+
+            # Analyze the image using image analysis service
+            analysis_result = self.image_analyzer.analyze_waste_image(
+                image_data, user_phone
+            )
+
+            if analysis_result.get("success"):
+                waste_type = analysis_result.get("waste_type", "TIDAK_TERIDENTIFIKASI")
+                confidence = analysis_result.get("confidence", 0.0)
+                description = analysis_result.get("description", "")
+                tips = analysis_result.get("tips", "")
+
+                # Create personalized response using AI agent context
+                if user_name != "Teman" and user_name != "Belum dikenali":
+                    greeting = f"Halo {user_name}! "
+                else:
+                    greeting = "Halo! "
+
+                # Generate personalized response based on waste type
+                if waste_type == "ORGANIK":
+                    encouragement = "Bagus sekali! Sampah organik bisa jadi kompos lho! "
+                elif waste_type == "ANORGANIK":
+                    encouragement = "Perfect! Jangan lupa pisahkan untuk daur ulang ya! "
+                elif waste_type == "B3":
+                    encouragement = "Hati-hati! Sampah ini perlu penanganan khusus. "
+                else:
+                    encouragement = "Mari kita pelajari jenis sampah ini bersama! "
+
+                # Format confidence as percentage
+                confidence_percent = int(confidence * 100)
+
+                response = f"""{greeting}{encouragement}
+
+**HASIL IDENTIFIKASI:**
+• **Jenis Sampah:** {waste_type}
+• **Tingkat Keyakinan:** {confidence_percent}%
+• **Yang Terdeteksi:** {description}
+
+**Tips Pengelolaan:**
+{tips}
+
+Terima kasih sudah peduli lingkungan! Kirim foto sampah lain kalau mau belajar lebih banyak! """
+
+                # Save to conversation history
+                try:
+                    self.conversation_model.add_message(
+                        user_phone, "user", "Mengirim foto sampah untuk dianalisis"
+                    )
+                    self.conversation_model.add_message(user_phone, "assistant", response)
+                except Exception as e:
+                    logger.error(f"Error saving image conversation: {str(e)}")
+
+                return {
+                    "status": "success",
+                    "reply_sent": response,
+                    "analysis_result": analysis_result,
+                }
+            else:
+                error_msg = analysis_result.get("error", "Gagal menganalisis gambar")
+                response = f"""Maaf, ada kendala saat menganalisis gambar:
+
+{error_msg}
+
+Coba kirim foto yang lebih jelas atau coba lagi nanti ya! """
+
+                return {"status": "error", "reply_sent": response, "error": error_msg}
+
+        except Exception as e:
+            logger.error(f"Error in AI agent image processing: {str(e)}")
+            response = f"""Maaf, terjadi kesalahan sistem saat menganalisis gambar.
+
+Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya! """
+
+            return {"status": "error", "reply_sent": response, "error": str(e)}
+
+    def get_ai_capabilities(self) -> Dict[str, Any]:
+        """Get information about AI capabilities"""
+        try:
+            return {
+                "text_ai": {
+                    "available": self.use_ai,
+                    "provider": "Lunos.tech",
+                    "model": self.model,
+                    "modes": list(self.modes.keys()),
+                },
+                "image_analysis": {
+                    "available": True,
+                    "provider": "unli.dev",
+                    "supported_formats": ["JPEG", "PNG", "GIF"],
+                    "max_size_mb": 16,
+                    "features": ["waste_classification", "confidence_scoring", "tips_generation"],
+                },
+                "memory_system": {
+                    "available": True,
+                    "features": ["user_facts", "conversation_history", "style_analysis"],
+                },
+                "database_integration": {
+                    "available": True,
+                    "features": ["locations", "schedules", "statistics", "user_data"],
+                },
+            }
+        except Exception as e:
+            logger.error(f"Error getting AI capabilities: {str(e)}")
+            return {
+                "text_ai": {"available": False},
+                "image_analysis": {"available": False},
+                "error": str(e),
+            }
 
     def _get_user_context(self, user_phone: str) -> Dict[str, Any]:
         """Get user context from database"""
@@ -133,39 +272,97 @@ class AIAgent:
             logger.error(f"Error getting user context: {str(e)}")
             return {"phone": user_phone, "role": "warga"}
 
-    def _build_context(
-        self,
-        user_phone: str,
-        user_context: Dict,
-        user_facts: Dict,
-        conversation_history: List[Dict],
-    ) -> Dict[str, Any]:
+    def _build_context(self, user_phone: str, user_context: Dict, user_facts: Dict, 
+                      conversation_history: List[Dict], mode: str) -> Dict[str, Any]:
         """Build comprehensive context for the AI agent"""
         return {
             "user_context": user_context,
             "user_facts": user_facts,
             "conversation_history": conversation_history,
             "personality": self.personality,
+            "mode": self.modes.get(mode, self.modes["hybrid"]),
             "timestamp": datetime.now().isoformat(),
         }
 
-    def _generate_response_with_memory(self, user_message: str, context: Dict) -> str:
-        """Generate AI response using long-term memory"""
-        system_prompt = self._build_system_prompt(context)
+    def _generate_ecobot_response(self, user_message: str, context: Dict) -> str:
+        """Generate response for EcoBot service mode (database-focused)"""
+        # Get database data for specific queries
+        db_data = self._get_database_data(user_message)
+        
+        system_prompt = self._build_ecobot_system_prompt(context, db_data)
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
 
-        # Prepare conversation history for the API
-        messages = []
+        return self._call_lunos_api(messages)
 
-        # Add system prompt
-        messages.append({"role": "system", "content": system_prompt})
+    def _generate_general_response(self, user_message: str, context: Dict) -> str:
+        """Generate response for general waste management mode"""
+        system_prompt = self._build_general_system_prompt(context)
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
 
-        # Add recent conversation history
-        for msg in context["conversation_history"]:
-            messages.append({"role": msg["role"], "content": msg["content"]})
+        return self._call_lunos_api(messages)
 
-        # Add current user message
-        messages.append({"role": "user", "content": user_message})
+    def _generate_hybrid_response(self, user_message: str, context: Dict) -> str:
+        """Generate response for hybrid mode (database + general knowledge)"""
+        # Get database data for specific queries
+        db_data = self._get_database_data(user_message)
+        
+        system_prompt = self._build_hybrid_system_prompt(context, db_data)
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
 
+        return self._call_lunos_api(messages)
+
+    def _get_database_data(self, user_message: str) -> Dict[str, Any]:
+        """Extract relevant data from database based on user message"""
+        data = {}
+        
+        try:
+            # Check for location queries
+            if any(word in user_message.lower() for word in ["lokasi", "bank sampah", "tempat sampah", "dimana", "mana"]):
+                result = self.db_manager.execute_query(
+                    "SELECT name, type, latitude, longitude, description FROM collection_points WHERE is_active = 1"
+                )
+                data["collection_points"] = result
+
+            # Check for schedule queries
+            if any(word in user_message.lower() for word in ["jadwal", "kapan", "waktu", "pengumpulan"]):
+                result = self.db_manager.execute_query(
+                    "SELECT location_name, schedule_day, schedule_time, waste_types FROM collection_schedules WHERE is_active = 1"
+                )
+                data["schedules"] = result
+
+            # Check for user statistics
+            if any(word in user_message.lower() for word in ["statistik", "data", "aktivitas", "report"]):
+                result = self.db_manager.execute_query(
+                    "SELECT COUNT(*) as total_users, SUM(points) as total_points FROM users WHERE is_active = 1"
+                )
+                data["statistics"] = result[0] if result else None
+
+            # Check for waste classification data
+            if any(word in user_message.lower() for word in ["klasifikasi", "jenis sampah", "analisis"]):
+                result = self.db_manager.execute_query(
+                    "SELECT waste_type, COUNT(*) as count FROM waste_classifications GROUP BY waste_type"
+                )
+                data["waste_analysis"] = result
+
+        except Exception as e:
+            logger.error(f"Error getting database data: {str(e)}")
+            
+        return data
+
+    def _call_lunos_api(self, messages: List[Dict]) -> str:
+        """Call Lunos API for response generation"""
         data = {
             "model": self.model,
             "messages": messages,
@@ -184,41 +381,48 @@ class AIAgent:
         result = response.json()
         return result["choices"][0]["message"]["content"].strip()
 
-    def _build_system_prompt(self, context: Dict) -> str:
-        """Build comprehensive system prompt with memory context"""
+    def _build_ecobot_system_prompt(self, context: Dict, db_data: Dict) -> str:
+        """Build system prompt for EcoBot service mode"""
         user_context = context["user_context"]
         user_facts = context["user_facts"]
+        mode_info = context["mode"]
         conversation_history = context["conversation_history"]
-        personality = context["personality"]
 
         # Analyze user communication style from history
         communication_style = self._analyze_user_style(conversation_history)
 
-        prompt = f"""Kamu adalah {personality['name']}, {personality['role']} yang sangat personal dan adaptif.
+        prompt = f"""Kamu adalah {self.personality['name']} dalam mode {mode_info['name']}.
 
-KEPRIBADIAN INTI:"""
-        for trait in personality["traits"]:
-            prompt += f"\n- {trait}"
+{mode_info['description']}
 
-        prompt += f"""
-
-INFORMASI USER LENGKAP:
-- Nomor telepon: {user_context.get('phone', 'Tidak diketahui')}
+INFORMASI USER:
 - Nama: {user_context.get('name', 'Belum dikenali')}
 - Role: {user_context.get('role', 'warga')}
-- Status registrasi: {user_context.get('registration_status', 'unknown')}
-- Poin yang dimiliki: {user_context.get('points', 0)}
-- Total interaksi pesan: {user_context.get('total_messages', 0)}
-- Total gambar yang dikirim: {user_context.get('total_images', 0)}
-- Pertama kali bertemu: {user_context.get('first_seen', 'Hari ini')}
-- Terakhir aktif: {user_context.get('last_active', 'Sekarang')}
+- Poin: {user_context.get('points', 0)}
 
-FAKTA PERSONAL YANG KAMU KETAHUI:"""
+FAKTA USER:"""
         if user_facts:
             for key, value in user_facts.items():
                 prompt += f"\n- {key}: {value}"
         else:
-            prompt += "\n- Belum ada fakta personal yang diketahui tentang user ini"
+            prompt += "\n- Belum ada fakta personal yang diketahui"
+
+        prompt += f"""
+
+DATA ECOBOT YANG TERSEDIA:"""
+        
+        if db_data.get("collection_points"):
+            prompt += "\n\nLOKASI BANK SAMPAH:"
+            for point in db_data["collection_points"]:
+                prompt += f"\n- {point[0]} di {point[1]} (Jadwal: {point[2]})"
+
+        if db_data.get("schedules"):
+            prompt += "\n\nJADWAL PENGUMPULAN:"
+            for schedule in db_data["schedules"]:
+                prompt += f"\n- {schedule[0]} ({schedule[1]} {schedule[2]}) untuk {schedule[3]}"
+
+        if db_data.get("statistics"):
+            prompt += f"\n\nSTATISTIK: Total {db_data['statistics'][0]} user aktif dengan {db_data['statistics'][1]} total poin"
 
         prompt += f"""
 
@@ -227,50 +431,174 @@ ANALISIS GAYA KOMUNIKASI USER:
 - Penggunaan emoji: {communication_style.get('emoji_usage', 'Jarang')}
 - Panjang pesan: {communication_style.get('message_length', 'Sedang')}
 - Topik favorit: {communication_style.get('preferred_topics', 'Belum teridentifikasi')}
-- Waktu aktif: {communication_style.get('active_times', 'Belum dianalisis')}
 
-KEMAMPUAN UTAMA & TUGAS:
- MEMORY SISTEM:
-- Ingat SEMUA detail personal yang user bagikan (nama, alamat, kebiasaan, preferensi, dll)
-- Referensikan percakapan sebelumnya secara natural
-- Adaptasi respons berdasarkan pola komunikasi user
-- Pelajari dan ingat kebiasaan user seputar sampah dan lingkungan
+INSTRUKSI KHUSUS:
+1. HANYA gunakan data dari database EcoBot yang tersedia
+2. Jika user bertanya tentang lokasi/jadwal yang tidak ada di database, katakan data tidak tersedia
+3. Fokus pada fitur EcoBot: lokasi, jadwal, poin, statistik
+4. Jangan berikan informasi umum tentang sampah, hanya data spesifik EcoBot
+5. Gunakan nama user jika tersedia
+6. Respons maksimal 3-4 kalimat, fokus pada data yang diminta
 
- PERSONALISASI:
-- Sesuaikan gaya bahasa dengan preferensi user (formal/informal)
-- Gunakan nama user jika sudah diketahui
-- Berikan saran yang spesifik berdasarkan lokasi/situasi user
-- Ingat konteks percakapan sebelumnya
+CONTOH RESPONS:
+- "Berdasarkan database EcoBot, ada 5 lokasi bank sampah aktif di Kampung Hijau"
+- "Jadwal pengumpulan sampah di RT 05 setiap Selasa 14:00-18:00"
+- "Maaf, data tersebut tidak tersedia di database EcoBot saat ini"
 
- PENGEMBANGAN RELASI:
+PENGEMBANGAN RELASI:
 - Bangun rapport yang natural, bukan seperti customer service
-- Tunjukkan ketertarikan genuine pada kehidupan user
+- Tunjukkan ketertarikan genuine pada kebutuhan user
 - Ajukan pertanyaan follow-up yang relevan
 - Celebrasi progress dan achievement user
 
- EXPERTISE LINGKUNGAN:
-- Berikan advice pengelolaan sampah yang actionable
-- Sesuaikan tips dengan kondisi spesifik user
-- Edukasi dengan cara yang engaging dan mudah diingat
-- Motivasi user untuk konsisten menerapkan pola hidup ramah lingkungan
+PERSONALISASI:
+- Sesuaikan gaya bahasa dengan preferensi user (formal/informal)
+- Gunakan nama user jika sudah diketahui
+- Berikan saran yang spesifik berdasarkan data EcoBot
+- Ingat konteks percakapan sebelumnya
 
-PRINSIP KOMUNIKASI WAJIB:
-1.  SELALU referensikan informasi dari percakapan sebelumnya jika relevan
-2. 🧠 Tunjukkan bahwa kamu MENGINGAT user dengan menyebut detail yang pernah mereka bagikan
-3.  Adaptasi gaya komunikasi sesuai preferensi user (emoji, formal/informal, panjang respon)
-4.  Berikan saran yang PERSONAL dan spesifik, bukan generic
-5.  Fokus pada progress dan improvement yang berkelanjutan
-6. ️ Tunjukkan empati dan genuine care terhadap user
-7.  Maksimal 4-5 kalimat agar mudah dibaca di WhatsApp
-8.  Selalu akhiri dengan pertanyaan atau ajakan interaksi untuk menjaga engagement
+PENTING: Kamu adalah asisten EcoBot yang memberikan informasi spesifik dari database dengan personalisasi tinggi."""
 
-CONTOH PERSONALISASI:
-- Jika user pernah menyebut nama → "Halo [Nama], apa kabar?"
-- Jika user pernah cerita masalah sampah → "Gimana progress dengan [masalah specific]?"
-- Jika user sering kirim foto sampah → "Wah kamu rajin banget klasifikasi sampah!"
-- Jika user jarang aktif → "Udah lama gak ngobrol nih, gimana kabarnya?"
+        return prompt
 
-PENTING: Kamu bukan bot kaku! Kamu adalah AI companion yang genuinely peduli dengan user dan lingkungan. Tunjukkan personality yang warm, helpful, dan memorable."""
+    def _build_general_system_prompt(self, context: Dict) -> str:
+        """Build system prompt for general waste management mode"""
+        user_context = context["user_context"]
+        user_facts = context["user_facts"]
+        conversation_history = context["conversation_history"]
+
+        # Analyze user communication style from history
+        communication_style = self._analyze_user_style(conversation_history)
+
+        prompt = f"""Kamu adalah {self.personality['name']} dalam mode General Waste Management.
+
+Mode ini fokus pada edukasi umum tentang pengelolaan sampah dan lingkungan.
+
+INFORMASI USER:
+- Nama: {user_context.get('name', 'Belum dikenali')}
+- Role: {user_context.get('role', 'warga')}
+
+FAKTA USER:"""
+        if user_facts:
+            for key, value in user_facts.items():
+                prompt += f"\n- {key}: {value}"
+        else:
+            prompt += "\n- Belum ada fakta personal yang diketahui"
+
+        prompt += f"""
+
+ANALISIS GAYA KOMUNIKASI USER:
+- Formalitas: {communication_style.get('formality', 'Netral')}
+- Penggunaan emoji: {communication_style.get('emoji_usage', 'Jarang')}
+- Panjang pesan: {communication_style.get('message_length', 'Sedang')}
+- Topik favorit: {communication_style.get('preferred_topics', 'Belum teridentifikasi')}
+
+INSTRUKSI KHUSUS:
+1. Berikan edukasi umum tentang pengelolaan sampah
+2. Gunakan pengetahuan umum tentang lingkungan dan sampah
+3. Jangan berikan informasi spesifik EcoBot (lokasi, jadwal, dll)
+4. Fokus pada tips, edukasi, dan pengetahuan umum
+5. Gunakan nama user jika tersedia
+6. Respons natural dan edukatif
+
+CONTOH TOPIK:
+- Cara memilah sampah organik dan anorganik
+- Manfaat daur ulang sampah
+- Tips mengurangi sampah plastik
+- Pentingnya menjaga lingkungan
+- Jenis-jenis sampah dan cara penanganannya
+
+PENGEMBANGAN RELASI:
+- Bangun rapport yang natural dan friendly
+- Tunjukkan empati terhadap kepedulian user pada lingkungan
+- Ajukan pertanyaan follow-up untuk engagement
+- Berikan motivasi dan encouragement
+
+PERSONALISASI:
+- Sesuaikan gaya bahasa dengan preferensi user
+- Gunakan nama user jika sudah diketahui
+- Berikan contoh yang relevan dengan situasi user
+- Ingat topik yang pernah dibahas sebelumnya
+
+PENTING: Kamu adalah asisten edukasi sampah umum dengan personalisasi tinggi."""
+
+        return prompt
+
+    def _build_hybrid_system_prompt(self, context: Dict, db_data: Dict) -> str:
+        """Build system prompt for hybrid mode"""
+        user_context = context["user_context"]
+        user_facts = context["user_facts"]
+        mode_info = context["mode"]
+        conversation_history = context["conversation_history"]
+
+        # Analyze user communication style from history
+        communication_style = self._analyze_user_style(conversation_history)
+
+        prompt = f"""Kamu adalah {self.personality['name']} dalam mode {mode_info['name']}.
+
+{mode_info['description']}
+
+INFORMASI USER:
+- Nama: {user_context.get('name', 'Belum dikenali')}
+- Role: {user_context.get('role', 'warga')}
+- Poin: {user_context.get('points', 0)}
+
+FAKTA USER:"""
+        if user_facts:
+            for key, value in user_facts.items():
+                prompt += f"\n- {key}: {value}"
+        else:
+            prompt += "\n- Belum ada fakta personal yang diketahui"
+
+        prompt += f"""
+
+DATA ECOBOT YANG TERSEDIA:"""
+        
+        if db_data.get("collection_points"):
+            prompt += "\n\nLOKASI BANK SAMPAH:"
+            for point in db_data["collection_points"]:
+                prompt += f"\n- {point[0]} di {point[1]} (Jadwal: {point[2]})"
+
+        if db_data.get("schedules"):
+            prompt += "\n\nJADWAL PENGUMPULAN:"
+            for schedule in db_data["schedules"]:
+                prompt += f"\n- {schedule[0]} ({schedule[1]} {schedule[2]}) untuk {schedule[3]}"
+
+        prompt += f"""
+
+ANALISIS GAYA KOMUNIKASI USER:
+- Formalitas: {communication_style.get('formality', 'Netral')}
+- Penggunaan emoji: {communication_style.get('emoji_usage', 'Jarang')}
+- Panjang pesan: {communication_style.get('message_length', 'Sedang')}
+- Topik favorit: {communication_style.get('preferred_topics', 'Belum teridentifikasi')}
+
+INSTRUKSI KHUSUS:
+1. Gunakan data EcoBot jika tersedia dan relevan
+2. Berikan edukasi umum jika tidak ada data spesifik
+3. Kombinasikan informasi database + pengetahuan umum
+4. Fokus pada pengelolaan sampah dan lingkungan
+5. Gunakan nama user jika tersedia
+6. Respons natural dan informatif
+
+STRATEGI:
+- Jika ada data EcoBot yang relevan, gunakan itu
+- Jika tidak ada data spesifik, berikan edukasi umum
+- Kombinasikan keduanya untuk respons yang lengkap
+- Prioritaskan data EcoBot untuk pertanyaan spesifik
+
+PENGEMBANGAN RELASI:
+- Bangun rapport yang natural, bukan seperti customer service
+- Tunjukkan ketertarikan genuine pada kebutuhan user
+- Ajukan pertanyaan follow-up yang relevan
+- Celebrasi progress dan achievement user
+
+PERSONALISASI:
+- Sesuaikan gaya bahasa dengan preferensi user (formal/informal)
+- Gunakan nama user jika sudah diketahui
+- Berikan saran yang spesifik berdasarkan data EcoBot
+- Ingat konteks percakapan sebelumnya
+
+PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi umum dengan personalisasi tinggi."""
 
         return prompt
 
@@ -282,7 +610,6 @@ PENTING: Kamu bukan bot kaku! Kamu adalah AI companion yang genuinely peduli den
                 "emoji_usage": "Jarang",
                 "message_length": "Sedang",
                 "preferred_topics": "Belum teridentifikasi",
-                "active_times": "Belum dianalisis",
             }
 
         user_messages = [msg for msg in conversation_history if msg["role"] == "user"]
@@ -360,257 +687,60 @@ PENTING: Kamu bukan bot kaku! Kamu adalah AI companion yang genuinely peduli den
             "emoji_usage": emoji_usage,
             "message_length": message_length,
             "preferred_topics": preferred_topics,
-            "active_times": "Belum dianalisis",  # Could be enhanced later
         }
 
-    def _extract_and_save_facts(
-        self, user_phone: str, user_message: str, ai_response: str
-    ):
+    def _extract_and_save_facts(self, user_phone: str, user_message: str, ai_response: str):
         """Extract and save user facts from conversation"""
         try:
-            # Create a prompt to extract facts
-            extraction_prompt = f"""
-Pesan pengguna: "{user_message}"
-Respon AI: "{ai_response}"
+            # Extract user name if mentioned
+            if "nama saya" in user_message.lower() or "saya" in user_message.lower():
+                # Simple name extraction
+                words = user_message.split()
+                for i, word in enumerate(words):
+                    if word.lower() in ["nama", "saya"] and i + 1 < len(words):
+                        name = words[i + 1]
+                        if name not in ["adalah", "itu", "ini"]:
+                            self.memory_model.save_user_fact(user_phone, "user_name", name)
+                            break
 
-Berdasarkan percakapan di atas, identifikasi fakta-fakta penting tentang pengguna yang perlu diingat.
-Fakta-fakta ini bisa berupa:
-- Nama pengguna
-- Kebiasaan atau rutinitas
-- Preferensi pribadi
-- Lokasi spesifik
-- Informasi kontak
-- Topik yang menarik bagi pengguna
-
-Format output dalam JSON dengan struktur berikut:
-{{
-    "facts_to_save": {{
-        "key1": "value1",
-        "key2": "value2"
-    }}
-}}
-
-Jika tidak ada fakta baru yang perlu disimpan, kembalikan:
-{{
-    "facts_to_save": {{}}
-}}
-
-Hanya kembalikan JSON, tidak perlu penjelasan tambahan.
-"""
-
-            # Call AI to extract facts
-            data = {
-                "model": self.model,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "Kamu adalah sistem ekstraksi fakta. Tugas kamu adalah mengidentifikasi informasi penting tentang pengguna dari percakapan dan mengembalikannya dalam format JSON yang ditentukan.",
-                    },
-                    {"role": "user", "content": extraction_prompt},
-                ],
-                "max_tokens": 300,
-                "temperature": 0.3,
-            }
-
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=self.headers,
-                json=data,
-                timeout=20,
-            )
-            response.raise_for_status()
-
-            result = response.json()
-            extracted_json = result["choices"][0]["message"]["content"].strip()
-
-            # Parse the JSON response
-            try:
-                # Handle potential markdown code blocks
-                if extracted_json.startswith("```"):
-                    extracted_json = extracted_json.split("\n", 1)[1].rsplit("\n", 1)[0]
-
-                facts_data = json.loads(extracted_json)
-                facts_to_save = facts_data.get("facts_to_save", {})
-
-                # Save extracted facts
-                for key, value in facts_to_save.items():
-                    self.memory_model.save_user_fact(user_phone, key, str(value))
-
-            except json.JSONDecodeError:
-                logger.warning(
-                    f"Could not parse extracted facts JSON: {extracted_json}"
-                )
+            # Extract other facts based on context
+            if "tinggal" in user_message.lower() or "lokasi" in user_message.lower():
+                if "kampung hijau" in user_message.lower():
+                    self.memory_model.save_user_fact(user_phone, "location", "Kampung Hijau")
+                elif "rt" in user_message.lower():
+                    # Extract RT number
+                    import re
+                    rt_match = re.search(r'rt\s*(\d+)', user_message.lower())
+                    if rt_match:
+                        rt_number = rt_match.group(1)
+                        self.memory_model.save_user_fact(user_phone, "rt", f"RT {rt_number}")
 
         except Exception as e:
-            logger.error(f"Error extracting and saving facts: {str(e)}")
+            logger.error(f"Error extracting facts: {str(e)}")
 
-    def _fallback_response(self, user_message: str, user_phone: str = None) -> str:
-        """Provide intelligent fallback response when AI is not available"""
-        message_lower = user_message.lower().strip()
-        
-        # Get user context if available
-        user_name = None
-        user_facts = {}
-        if user_phone:
-            try:
-                user_context = self._get_user_context(user_phone)
-                user_name = user_context.get('name')
-                user_facts = self.memory_model.get_all_user_facts(user_phone)
-            except:
-                pass
-        
-        # Greeting responses
-        if any(word in message_lower for word in ["hai", "halo", "hello", "hi", "alo"]):
-            if user_name:
-                return f"Halo {user_name}! Senang bertemu lagi denganmu! 😊 Ada yang bisa saya bantu seputar pengelolaan sampah hari ini?"
-            else:
-                return "Halo! Senang bertemu denganmu! 😊 Saya EcoBot, asisten pengelolaan sampah yang siap membantu. Apa yang bisa saya bantu hari ini?"
-        
-        # Name introduction
-        if any(word in message_lower for word in ["nama", "panggil", "saya"]):
-            # Extract name from message
-            import re
-            name_match = re.search(r'(?:nama|panggil|saya)\s+(?:adalah|aku|saya)\s+([a-zA-Z\s]+)', message_lower)
-            if name_match:
-                extracted_name = name_match.group(1).strip().title()
-                # Save the name
-                if user_phone:
-                    self.memory_model.save_user_fact(user_phone, 'user_name', extracted_name)
-                return f"Senang berkenalan denganmu {extracted_name}! 😊 Saya akan mengingat namamu. Ada yang bisa saya bantu seputar pengelolaan sampah?"
-            else:
-                return "Senang berkenalan denganmu! 😊 Saya akan mengingat namamu. Ada yang bisa saya bantu seputar pengelolaan sampah?"
-        
-        # Location questions
-        if any(word in message_lower for word in ["lokasi", "dimana", "tempat", "pembuangan"]):
-            if user_facts.get('user_address'):
-                address = user_facts['user_address']['value']
-                return f"Baik {user_name or 'Teman'}! Berdasarkan alamatmu di {address}, berikut lokasi pembuangan sampah terdekat: TPS Utama (Jl. Merdeka 123), TPS Mini (Jl. Sudirman 45). Mau tahu jadwal pengumpulannya?"
-            else:
-                return "Untuk lokasi pembuangan sampah, saya bisa bantu! Tapi dulu, bisa berikan alamatmu dimana? Jadi saya bisa kasih rekomendasi yang paling dekat dengan rumahmu."
-        
-        # Schedule questions
-        if any(word in message_lower for word in ["jadwal", "kapan", "hari", "jam"]):
-            return "Jadwal pengumpulan sampah di desa kita: Senin (Organik), Rabu (Anorganik), Jumat (B3). Mau tahu detail jamnya atau ada yang spesifik?"
-        
-        # Waste classification
-        if any(word in message_lower for word in ["sampah", "jenis", "organik", "anorganik", "b3"]):
-            return "Sampah ada 3 jenis utama: Organik (sisa makanan, daun), Anorganik (plastik, kertas), dan B3 (baterai, obat). Kirim foto sampah kalau mau saya bantu klasifikasi!"
-        
-        # General help
-        if any(word in message_lower for word in ["bantuan", "help", "tolong", "gimana"]):
-            return "Saya bisa bantu: 📸 Klasifikasi sampah dari foto, 📍 Info lokasi pembuangan, 📅 Jadwal pengumpulan, 🎓 Tips pengelolaan sampah. Mau coba yang mana dulu?"
-        
-        # Default response
-        if user_name:
-            return f"Hmm, menarik {user_name}! 😊 Kalau mau belajar tentang sampah, kirim foto atau tanya tentang lokasi/jadwal pembuangan. Saya siap bantu!"
-        else:
-            return "Hmm, menarik! 😊 Kalau mau belajar tentang sampah, kirim foto atau tanya tentang lokasi/jadwal pembuangan. Saya siap bantu!"
-
-    def process_image_message(
-        self, image_data: bytes, user_phone: str
-    ) -> Dict[str, Any]:
-        """Process image message with AI agent context and image analysis"""
+    def _fallback_response(self, user_message: str, user_phone: str, mode: str = "hybrid") -> str:
+        """Fallback response when AI is not available"""
         try:
-            # Get user context for personalized response
-            user_context = self._get_user_context(user_phone)
-            user_name = user_context.get("name", "Teman")
-
-            # Analyze the image using image analysis service
-            analysis_result = self.image_analyzer.analyze_waste_image(
-                image_data, user_phone
-            )
-
-            if analysis_result.get("success"):
-                waste_type = analysis_result.get("waste_type", "TIDAK_TERIDENTIFIKASI")
-                confidence = analysis_result.get("confidence", 0.0)
-                description = analysis_result.get("description", "")
-                tips = analysis_result.get("tips", "")
-
-                # Create personalized response using AI agent context
-                if user_name != "Teman" and user_name != "Belum dikenali":
-                    greeting = f"Halo {user_name}! "
-                else:
-                    greeting = "Halo! "
-
-                # Generate personalized response based on waste type
-                if waste_type == "ORGANIK":
-                    encouragement = (
-                        "Bagus sekali! Sampah organik bisa jadi kompos lho! "
-                    )
-                elif waste_type == "ANORGANIK":
-                    encouragement = (
-                        "Perfect! Jangan lupa pisahkan untuk daur ulang ya! ️"
-                    )
-                elif waste_type == "B3":
-                    encouragement = "Hati-hati! Sampah ini perlu penanganan khusus. ️"
-                else:
-                    encouragement = "Mari kita pelajari jenis sampah ini bersama! "
-
-                response = f"""{greeting} {encouragement}
-
- **HASIL IDENTIFIKASI:**
-• **Jenis Sampah:** {waste_type}
-• **Tingkat Keyakinan:** {confidence:.1%}
-• **Yang Terdeteksi:** {description}
-
- **Tips Pengelolaan:**
-{tips}
-
- Terima kasih sudah peduli lingkungan! Kirim foto sampah lain kalau mau belajar lebih banyak! """
-
-                # Save to conversation history
-                self.conversation_model.add_message(
-                    user_phone, "user", "Mengirim foto sampah untuk dianalisis"
-                )
-                self.conversation_model.add_message(user_phone, "assistant", response)
-
-                return {
-                    "status": "success",
-                    "reply_sent": response,
-                    "analysis_result": analysis_result,
-                }
-            else:
-                error_msg = analysis_result.get("error", "Gagal menganalisis gambar")
-                response = f""" Maaf, ada kendala saat menganalisis gambar:
-
-{error_msg}
-
-Coba kirim foto yang lebih jelas atau coba lagi nanti ya! """
-
-                return {"status": "error", "reply_sent": response, "error": error_msg}
-
-        except Exception as e:
-            logger.error(f"Error in AI agent image processing: {str(e)}")
-            response = f""" Maaf, terjadi kesalahan sistem saat menganalisis gambar.
-
-Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya! """
-
-            return {"status": "error", "reply_sent": response, "error": str(e)}
-
-    def get_user_profile(self, user_phone: str) -> Dict[str, Any]:
-        """Get comprehensive user profile including memory and conversation history"""
-        try:
-            user_context = self._get_user_context(user_phone)
             user_facts = self.memory_model.get_all_user_facts(user_phone)
-            conversation_history = self.conversation_model.get_recent_conversation(
-                user_phone, 50
-            )
+            user_name = user_facts.get("user_name", {}).get("value", "Teman") if user_facts else "Teman"
+            
+            if mode == "ecobot":
+                return f"Halo {user_name}! Maaf, layanan AI EcoBot sedang tidak tersedia. Silakan gunakan command /help untuk melihat fitur yang tersedia."
+            elif mode == "general":
+                return f"Halo {user_name}! Maaf, layanan AI edukasi sampah sedang tidak tersedia. Silakan gunakan command /help untuk melihat fitur yang tersedia."
+            else:
+                return f"Halo {user_name}! Maaf, layanan AI sedang tidak tersedia. Silakan gunakan command /help untuk melihat fitur yang tersedia."
+        except:
+            return "Halo! Maaf, layanan AI sedang tidak tersedia. Silakan gunakan command /help untuk melihat fitur yang tersedia."
 
-            return {
-                "user_info": user_context,
-                "known_facts": user_facts,
-                "recent_conversations": conversation_history,
-                "total_conversations": len(conversation_history),
-            }
-        except Exception as e:
-            logger.error(f"Error getting user profile: {str(e)}")
-            return {}
+    def get_available_modes(self) -> Dict[str, Dict]:
+        """Get available AI Agent modes"""
+        return self.modes
 
-
-# Initialize the AI agent
-ai_agent = AIAgent()
-
-
-def get_ai_agent():
-    """Get the global AI agent instance"""
-    return ai_agent
+    def switch_mode(self, user_phone: str, new_mode: str) -> str:
+        """Switch AI Agent mode for user"""
+        if new_mode in self.modes:
+            self.memory_model.save_user_fact(user_phone, "ai_mode", new_mode)
+            return f"Mode AI Agent berhasil diubah ke: {self.modes[new_mode]['name']}"
+        else:
+            return f"Mode '{new_mode}' tidak tersedia. Mode yang tersedia: {', '.join(self.modes.keys())}"

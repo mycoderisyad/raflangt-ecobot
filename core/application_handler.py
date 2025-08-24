@@ -13,7 +13,7 @@ from core.role_manager import RoleManager
 from core.command_parser import CommandParser
 from core.admin_handler import AdminCommandHandler
 from services.whatsapp_service import WhatsAppService
-from services.ai_service import AIService
+
 from services.message_service import MessageService
 from services.registration_service import RegistrationService
 from database.models import UserModel
@@ -29,7 +29,6 @@ class ApplicationHandler:
 
         # Initialize services
         self.whatsapp_service = WhatsAppService()
-        self.ai_service = AIService()
         self.message_service = MessageService()
 
         # Initialize database and user management
@@ -94,45 +93,48 @@ class ApplicationHandler:
             return {"status": "error", "message": str(e)}
 
     def _handle_image_message(self, media_url: str, media_info: Dict[str, Any], phone_number: str) -> str:
-        """Handle image message with AI analysis"""
+        """Handle image message with AI Agent analysis"""
         try:
             # Auto-create user if not exists (no manual registration required)
-            self.user_model.create_or_update_user(phone_number)
+            from core.utils import normalize_phone_for_db
+            normalized_phone = normalize_phone_for_db(phone_number)
+            self.user_model.create_or_update_user(normalized_phone)
 
-            # Download and classify image
+            # Download image
             image_data = self.whatsapp_service.download_media(media_url, media_info)
             if not image_data:
                 return self.message_service.format_error_response("general_error")
 
-            # Analyze with AI
-            ai_analysis = self.ai_service.analyze_image(image_data, phone_number)
-            if ai_analysis:
-                return ai_analysis
-
-            # Fallback to classification
-            classification_result = self.ai_service.classify_waste_image(image_data)
-            if classification_result:
-                # Save classification to database
+            # Use AI Agent for image analysis (includes personalization and memory)
+            from services.ai_agent import AIAgent
+            ai_agent = AIAgent()
+            
+            # Process image with AI Agent
+            ai_result = ai_agent.process_image_message(image_data, normalized_phone, 'hybrid')
+            
+            if ai_result and ai_result.get("status") == "success":
+                # Save classification to database if available
                 try:
                     from database.models import WasteClassificationModel
-
-                    waste_model = WasteClassificationModel(self.db_manager)
-                    waste_model.save_classification(
-                        phone_number,
-                        classification_result["waste_type"],
-                        classification_result["confidence"],
-                        classification_result.get("method", "ai"),
-                    )
+                    
+                    analysis_result = ai_result.get("analysis_result", {})
+                    if analysis_result.get("waste_type"):
+                        waste_model = WasteClassificationModel(self.db_manager)
+                        waste_model.save_classification(
+                            normalized_phone,
+                            analysis_result["waste_type"],
+                            analysis_result["confidence"],
+                            analysis_result.get("method", "ai_agent"),
+                        )
                 except Exception as e:
                     LoggerUtils.log_error(self.logger, e, "saving classification")
+                
+                return ai_result.get("reply_sent", "Analisis gambar berhasil")
 
-                # Get education content
-                education_content = self._get_waste_education(
-                    classification_result["waste_type"]
-                )
-                return self.message_service.format_education_response(education_content)
+            # Fallback response if AI Agent fails
+            return """Maaf, ada kendala saat menganalisis gambar.
 
-            return self.message_service.format_error_response("general_error")
+Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
 
         except Exception as e:
             LoggerUtils.log_error(self.logger, e, "handling image message")
@@ -142,7 +144,9 @@ class ApplicationHandler:
         """Handle text message with AI-first approach"""
         try:
             # Auto-create user if not exists (no manual registration required)
-            self.user_model.create_or_update_user(phone_number)
+            from core.utils import normalize_phone_for_db
+            normalized_phone = normalize_phone_for_db(phone_number)
+            self.user_model.create_or_update_user(normalized_phone)
 
             # Check for admin commands
             admin_command = self.admin_handler.parse_admin_command(message_body)
@@ -153,18 +157,18 @@ class ApplicationHandler:
                 return admin_result.get("message", "Admin command executed")
 
             # Use AI Agent for natural conversation (primary approach)
-            from services.ai_agent import get_ai_agent
-            ai_agent = get_ai_agent()
+            from services.ai_agent import AIAgent
+            ai_agent = AIAgent()
             
             # Process message with AI Agent (includes long-term memory)
-            ai_result = ai_agent.process_message(message_body, phone_number)
+            ai_result = ai_agent.process_message(message_body, normalized_phone, 'hybrid')
             
             if ai_result and ai_result.get("status") == "success":
                 return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
 
             # Fallback to command parsing only if AI fails
             command_info = self.command_parser.parse_command(message_body, phone_number)
-            user_role = self.role_manager.get_user_role(phone_number)
+            user_role = self.role_manager.get_user_role(normalized_phone)
 
             if command_info["status"] == "no_permission":
                 return self.message_service.format_error_response(
@@ -173,12 +177,12 @@ class ApplicationHandler:
             elif command_info["status"] == "coming_soon":
                 return self.message_service.format_error_response("coming_soon")
             elif command_info["status"] == "available":
-                return self._route_command_fallback(
-                    command_info, phone_number, user_role
-                )
+                            return self._route_command_fallback(
+                command_info, normalized_phone, user_role
+            )
             else:
                 # Ultimate fallback
-                return self._get_help_message(phone_number)
+                return self._get_help_message(normalized_phone)
 
         except Exception as e:
             LoggerUtils.log_error(self.logger, e, "handling text message")
@@ -195,15 +199,16 @@ class ApplicationHandler:
         if handler in ["help"]:
             return self._get_help_message(phone_number)
         elif handler == "report":
-            return self._handle_report_request(phone_number, user_role)
+            return self._handle_report_request(normalized_phone, user_role)
         elif handler in ["schedule", "location", "points", "statistics"]:
             # Try AI response with specific context
             context_message = f"User asking about {handler}: {args or ''}"
-            ai_response = self.ai_service.generate_conversation_response(
-                context_message, phone_number
-            )
-            if ai_response:
-                return ai_response
+            # Use AI Agent instead of legacy ai_service
+            from services.ai_agent import AIAgent
+            ai_agent = AIAgent()
+            ai_result = ai_agent.process_message(context_message, normalized_phone, 'hybrid')
+            if ai_result and ai_result.get("status") == "success":
+                return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
 
         # Ultimate fallback for unsupported features
         return """🤖 Maaf, fitur ini sedang dalam pengembangan. 
@@ -219,12 +224,13 @@ Coba tanyakan hal lain atau kirim foto sampah ya! 🌱"""
     def _handle_general_conversation(
         self, message: str, phone_number: str = None
     ) -> str:
-        """Handle general conversation using AI"""
-        ai_response = self.ai_service.generate_conversation_response(
-            message, phone_number
-        )
-        if ai_response:
-            return ai_response
+        """Handle general conversation using AI Agent"""
+        # Use AI Agent instead of legacy ai_service
+        from services.ai_agent import AIAgent
+        ai_agent = AIAgent()
+        ai_result = ai_agent.process_message(message, phone_number, 'hybrid')
+        if ai_result and ai_result.get("status") == "success":
+            return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
 
         # Fallback response
         return """🤖 Halo! Saya EcoBot, asisten pengelolaan sampah untuk desa kita.
