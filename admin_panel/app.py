@@ -526,9 +526,13 @@ def create_schedule():
             location_name = request.form.get("location_name")
             address = request.form.get("address")
             schedule_day = request.form.get("schedule_day")
-            schedule_time = request.form.get("schedule_time")
+            start_time = request.form.get("start_time")
+            end_time = request.form.get("end_time")
             waste_types = request.form.get("waste_types")
             contact = request.form.get("contact", "")
+
+            # Combine start and end time into schedule_time format
+            schedule_time = f"{start_time}-{end_time}"
 
             conn = get_db_connection()
             conn.execute(
@@ -565,10 +569,14 @@ def edit_schedule(schedule_id):
             location_name = request.form.get("location_name")
             address = request.form.get("address")
             schedule_day = request.form.get("schedule_day")
-            schedule_time = request.form.get("schedule_time")
+            start_time = request.form.get("start_time")
+            end_time = request.form.get("end_time")
             waste_types = request.form.get("waste_types")
             contact = request.form.get("contact", "")
             is_active = 1 if request.form.get("is_active") else 0
+
+            # Combine start and end time into schedule_time format
+            schedule_time = f"{start_time}-{end_time}"
 
             conn.execute(
                 "UPDATE collection_schedules SET location_name = ?, address = ?, schedule_day = ?, schedule_time = ?, waste_types = ?, contact = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -595,8 +603,35 @@ def edit_schedule(schedule_id):
         conn.close()
 
         if schedule:
+            # Parse schedule_time to extract start_time and end_time
+            schedule_time = schedule[4]  # schedule_time is at index 4
+            start_time = ""
+            end_time = ""
+            
+            if schedule_time and "-" in schedule_time:
+                time_parts = schedule_time.split("-")
+                if len(time_parts) == 2:
+                    start_time = time_parts[0].strip()
+                    end_time = time_parts[1].strip()
+            
+            # Create schedule dict with parsed time
+            schedule_dict = {
+                'id': schedule[0],
+                'location_name': schedule[1],
+                'address': schedule[2],
+                'schedule_day': schedule[3],
+                'schedule_time': schedule[4],
+                'start_time': start_time,
+                'end_time': end_time,
+                'waste_types': schedule[5],
+                'contact': schedule[6],
+                'is_active': schedule[7],
+                'created_at': schedule[8],
+                'updated_at': schedule[9]
+            }
+            
             return render_template(
-                "schedule_form.html", schedule=schedule, action="edit"
+                "schedule_form.html", schedule=schedule_dict, action="edit"
             )
         else:
             flash("Schedule not found", "error")
