@@ -439,11 +439,82 @@ def schedules():
         """
         schedules = conn.execute(schedules_query).fetchall()
         conn.close()
-        return render_template("schedules.html", schedules=schedules)
+        
+        # Debug: Convert to list of dicts for better template access
+        schedules_list = []
+        for row in schedules:
+            schedules_list.append({
+                'id': row[0],
+                'location_name': row[1],
+                'address': row[2],
+                'schedule_day': row[3],
+                'schedule_time': row[4],
+                'waste_types': row[5],
+                'contact': row[6],
+                'is_active': row[7],
+                'created_at': row[8],
+                'updated_at': row[9]
+            })
+        
+        return render_template("schedules.html", schedules=schedules_list)
     except Exception as e:
         logger.error(f"Schedules error: {str(e)}")
         flash("Error loading schedules", "error")
         return render_template("schedules.html", schedules=[])
+
+
+@app.route("/schedules/debug")
+@require_auth
+def schedules_debug():
+    """Debug schedules data"""
+    try:
+        conn = get_db_connection()
+        schedules_query = """
+            SELECT * FROM collection_schedules 
+            ORDER BY 
+                CASE schedule_day
+                    WHEN 'Senin' THEN 1
+                    WHEN 'Selasa' THEN 2
+                    WHEN 'Rabu' THEN 3
+                    WHEN 'Kamis' THEN 4
+                    WHEN 'Jumat' THEN 5
+                    WHEN 'Sabtu' THEN 6
+                    WHEN 'Minggu' THEN 7
+                    ELSE 8
+                END,
+                schedule_time ASC
+        """
+        schedules = conn.execute(schedules_query).fetchall()
+        conn.close()
+        
+        # Convert to list of dicts
+        schedules_list = []
+        for row in schedules:
+            schedules_list.append({
+                'id': row[0],
+                'location_name': row[1],
+                'address': row[2],
+                'schedule_day': row[3],
+                'schedule_time': row[4],
+                'waste_types': row[5],
+                'contact': row[6],
+                'is_active': row[7],
+                'created_at': row[8],
+                'updated_at': row[9]
+            })
+        
+        # Return JSON for debugging
+        return {
+            "total_schedules": len(schedules_list),
+            "schedules": schedules_list,
+            "debug_info": {
+                "raw_data_type": str(type(schedules)),
+                "processed_data_type": str(type(schedules_list)),
+                "sample_schedule": schedules_list[0] if schedules_list else None
+            }
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.route("/schedules/create", methods=["GET", "POST"])
