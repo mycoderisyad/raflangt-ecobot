@@ -31,20 +31,27 @@
                 <label class="form-label">Schedule Day</label>
                 <select class="form-input" name="schedule_day" required>
                     <option value="">Select Day</option>
-                    <option value="senin" {{ 'selected' if schedule and schedule.schedule_day == 'senin' else '' }}>Monday (Senin)</option>
-                    <option value="selasa" {{ 'selected' if schedule and schedule.schedule_day == 'selasa' else '' }}>Tuesday (Selasa)</option>
-                    <option value="rabu" {{ 'selected' if schedule and schedule.schedule_day == 'rabu' else '' }}>Wednesday (Rabu)</option>
-                    <option value="kamis" {{ 'selected' if schedule and schedule.schedule_day == 'kamis' else '' }}>Thursday (Kamis)</option>
-                    <option value="jumat" {{ 'selected' if schedule and schedule.schedule_day == 'jumat' else '' }}>Friday (Jumat)</option>
-                    <option value="sabtu" {{ 'selected' if schedule and schedule.schedule_day == 'sabtu' else '' }}>Saturday (Sabtu)</option>
-                    <option value="minggu" {{ 'selected' if schedule and schedule.schedule_day == 'minggu' else '' }}>Sunday (Minggu)</option>
+                    <option value="Senin" {{ 'selected' if schedule and schedule.schedule_day == 'Senin' else '' }}>Monday (Senin)</option>
+                    <option value="Selasa" {{ 'selected' if schedule and schedule.schedule_day == 'Selasa' else '' }}>Tuesday (Selasa)</option>
+                    <option value="Rabu" {{ 'selected' if schedule and schedule.schedule_day == 'Rabu' else '' }}>Wednesday (Rabu)</option>
+                    <option value="Kamis" {{ 'selected' if schedule and schedule.schedule_day == 'Kamis' else '' }}>Thursday (Kamis)</option>
+                    <option value="Jumat" {{ 'selected' if schedule and schedule.schedule_day == 'Jumat' else '' }}>Friday (Jumat)</option>
+                    <option value="Sabtu" {{ 'selected' if schedule and schedule.schedule_day == 'Sabtu' else '' }}>Saturday (Sabtu)</option>
+                    <option value="Minggu" {{ 'selected' if schedule and schedule.schedule_day == 'Minggu' else '' }}>Sunday (Minggu)</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Schedule Time</label>
-                <input type="time" class="form-input" name="schedule_time" 
-                       value="{{ schedule.schedule_time if schedule else '' }}" required>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="time" class="form-input" name="start_time" 
+                           value="{{ schedule.start_time if schedule else '' }}" 
+                           placeholder="Start time" required>
+                    <span style="color: #6f6e69; font-weight: 500;">-</span>
+                    <input type="time" class="form-input" name="end_time" 
+                           value="{{ schedule.end_time if schedule else '' }}" 
+                           placeholder="End time" required>
+                </div>
             </div>
         </div>
 
