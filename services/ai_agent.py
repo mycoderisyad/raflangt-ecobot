@@ -24,28 +24,28 @@ logger = logging.getLogger(__name__)
 
 class AIAgent:
     """AI Agent with long-term memory capabilities and database integration"""
-
+    
     def __init__(self):
         self.config = get_config()
         self.api_key = os.getenv("LUNOS_API_KEY")
         self.base_url = os.getenv("LUNOS_BASE_URL")
         self.model = os.getenv("LUNOS_AGENT_MODEL")
-
+        
         # Setup headers
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "X-App-ID": "ecobot-whatsapp-v1.0",
         }
-
+        
         # Initialize database models
         self.db_manager = DatabaseManager()
         self.user_model = UserModel(self.db_manager)
         self.memory_model, self.conversation_model = get_memory_models()
-
+        
         # Initialize image analysis service
         self.image_analyzer = ImageAnalysisService()
-
+        
         # Bot personality
         self.personality = {
             "name": "EcoBot",
@@ -79,20 +79,20 @@ class AIAgent:
                 "personality": "Memberikan informasi spesifik EcoBot + edukasi umum"
             }
         }
-
+        
         if not self.api_key:
             logger.warning("Lunos API key not found. AI Agent will not function.")
             self.use_ai = False
         else:
             self.use_ai = True
             logger.info(f"AI Agent initialized with model: {self.model}")
-
+    
     def process_message(self, user_message: str, user_phone: str, mode: str = "hybrid") -> Dict[str, Any]:
         """Process user message with specified mode"""
         if not self.use_ai:
             fallback_response = self._fallback_response(user_message, user_phone, mode)
             return {"status": "success", "reply_sent": fallback_response}
-
+        
         try:
             # Get user context and memory
             user_context = self._get_user_context(user_phone)
@@ -113,13 +113,13 @@ class AIAgent:
                 response = self._generate_general_response(user_message, context)
             else:  # hybrid mode
                 response = self._generate_hybrid_response(user_message, context)
-
+            
             # Extract and save facts from the conversation
             try:
                 self._extract_and_save_facts(user_phone, user_message, response)
             except Exception as e:
                 logger.error(f"Error extracting and saving facts: {str(e)}")
-
+            
             # Save conversation to history
             try:
                 self.conversation_model.add_message(user_phone, "user", user_message)
@@ -128,7 +128,7 @@ class AIAgent:
                 logger.error(f"Error saving conversation history: {str(e)}")
 
             return {"status": "success", "reply_sent": response}
-
+            
         except Exception as e:
             logger.error(f"AI Agent error: {str(e)}")
             fallback_response = self._fallback_response(user_message, user_phone, mode)
@@ -249,7 +249,7 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
                 "image_analysis": {"available": False},
                 "error": str(e),
             }
-
+    
     def _get_user_context(self, user_phone: str) -> Dict[str, Any]:
         """Get user context from database"""
         try:
@@ -271,7 +271,7 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
         except Exception as e:
             logger.error(f"Error getting user context: {str(e)}")
             return {"phone": user_phone, "role": "warga"}
-
+    
     def _build_context(self, user_phone: str, user_context: Dict, user_facts: Dict, 
                       conversation_history: List[Dict], mode: str) -> Dict[str, Any]:
         """Build comprehensive context for the AI agent"""
@@ -369,7 +369,7 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
             "max_tokens": 800,
             "temperature": 0.7,
         }
-
+        
         response = requests.post(
             f"{self.base_url}/chat/completions",
             headers=self.headers,
@@ -377,7 +377,7 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
             timeout=30,
         )
         response.raise_for_status()
-
+        
         result = response.json()
         return result["choices"][0]["message"]["content"].strip()
 
@@ -387,14 +387,14 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
         user_facts = context["user_facts"]
         mode_info = context["mode"]
         conversation_history = context["conversation_history"]
-
+        
         # Analyze user communication style from history
         communication_style = self._analyze_user_style(conversation_history)
-
+        
         prompt = f"""Kamu adalah {self.personality['name']} dalam mode {mode_info['name']}.
 
 {mode_info['description']}
-
+        
 INFORMASI USER:
 - Nama: {user_context.get('name', 'Belum dikenali')}
 - Role: {user_context.get('role', 'warga')}
@@ -423,7 +423,7 @@ DATA ECOBOT YANG TERSEDIA:"""
 
         if db_data.get("statistics"):
             prompt += f"\n\nSTATISTIK: Total {db_data['statistics'][0]} user aktif dengan {db_data['statistics'][1]} total poin"
-
+        
         prompt += f"""
 
 ANALISIS GAYA KOMUNIKASI USER:
@@ -451,7 +451,7 @@ PENGEMBANGAN RELASI:
 - Ajukan pertanyaan follow-up yang relevan
 - Celebrasi progress dan achievement user
 
-PERSONALISASI:
+ PERSONALISASI:
 - Sesuaikan gaya bahasa dengan preferensi user (formal/informal)
 - Gunakan nama user jika sudah diketahui
 - Berikan saran yang spesifik berdasarkan data EcoBot
@@ -586,7 +586,7 @@ STRATEGI:
 - Kombinasikan keduanya untuk respons yang lengkap
 - Prioritaskan data EcoBot untuk pertanyaan spesifik
 
-PENGEMBANGAN RELASI:
+ PENGEMBANGAN RELASI:
 - Bangun rapport yang natural, bukan seperti customer service
 - Tunjukkan ketertarikan genuine pada kebutuhan user
 - Ajukan pertanyaan follow-up yang relevan
@@ -599,9 +599,9 @@ PERSONALISASI:
 - Ingat konteks percakapan sebelumnya
 
 PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi umum dengan personalisasi tinggi."""
-
+        
         return prompt
-
+    
     def _analyze_user_style(self, conversation_history: List[Dict]) -> Dict[str, str]:
         """Analyze user communication style from conversation history"""
         if not conversation_history:
@@ -613,31 +613,31 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
             }
 
         user_messages = [msg for msg in conversation_history if msg["role"] == "user"]
-
+        
         # Analyze formality
         formal_indicators = ["terima kasih", "mohon", "silakan", "bapak", "ibu"]
         informal_indicators = ["hai", "halo", "gimana", "oke", "thanks", "makasih"]
-
+        
         formal_count = sum(
             1
             for msg in user_messages
-            for indicator in formal_indicators
+                          for indicator in formal_indicators 
             if indicator in msg["content"].lower()
         )
         informal_count = sum(
             1
             for msg in user_messages
-            for indicator in informal_indicators
+                            for indicator in informal_indicators 
             if indicator in msg["content"].lower()
         )
-
+        
         if formal_count > informal_count:
             formality = "Formal"
         elif informal_count > formal_count:
             formality = "Informal"
         else:
             formality = "Netral"
-
+        
         # Analyze emoji usage
         emoji_count = sum(
             1
@@ -650,7 +650,7 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
             emoji_usage = "Sedang"
         else:
             emoji_usage = "Jarang"
-
+        
         # Analyze message length
         avg_length = sum(len(msg["content"]) for msg in user_messages) / max(
             len(user_messages), 1
@@ -661,7 +661,7 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
             message_length = "Sedang"
         else:
             message_length = "Pendek"
-
+        
         # Identify preferred topics
         environmental_keywords = [
             "sampah",
@@ -673,22 +673,22 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
         topic_mentions = sum(
             1
             for msg in user_messages
-            for keyword in environmental_keywords
+                           for keyword in environmental_keywords 
             if keyword in msg["content"].lower()
         )
-
+        
         if topic_mentions > len(user_messages) * 0.5:
             preferred_topics = "Lingkungan dan sampah"
         else:
             preferred_topics = "Umum"
-
+        
         return {
             "formality": formality,
             "emoji_usage": emoji_usage,
             "message_length": message_length,
             "preferred_topics": preferred_topics,
         }
-
+    
     def _extract_and_save_facts(self, user_phone: str, user_message: str, ai_response: str):
         """Extract and save user facts from conversation"""
         try:
@@ -714,10 +714,10 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
                     if rt_match:
                         rt_number = rt_match.group(1)
                         self.memory_model.save_user_fact(user_phone, "rt", f"RT {rt_number}")
-
+                
         except Exception as e:
             logger.error(f"Error extracting facts: {str(e)}")
-
+    
     def _fallback_response(self, user_message: str, user_phone: str, mode: str = "hybrid") -> str:
         """Fallback response when AI is not available"""
         try:

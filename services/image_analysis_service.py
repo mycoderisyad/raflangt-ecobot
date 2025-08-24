@@ -11,6 +11,10 @@ import logging
 import requests
 from typing import Dict, Any, Optional
 from core.config import get_config
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

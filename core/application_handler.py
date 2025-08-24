@@ -60,8 +60,8 @@ class ApplicationHandler:
             if message_data["message_type"] == "image":
                 reply = self._handle_image_message(
                     message_data["media_url"],
-                    message_data["from_number"],
                     message_data.get("media_info", {}),
+                    message_data["from_number"],
                 )
                 self.user_model.increment_user_stats(
                     message_data["from_number"], "image"
