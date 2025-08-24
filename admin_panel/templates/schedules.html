@@ -42,10 +42,10 @@
                     </td>
                     <td>{{ schedule.location_name or 'Unknown Location' }}</td>
                     <td>
-                        <span class="badge badge-warga">{{ schedule.collection_type or 'General' }}</span>
+                        <span class="badge badge-warga">{{ schedule.waste_types or 'General' }}</span>
                     </td>
                     <td style="font-size: 12px;">
-                        {{ schedule.collector_name or 'Not assigned' }}
+                        {{ schedule.contact or 'Not assigned' }}
                     </td>
                     <td>
                         {% if schedule.is_active == 1 %}
@@ -55,7 +55,7 @@
                         {% endif %}
                     </td>
                     <td style="font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
-                        {{ schedule.notes or 'No notes' }}
+                        {{ schedule.address or 'No address' }}
                     </td>
                     <td>
                         <div style="display: flex; gap: 4px;">
@@ -169,7 +169,7 @@
     
     <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 16px;">
         {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
-        {% set indonesian_days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'] %}
+        {% set indonesian_days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'] %}
         
         {% for i in range(7) %}
         {% set day = days[i] %}
@@ -223,16 +223,16 @@ function addSchedule() {
 }
 
 function exportSchedules() {
-    let csv = "Day,Time,Location,Type,Collector,Status,Notes\n";
+    let csv = "Day,Time,Location,Type,Contact,Status,Address\n";
     
     {% for schedule in schedules %}
     csv += '"{{ schedule.schedule_day or "Not set" }}",' +
            '"{{ schedule.schedule_time or "Not set" }}",' +
            '"{{ schedule.location_name or "Unknown Location" }}",' +
-           '"{{ schedule.collection_type or "General" }}",' +
-           '"{{ schedule.collector_name or "Not assigned" }}",' +
+           '"{{ schedule.waste_types or "General" }}",' +
+           '"{{ schedule.contact or "Not assigned" }}",' +
            '"{{ "Active" if schedule.is_active == 1 else "Inactive" }}",' +
-           '"{{ schedule.notes or "No notes" }}"\n';
+           '"{{ schedule.address or "No address" }}"\n';
     {% endfor %}
     
     const blob = new Blob([csv], { type: 'text/csv' });

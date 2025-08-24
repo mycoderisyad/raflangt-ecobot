@@ -424,7 +424,18 @@ def schedules():
         conn = get_db_connection()
         schedules_query = """
             SELECT * FROM collection_schedules 
-            ORDER BY schedule_day DESC, schedule_time ASC
+            ORDER BY 
+                CASE schedule_day
+                    WHEN 'Senin' THEN 1
+                    WHEN 'Selasa' THEN 2
+                    WHEN 'Rabu' THEN 3
+                    WHEN 'Kamis' THEN 4
+                    WHEN 'Jumat' THEN 5
+                    WHEN 'Sabtu' THEN 6
+                    WHEN 'Minggu' THEN 7
+                    ELSE 8
+                END,
+                schedule_time ASC
         """
         schedules = conn.execute(schedules_query).fetchall()
         conn.close()
