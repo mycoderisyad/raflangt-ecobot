@@ -67,8 +67,12 @@ class AdminCommandHandler:
         self, command: str, args: str, from_number: str
     ) -> Dict[str, Any]:
         """Handle comprehensive admin commands"""
+        # Normalize phone number for database lookup
+        from core.utils import normalize_phone_for_db
+        normalized_number = normalize_phone_for_db(from_number)
+        
         # Check admin permissions first
-        user = self.user_model.get_user(from_number)
+        user = self.user_model.get_user(normalized_number)
         if not user or user["role"] != "admin":
             return {
                 "success": False,
