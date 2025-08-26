@@ -29,9 +29,9 @@ class DatabaseManager:
             os.makedirs(db_dir, exist_ok=True)
 
     def get_connection(self):
-        """Get database connection"""
+        """Get database connection with thread safety for background tasks"""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
             conn.row_factory = sqlite3.Row  # Enable dict-like access
             return conn
         except Exception as e:
