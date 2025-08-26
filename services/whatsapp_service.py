@@ -45,7 +45,7 @@ class WhatsAppService:
                 url, json=payload, headers=self.headers, timeout=30
             )
 
-            if response.status_code == 201:
+            if 200 <= response.status_code < 300:
                 if self.environment == "development":
                     self.logger.info(f"Message sent successfully to {phone_number}")
                 return True

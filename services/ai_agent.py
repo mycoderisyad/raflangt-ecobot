@@ -21,7 +21,7 @@ class AIAgent:
         self.config = get_config()
         self.api_key = os.getenv("LUNOS_API_KEY")
         self.base_url = os.getenv("LUNOS_BASE_URL")
-        self.model = os.getenv("LUNOS_AGENT_MODEL")
+        self.model = os.getenv("LUNOS_AGENT_MODE")
         
         # Setup headers
         self.headers = {

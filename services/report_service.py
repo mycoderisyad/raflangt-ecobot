@@ -63,7 +63,7 @@ Status: Generating PDF...""",
 
 Laporan PDF telah berhasil dikirim ke: {self.email_service.to_email}
 
-Waktu pengiriman: {datetime.now().strftime('%d/%m/%Y %H:%M WIB')}
+Waktu pengiriman: {datetime.now().strftime('%d/%m/%Y %H:%M')} WIB
 
 Silakan cek email Anda untuk melihat laporan lengkap.
 
@@ -82,7 +82,7 @@ Status: Email Sent Successfully"""
 
 Terjadi kesalahan saat mengirim laporan email.
 
-Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M WIB')}
+Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M')} WIB
 
 Silakan coba lagi atau hubungi support jika masalah berlanjut.
 
