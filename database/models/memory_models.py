@@ -101,7 +101,7 @@ class RealConversationModel:
         self.db_manager = get_database_manager()
 
     def get_recent_conversation(
-        self, user_phone: str, limit: int = 20
+        self, user_phone: str, limit: int = 50
     ) -> List[Dict[str, Any]]:
         """Get recent conversation history from database"""
         try:
@@ -168,6 +168,70 @@ class RealConversationModel:
             
         except Exception as e:
             logger.error(f"Error clearing old conversations: {str(e)}")
+
+    def get_conversation_summary(self, user_phone: str, days: int = 7) -> Dict[str, Any]:
+        """Get conversation summary for the last N days"""
+        try:
+            query = """
+                SELECT 
+                    COUNT(*) as total_messages,
+                    COUNT(CASE WHEN message_role = 'user' THEN 1 END) as user_messages,
+                    COUNT(CASE WHEN message_role = 'assistant' THEN 1 END) as bot_messages,
+                    MIN(created_at) as first_message,
+                    MAX(created_at) as last_message
+                FROM conversation_history 
+                WHERE user_phone = ? 
+                AND created_at >= datetime('now', '-{} days')
+            """.format(days)
+            
+            results = self.db_manager.execute_query(query, (user_phone,))
+            
+            if results:
+                return results[0]
+            return {}
+            
+        except Exception as e:
+            logger.error(f"Error getting conversation summary: {str(e)}")
+            return {}
+
+    def get_conversation_topics(self, user_phone: str, limit: int = 10) -> List[str]:
+        """Get most common conversation topics based on keywords"""
+        try:
+            query = """
+                SELECT message_content
+                FROM conversation_history 
+                WHERE user_phone = ? 
+                AND message_role = 'user'
+                ORDER BY created_at DESC 
+                LIMIT ?
+            """
+            results = self.db_manager.execute_query(query, (user_phone, limit))
+            
+            # Simple keyword extraction (can be enhanced with NLP)
+            topics = []
+            for row in results:
+                content = row['message_content'].lower()
+                if 'sampah' in content or 'waste' in content:
+                    topics.append('Waste Management')
+                elif 'jadwal' in content or 'schedule' in content:
+                    topics.append('Collection Schedule')
+                elif 'lokasi' in content or 'location' in content:
+                    topics.append('Collection Points')
+                elif 'organik' in content or 'organic' in content:
+                    topics.append('Organic Waste')
+                elif 'daur ulang' in content or 'recycle' in content:
+                    topics.append('Recycling')
+                elif 'foto' in content or 'image' in content:
+                    topics.append('Image Analysis')
+                elif 'poin' in content or 'points' in content:
+                    topics.append('Reward Points')
+            
+            # Return unique topics
+            return list(set(topics))
+            
+        except Exception as e:
+            logger.error(f"Error getting conversation topics: {str(e)}")
+            return []
 
 
 def get_memory_models():

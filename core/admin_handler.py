@@ -56,6 +56,7 @@ class AdminCommandHandler:
             "reset_stats",
             "broadcast",
             "report",
+            "memory_stats",
         ]
 
         if command in valid_commands:
@@ -112,6 +113,8 @@ class AdminCommandHandler:
             return self._broadcast_message(args)
         elif command == "report":
             return self._generate_email_report(from_number)
+        elif command == "memory_stats":
+            return self._get_memory_stats(args)
         else:
             return {
                 "success": False,
@@ -142,6 +145,7 @@ SISTEM & MONITORING:
 • /admin reset_stats - Reset statistik
 • /admin broadcast <pesan> - Broadcast ke semua user
 • /admin report - Generate laporan PDF via email
+• /admin memory_stats <hp> - Lihat statistik memory AI Agent user
 
 ROLE TERSEDIA: admin, koordinator, warga
 
@@ -778,3 +782,56 @@ Waktu broadcast: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"""
 
         except Exception as e:
             return {"success": False, "message": f"Error generating report: {str(e)}"}
+
+    def _get_memory_stats(self, args: str) -> Dict[str, Any]:
+        """Get AI Agent memory statistics for a user"""
+        try:
+            if not args.strip():
+                return {
+                    "success": False,
+                    "message": 'Format: `/admin memory_stats <hp>`\nContoh: `/admin memory_stats +6281234567890`',
+                }
+
+            # Normalize phone number
+            from core.utils import normalize_phone_for_db
+            phone = normalize_phone_for_db(args.strip())
+            
+            # Get memory stats from AI Agent
+            from services.ai_agent import AIAgent
+            ai_agent = AIAgent()
+            memory_stats = ai_agent.get_memory_stats(phone)
+            
+            if not memory_stats:
+                return {
+                    "success": True,
+                    "message": f"Tidak ada data memory untuk user {phone}",
+                }
+            
+            # Format memory stats
+            stats_text = f"""MEMORY STATS AI AGENT
+User: {phone}
+
+📊 STATISTIK MEMORY:
+• Total Facts: {memory_stats.get('user_facts_count', 0)}
+• Total Conversations: {memory_stats.get('conversation_count', 0)}
+
+📈 AKTIVITAS TERKINI (30 hari):
+• Total Messages: {memory_stats.get('recent_activity', {}).get('total_messages', 0)}
+• User Messages: {memory_stats.get('recent_activity', {}).get('user_messages', 0)}
+• Bot Messages: {memory_stats.get('recent_activity', {}).get('bot_messages', 0)}
+• First Message: {memory_stats.get('recent_activity', {}).get('first_message', 'N/A')}
+• Last Message: {memory_stats.get('recent_activity', {}).get('last_message', 'N/A')}
+
+🎯 TOPIK YANG SERING DIBICARAKAN:
+{chr(10).join([f"• {topic}" for topic in memory_stats.get('common_topics', [])]) if memory_stats.get('common_topics') else "• Tidak ada data"}
+
+🔑 MEMORY KEYS:
+{chr(10).join([f"• {key}" for key in memory_stats.get('memory_keys', [])]) if memory_stats.get('memory_keys') else "• Tidak ada data"}
+
+💬 PERCAKAPAN TERAKHIR:
+{memory_stats.get('last_conversation', 'Tidak ada data')}"""
+            
+            return {"success": True, "message": stats_text}
+            
+        except Exception as e:
+            return {"success": False, "message": f"Error mengambil memory stats: {str(e)}"}

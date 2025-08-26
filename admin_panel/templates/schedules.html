@@ -8,6 +8,7 @@
     <div style="display: flex; gap: 12px; align-items: center;">
         <a href="{{ url_for('create_schedule') }}" class="btn btn-primary">Add Schedule</a>
         <button class="btn" onclick="refreshSchedules()">Refresh</button>
+        <button class="btn" onclick="exportSchedules()">Export CSV</button>
     </div>
 </div>
 
@@ -16,24 +17,77 @@
         Schedule Management ({{ schedules|length }} schedules)
     </h3>
 
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 200px;">
+                <input type="text" id="scheduleSearch" class="form-input" placeholder="Search schedules..." 
+                       style="width: 100%;" onkeyup="filterSchedules()">
+            </div>
+            <div class="filter-group">
+                <label>Filter by Day:</label>
+                <select id="dayFilter" onchange="filterSchedules()">
+                    <option value="">All Days</option>
+                    <option value="Senin">Monday (Senin)</option>
+                    <option value="Selasa">Tuesday (Selasa)</option>
+                    <option value="Rabu">Wednesday (Rabu)</option>
+                    <option value="Kamis">Thursday (Kamis)</option>
+                    <option value="Jumat">Friday (Jumat)</option>
+                    <option value="Sabtu">Saturday (Sabtu)</option>
+                    <option value="Minggu">Sunday (Minggu)</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Sort by:</label>
+                <select id="sortBy" onchange="sortSchedules()">
+                    <option value="day">Day</option>
+                    <option value="time">Time</option>
+                    <option value="location">Location</option>
+                    <option value="type">Type</option>
+                    <option value="collector">Collector</option>
+                    <option value="status">Status</option>
+                </select>
+                <button id="sortOrder" class="sort-order-btn" onclick="toggleSortOrder()">
+                    ↑↓
+                </button>
+            </div>
+            <button class="clear-filters-btn" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+
     {% if schedules %}
     <div style="overflow-x: auto;">
-        <table class="table">
+        <table class="table" id="schedulesTable">
             <thead>
                 <tr>
-                    <th>Day</th>
-                    <th>Time</th>
-                    <th>Location</th>
-                    <th>Type</th>
-                    <th>Collector</th>
-                    <th>Status</th>
+                    <th data-sort="day" onclick="sortTable('day')" style="cursor: pointer;">
+                        Day <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="time" onclick="sortTable('time')" style="cursor: pointer;">
+                        Time <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="location" onclick="sortTable('location')" style="cursor: pointer;">
+                        Location <span class="sort-indicator">↕</span>
+                    </th>
+                    <th>Address</th>
+                    <th data-sort="type" onclick="sortTable('type')" style="cursor: pointer;">
+                        Type <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="collector" onclick="sortTable('collector')" style="cursor: pointer;">
+                        Collector <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="status" onclick="sortTable('status')" style="cursor: pointer;">
+                        Status <span class="sort-indicator">↕</span>
+                    </th>
                     <th>Notes</th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="schedulesTableBody">
                 {% for schedule in schedules %}
-                <tr>
+                <tr data-day="{{ schedule.schedule_day or 'Not set' }}" data-time="{{ schedule.schedule_time or 'Not set' }}" 
+                    data-location="{{ schedule.location_name or 'Unknown Location' }}" data-type="{{ schedule.waste_types or 'General' }}"
+                    data-collector="{{ schedule.contact or 'Not assigned' }}" data-status="{{ 'active' if schedule.is_active == 1 else 'inactive' }}">
                     <td style="font-weight: 500;">
                         <span class="badge">{{ schedule.schedule_day or 'Not set' }}</span>
                     </td>
@@ -41,6 +95,9 @@
                         {{ schedule.schedule_time or 'Not set' }}
                     </td>
                     <td>{{ schedule.location_name or 'Unknown Location' }}</td>
+                    <td style="font-size: 12px; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">
+                        {{ schedule.address or 'No address' }}
+                    </td>
                     <td>
                         <span class="badge badge-warga">{{ schedule.waste_types or 'General' }}</span>
                     </td>
@@ -54,8 +111,8 @@
                             <span class="badge" style="background: #fdf2f2; color: #dc3545;">Inactive</span>
                         {% endif %}
                     </td>
-                    <td style="font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
-                        {{ schedule.address or 'No address' }}
+                    <td style="font-size: 12px; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">
+                        {{ schedule.notes or 'No notes' }}
                     </td>
                     <td>
                         <div style="display: flex; gap: 4px;">
@@ -204,6 +261,147 @@
 </div>
 
 <script>
+let currentSortColumn = 'day';
+let currentSortOrder = 'asc';
+
+function filterSchedules() {
+    const searchTerm = document.getElementById('scheduleSearch').value.toLowerCase();
+    const dayFilter = document.getElementById('dayFilter').value;
+    
+    const rows = document.querySelectorAll('#schedulesTableBody tr');
+    
+    rows.forEach(row => {
+        const day = row.querySelector('td:first-child .badge').textContent.toLowerCase();
+        const time = row.querySelectorAll('td')[1].textContent.toLowerCase();
+        const location = row.querySelectorAll('td')[2].textContent.toLowerCase();
+        const address = row.querySelectorAll('td')[3].textContent.toLowerCase();
+        const type = row.querySelectorAll('td')[4].textContent.toLowerCase();
+        const collector = row.querySelectorAll('td')[5].textContent.toLowerCase();
+        const notes = row.querySelectorAll('td')[7].textContent.toLowerCase();
+        
+        const matchesSearch = day.includes(searchTerm) || 
+                            time.includes(searchTerm) || 
+                            location.includes(searchTerm) || 
+                            address.includes(searchTerm) || 
+                            type.includes(searchTerm) || 
+                            collector.includes(searchTerm) || 
+                            notes.includes(searchTerm);
+        
+        const matchesDay = !dayFilter || day === dayFilter.toLowerCase();
+        
+        row.style.display = (matchesSearch && matchesDay) ? '' : 'none';
+    });
+    
+    updateScheduleCount();
+}
+
+function sortSchedules() {
+    const sortBy = document.getElementById('sortBy').value;
+    sortTable(sortBy);
+}
+
+function sortTable(column) {
+    if (currentSortColumn === column) {
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortOrder = 'asc';
+    }
+    
+    updateSortIndicators();
+    
+    const tbody = document.getElementById('schedulesTableBody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    rows.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch(column) {
+            case 'day':
+                aValue = a.dataset.day.toLowerCase();
+                bValue = b.dataset.day.toLowerCase();
+                // Custom day order for Indonesian days
+                const dayOrder = {'senin': 1, 'selasa': 2, 'rabu': 3, 'kamis': 4, 'jumat': 5, 'sabtu': 6, 'minggu': 7};
+                aValue = dayOrder[aValue] || 999;
+                bValue = dayOrder[bValue] || 999;
+                break;
+            case 'time':
+                aValue = a.dataset.time.toLowerCase();
+                bValue = b.dataset.time.toLowerCase();
+                break;
+            case 'location':
+                aValue = a.dataset.location.toLowerCase();
+                bValue = b.dataset.location.toLowerCase();
+                break;
+            case 'type':
+                aValue = a.dataset.type.toLowerCase();
+                bValue = b.dataset.type.toLowerCase();
+                break;
+            case 'collector':
+                aValue = a.dataset.collector.toLowerCase();
+                bValue = b.dataset.collector.toLowerCase();
+                break;
+            case 'status':
+                aValue = a.dataset.status;
+                bValue = b.dataset.status;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (currentSortOrder === 'asc') {
+            return aValue > bValue ? 1 : -1;
+        } else {
+            return aValue < bValue ? 1 : -1;
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function updateSortIndicators() {
+    const headers = document.querySelectorAll('th[data-sort]');
+    headers.forEach(header => {
+        const indicator = header.querySelector('.sort-indicator');
+        if (header.dataset.sort === currentSortColumn) {
+            indicator.textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+        } else {
+            indicator.textContent = '↕';
+        }
+    });
+    
+    // Update sort order button
+    document.getElementById('sortOrder').textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+}
+
+function toggleSortOrder() {
+    currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    sortTable(currentSortColumn);
+}
+
+function clearFilters() {
+    document.getElementById('scheduleSearch').value = '';
+    document.getElementById('dayFilter').value = '';
+    document.getElementById('sortBy').value = 'day';
+    currentSortColumn = 'day';
+    currentSortOrder = 'asc';
+    
+    // Show all rows
+    const rows = document.querySelectorAll('#schedulesTableBody tr');
+    rows.forEach(row => row.style.display = '');
+    
+    // Reset sort
+    sortTable('day');
+    updateScheduleCount();
+}
+
+function updateScheduleCount() {
+    const visibleRows = document.querySelectorAll('#schedulesTableBody tr:not([style*="display: none"])');
+    const countElement = document.querySelector('.card-title');
+    countElement.textContent = `Schedule Management (${visibleRows.length} schedules)`;
+}
+
 function refreshSchedules() {
     location.reload();
 }
@@ -223,29 +421,31 @@ function addSchedule() {
 }
 
 function exportSchedules() {
-    let csv = "Day,Time,Location,Type,Contact,Status,Address\n";
+    let csv = "Day,Time,Location,Address,Type,Collector,Status,Notes\n";
     
     // Get all schedule rows from the table
     const scheduleRows = document.querySelectorAll('table tbody tr');
     
     scheduleRows.forEach(function(row) {
         const cells = row.querySelectorAll('td');
-        if (cells.length >= 7) {
+        if (cells.length >= 9) { // Updated to 9 columns
             const day = cells[0].textContent.trim();
             const time = cells[1].textContent.trim();
             const location = cells[2].textContent.trim();
-            const type = cells[3].textContent.trim();
-            const contact = cells[4].textContent.trim();
-            const status = cells[5].textContent.trim();
-            const address = cells[6].textContent.trim();
+            const address = cells[3].textContent.trim();
+            const type = cells[4].textContent.trim();
+            const collector = cells[5].textContent.trim();
+            const status = cells[6].textContent.trim();
+            const notes = cells[7].textContent.trim();
             
             csv += '"' + day + '",' +
                    '"' + time + '",' +
                    '"' + location + '",' +
+                   '"' + address + '",' +
                    '"' + type + '",' +
-                   '"' + contact + '",' +
+                   '"' + collector + '",' +
                    '"' + status + '",' +
-                   '"' + address + '"\n';
+                   '"' + notes + '"\n';
         }
     });
     

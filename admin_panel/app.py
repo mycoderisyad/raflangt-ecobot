@@ -443,14 +443,24 @@ def schedules():
         # Debug: Convert to list of dicts for better template access
         schedules_list = []
         for row in schedules:
+            # Parse address to extract notes if they exist
+            address = row[2]  # address is at index 2
+            notes = ""
+            clean_address = address
+            if address and " | Notes: " in address:
+                parts = address.split(" | Notes: ", 1)
+                clean_address = parts[0]
+                notes = parts[1] if len(parts) > 1 else ""
+            
             schedules_list.append({
                 'id': row[0],
                 'location_name': row[1],
-                'address': row[2],
+                'address': clean_address,
+                'notes': notes,
                 'schedule_day': row[3],
                 'schedule_time': row[4],
                 'waste_types': row[5],
-                'contact': row[6],
+                'contact': row[6],  # This stores the collector
                 'is_active': row[7],
                 'created_at': row[8],
                 'updated_at': row[9]
@@ -529,17 +539,26 @@ def create_schedule():
             start_time = request.form.get("start_time")
             end_time = request.form.get("end_time")
             waste_types = request.form.get("waste_types")
-            contact = request.form.get("contact", "")
+            collector = request.form.get("collector", "")
+            notes = request.form.get("notes", "")
 
             # Combine start and end time into schedule_time format
             schedule_time = f"{start_time}-{end_time}"
+
+            # For now, we'll store collector in contact field and notes in address field
+            # In the future, we can add these as separate database columns
+            contact = collector
+            # Combine address and notes for now (since we don't have a separate notes column)
+            full_address = address
+            if notes:
+                full_address = f"{address} | Notes: {notes}"
 
             conn = get_db_connection()
             conn.execute(
                 "INSERT INTO collection_schedules (location_name, address, schedule_day, schedule_time, waste_types, contact, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
                 (
                     location_name,
-                    address,
+                    full_address,
                     schedule_day,
                     schedule_time,
                     waste_types,
@@ -572,17 +591,25 @@ def edit_schedule(schedule_id):
             start_time = request.form.get("start_time")
             end_time = request.form.get("end_time")
             waste_types = request.form.get("waste_types")
-            contact = request.form.get("contact", "")
+            collector = request.form.get("collector", "")
+            notes = request.form.get("notes", "")
             is_active = 1 if request.form.get("is_active") else 0
 
             # Combine start and end time into schedule_time format
             schedule_time = f"{start_time}-{end_time}"
 
+            # For now, we'll store collector in contact field and notes in address field
+            contact = collector
+            # Combine address and notes for now (since we don't have a separate notes column)
+            full_address = address
+            if notes:
+                full_address = f"{address} | Notes: {notes}"
+
             conn.execute(
                 "UPDATE collection_schedules SET location_name = ?, address = ?, schedule_day = ?, schedule_time = ?, waste_types = ?, contact = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 (
                     location_name,
-                    address,
+                    full_address,
                     schedule_day,
                     schedule_time,
                     waste_types,
@@ -614,17 +641,26 @@ def edit_schedule(schedule_id):
                     start_time = time_parts[0].strip()
                     end_time = time_parts[1].strip()
             
-            # Create schedule dict with parsed time
+            # Parse address to extract notes if they exist
+            address = schedule[2]  # address is at index 2
+            notes = ""
+            if address and " | Notes: " in address:
+                parts = address.split(" | Notes: ", 1)
+                address = parts[0]
+                notes = parts[1] if len(parts) > 1 else ""
+            
+            # Create schedule dict with parsed time and notes
             schedule_dict = {
                 'id': schedule[0],
                 'location_name': schedule[1],
-                'address': schedule[2],
+                'address': address,
                 'schedule_day': schedule[3],
                 'schedule_time': schedule[4],
                 'start_time': start_time,
                 'end_time': end_time,
                 'waste_types': schedule[5],
-                'contact': schedule[6],
+                'collector': schedule[6],  # contact field stores collector
+                'notes': notes,
                 'is_active': schedule[7],
                 'created_at': schedule[8],
                 'updated_at': schedule[9]

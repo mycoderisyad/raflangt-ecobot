@@ -98,7 +98,7 @@ class AIAgent:
             user_context = self._get_user_context(user_phone)
             user_facts = self.memory_model.get_all_user_facts(user_phone)
             conversation_history = self.conversation_model.get_recent_conversation(
-                user_phone, 20
+                user_phone, 50  # Increased to 50 conversations for better memory
             )
 
             # Build comprehensive context based on mode
@@ -251,38 +251,77 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
             }
     
     def _get_user_context(self, user_phone: str) -> Dict[str, Any]:
-        """Get user context from database"""
+        """Get comprehensive user context including memory and conversation history"""
         try:
             user = self.user_model.get_user(user_phone)
+            
+            # Get conversation summary and topics
+            conversation_summary = self.conversation_model.get_conversation_summary(user_phone, 7)
+            conversation_topics = self.conversation_model.get_conversation_topics(user_phone, 10)
+            conversation_count = self.conversation_model.get_conversation_count(user_phone)
+            
             if user:
                 return {
                     "phone": user_phone,
-                    "name": user["name"],
-                    "role": user["role"],
-                    "registration_status": user["registration_status"],
-                    "points": user["points"],
-                    "first_seen": user["first_seen"],
-                    "last_active": user["last_active"],
-                    "total_messages": user["total_messages"],
-                    "total_images": user["total_images"],
+                    "name": user.get("name", "Teman"),
+                    "role": user.get("role", "warga"),
+                    "registration_status": user.get("registration_status", "registered"),
+                    "points": user.get("points", 0),
+                    "first_seen": user.get("first_seen"),
+                    "last_active": user.get("last_active"),
+                    "total_messages": user.get("total_messages", 0),
+                    "total_images": user.get("total_images", 0),
+                    "conversation_count": conversation_count,
+                    "recent_activity": conversation_summary,
+                    "common_topics": conversation_topics
                 }
             else:
-                return {"phone": user_phone, "role": "warga"}
+                return {
+                    "phone": user_phone,
+                    "role": "warga",
+                    "name": "Belum dikenali",
+                    "registration_status": "unknown",
+                    "points": 0,
+                    "first_seen": None,
+                    "last_active": None,
+                    "total_messages": 0,
+                    "total_images": 0,
+                    "conversation_count": conversation_count,
+                    "recent_activity": conversation_summary,
+                    "common_topics": conversation_topics
+                }
         except Exception as e:
             logger.error(f"Error getting user context: {str(e)}")
-            return {"phone": user_phone, "role": "warga"}
+            return {"phone": user_phone, "role": "warga", "name": "Teman"}
     
     def _build_context(self, user_phone: str, user_context: Dict, user_facts: Dict, 
                       conversation_history: List[Dict], mode: str) -> Dict[str, Any]:
-        """Build comprehensive context for the AI agent"""
-        return {
+        """Build comprehensive context for the AI agent with enhanced memory"""
+        
+        # Get conversation summary for better context
+        conversation_summary = self.conversation_model.get_conversation_summary(user_phone, 7)
+        conversation_topics = self.conversation_model.get_conversation_topics(user_phone, 10)
+        
+        # Build enhanced context
+        context = {
             "user_context": user_context,
             "user_facts": user_facts,
             "conversation_history": conversation_history,
+            "conversation_summary": conversation_summary,
+            "conversation_topics": conversation_topics,
             "personality": self.personality,
             "mode": self.modes.get(mode, self.modes["hybrid"]),
             "timestamp": datetime.now().isoformat(),
+            "memory_enhancement": {
+                "total_conversations": len(conversation_history),
+                "recent_activity": conversation_summary,
+                "common_topics": conversation_topics,
+                "user_preferences": self._extract_user_preferences(user_facts),
+                "conversation_patterns": self._analyze_conversation_patterns(conversation_history)
+            }
         }
+        
+        return context
 
     def _generate_ecobot_response(self, user_message: str, context: Dict) -> str:
         """Generate response for EcoBot service mode (database-focused)"""
@@ -714,6 +753,31 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
                     if rt_match:
                         rt_number = rt_match.group(1)
                         self.memory_model.save_user_fact(user_phone, "rt", f"RT {rt_number}")
+            
+            # Extract conversation patterns
+            if len(user_message) > 10:
+                # Save conversation style preference
+                if "?" in user_message:
+                    self.memory_model.save_user_fact(user_phone, "conversation_style", "questioner")
+                elif len(user_message) > 50:
+                    self.memory_model.save_user_fact(user_phone, "conversation_style", "detailed")
+                else:
+                    self.memory_model.save_user_fact(user_phone, "conversation_style", "brief")
+            
+            # Extract waste management interests
+            waste_keywords = {
+                "organik": "organic_waste_interest",
+                "daur ulang": "recycling_interest", 
+                "kompos": "composting_interest",
+                "b3": "hazardous_waste_interest",
+                "jadwal": "schedule_interest",
+                "lokasi": "location_interest"
+            }
+            
+            for keyword, fact_key in waste_keywords.items():
+                if keyword in user_message.lower():
+                    self.memory_model.save_user_fact(user_phone, fact_key, "high")
+                    break
                 
         except Exception as e:
             logger.error(f"Error extracting facts: {str(e)}")
@@ -744,3 +808,59 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
             return f"Mode AI Agent berhasil diubah ke: {self.modes[new_mode]['name']}"
         else:
             return f"Mode '{new_mode}' tidak tersedia. Mode yang tersedia: {', '.join(self.modes.keys())}"
+
+    def _extract_user_preferences(self, user_facts: Dict) -> Dict[str, Any]:
+        """Extract user preferences from facts"""
+        preferences = {}
+        
+        # Extract interests
+        for key, fact_data in user_facts.items():
+            if "interest" in key:
+                preferences[key] = fact_data.get("value", "unknown")
+        
+        # Extract conversation style
+        if "conversation_style" in user_facts:
+            preferences["conversation_style"] = user_facts["conversation_style"].get("value", "general")
+        
+        return preferences
+
+    def _analyze_conversation_patterns(self, conversation_history: List[Dict]) -> Dict[str, Any]:
+        """Analyze conversation patterns for better personalization"""
+        if not conversation_history:
+            return {}
+        
+        user_messages = [msg for msg in conversation_history if msg.get("role") == "user"]
+        
+        if not user_messages:
+            return {}
+        
+        # Analyze message patterns
+        patterns = {
+            "total_messages": len(user_messages),
+            "avg_message_length": sum(len(msg.get("content", "")) for msg in user_messages) / len(user_messages),
+            "question_frequency": sum(1 for msg in user_messages if "?" in msg.get("content", "")),
+            "emoji_usage": sum(1 for msg in user_messages if any(emoji in msg.get("content", "") for emoji in ["😊", "👍", "❤️", "😄"]),
+            "topic_diversity": len(set(msg.get("content", "")[:20] for msg in user_messages))
+        }
+        
+        return patterns
+
+    def get_memory_stats(self, user_phone: str) -> Dict[str, Any]:
+        """Get comprehensive memory statistics for a user"""
+        try:
+            user_facts = self.memory_model.get_all_user_facts(user_phone)
+            conversation_count = self.conversation_model.get_conversation_count(user_phone)
+            conversation_summary = self.conversation_model.get_conversation_summary(user_phone, 30)
+            conversation_topics = self.conversation_model.get_conversation_topics(user_phone, 20)
+            
+            return {
+                "user_facts_count": len(user_facts),
+                "conversation_count": conversation_count,
+                "recent_activity": conversation_summary,
+                "common_topics": conversation_topics,
+                "memory_keys": list(user_facts.keys()),
+                "last_conversation": conversation_summary.get("last_message") if conversation_summary else None
+            }
+        except Exception as e:
+            logger.error(f"Error getting memory stats: {str(e)}")
+            return {}

@@ -8,6 +8,7 @@
     <div style="display: flex; gap: 12px; align-items: center;">
         <a href="{{ url_for('create_location') }}" class="btn btn-primary">Add Location</a>
         <button class="btn" onclick="refreshLocations()">Refresh</button>
+        <button class="btn" onclick="exportLocations()">Export CSV</button>
     </div>
 </div>
 
@@ -16,24 +17,63 @@
         Location Management ({{ locations|length }} locations)
     </h3>
 
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 200px;">
+                <input type="text" id="locationSearch" class="form-input" placeholder="Search locations..." 
+                       style="width: 100%;" onkeyup="filterLocations()">
+            </div>
+            <div class="filter-group">
+                <label>Filter by Type:</label>
+                <select id="typeFilter" onchange="filterLocations()">
+                    <option value="">All Types</option>
+                    <option value="TPS">TPS</option>
+                    <option value="TPA">TPA</option>
+                    <option value="Recycling Center">Recycling Center</option>
+                    <option value="Compost Site">Compost Site</option>
+                    <option value="Collection Point">Collection Point</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Sort by:</label>
+                <select id="sortBy" onchange="sortLocations()">
+                    <option value="name">Name</option>
+                    <option value="type">Type</option>
+                    <option value="status">Status</option>
+                </select>
+                <button id="sortOrder" class="sort-order-btn" onclick="toggleSortOrder()">
+                    ↑↓
+                </button>
+            </div>
+            <button class="clear-filters-btn" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+
     {% if locations %}
     <div style="overflow-x: auto;">
-        <table class="table">
+        <table class="table" id="locationsTable">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Type</th>
+                    <th data-sort="name" onclick="sortTable('name')" style="cursor: pointer;">
+                        Name <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="type" onclick="sortTable('type')" style="cursor: pointer;">
+                        Type <span class="sort-indicator">↕</span>
+                    </th>
                     <th>Location</th>
                     <th>Waste Types</th>
                     <th>Schedule</th>
                     <th>Contact</th>
-                    <th>Status</th>
+                    <th data-sort="status" onclick="sortTable('status')" style="cursor: pointer;">
+                        Status <span class="sort-indicator">↕</span>
+                    </th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="locationsTableBody">
                 {% for location in locations %}
-                <tr>
+                <tr data-type="{{ location.type or 'TPS' }}" data-status="{{ 'active' if location.is_active == 1 else 'inactive' }}">
                     <td style="font-weight: 500;">{{ location.name or 'Unnamed Location' }}</td>
                     <td>
                         <span class="badge" style="background: var(--bg-secondary);">
@@ -140,6 +180,127 @@
 </div>
 
 <script>
+let currentSortColumn = 'name';
+let currentSortOrder = 'asc';
+
+function filterLocations() {
+    const searchTerm = document.getElementById('locationSearch').value.toLowerCase();
+    const typeFilter = document.getElementById('typeFilter').value;
+    
+    const rows = document.querySelectorAll('#locationsTableBody tr');
+    
+    rows.forEach(row => {
+        const name = row.querySelector('td:first-child').textContent.toLowerCase();
+        const type = row.querySelector('.badge').textContent.toLowerCase();
+        const wasteTypes = row.querySelectorAll('td')[3].textContent.toLowerCase();
+        const schedule = row.querySelectorAll('td')[4].textContent.toLowerCase();
+        const contact = row.querySelectorAll('td')[5].textContent.toLowerCase();
+        
+        const matchesSearch = name.includes(searchTerm) || 
+                            type.includes(searchTerm) || 
+                            wasteTypes.includes(searchTerm) || 
+                            schedule.includes(searchTerm) || 
+                            contact.includes(searchTerm);
+        
+        const matchesType = !typeFilter || type === typeFilter.toLowerCase();
+        
+        row.style.display = (matchesSearch && matchesType) ? '' : 'none';
+    });
+    
+    updateLocationCount();
+}
+
+function sortLocations() {
+    const sortBy = document.getElementById('sortBy').value;
+    sortTable(sortBy);
+}
+
+function sortTable(column) {
+    if (currentSortColumn === column) {
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortOrder = 'asc';
+    }
+    
+    updateSortIndicators();
+    
+    const tbody = document.getElementById('locationsTableBody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    rows.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch(column) {
+            case 'name':
+                aValue = a.querySelector('td:first-child').textContent.toLowerCase();
+                bValue = b.querySelector('td:first-child').textContent.toLowerCase();
+                break;
+            case 'type':
+                aValue = a.querySelector('.badge').textContent.toLowerCase();
+                bValue = b.querySelector('.badge').textContent.toLowerCase();
+                break;
+            case 'status':
+                aValue = a.dataset.status;
+                bValue = b.dataset.status;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (currentSortOrder === 'asc') {
+            return aValue > bValue ? 1 : -1;
+        } else {
+            return aValue < bValue ? 1 : -1;
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function updateSortIndicators() {
+    const headers = document.querySelectorAll('th[data-sort]');
+    headers.forEach(header => {
+        const indicator = header.querySelector('.sort-indicator');
+        if (header.dataset.sort === currentSortColumn) {
+            indicator.textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+        } else {
+            indicator.textContent = '↕';
+        }
+    });
+    
+    // Update sort order button
+    document.getElementById('sortOrder').textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+}
+
+function toggleSortOrder() {
+    currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    sortTable(currentSortColumn);
+}
+
+function clearFilters() {
+    document.getElementById('locationSearch').value = '';
+    document.getElementById('typeFilter').value = '';
+    document.getElementById('sortBy').value = 'name';
+    currentSortColumn = 'name';
+    currentSortOrder = 'asc';
+    
+    // Show all rows
+    const rows = document.querySelectorAll('#locationsTableBody tr');
+    rows.forEach(row => row.style.display = '');
+    
+    // Reset sort
+    sortTable('name');
+    updateLocationCount();
+}
+
+function updateLocationCount() {
+    const visibleRows = document.querySelectorAll('#locationsTableBody tr:not([style*="display: none"])');
+    const countElement = document.querySelector('.card-title');
+    countElement.textContent = `Location Management (${visibleRows.length} locations)`;
+}
+
 function refreshLocations() {
     location.reload();
 }

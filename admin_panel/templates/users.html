@@ -17,29 +17,77 @@
         </div>
     </div>
 
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 200px;">
+                <input type="text" id="userSearch" class="form-input" placeholder="Search users..." 
+                       style="width: 100%;" onkeyup="filterUsers()">
+            </div>
+            <div class="filter-group">
+                <label>Filter by Role:</label>
+                <select id="roleFilter" onchange="filterUsers()">
+                    <option value="">All Roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="koordinator">Koordinator</option>
+                    <option value="warga">Warga</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Sort by:</label>
+                <select id="sortBy" onchange="sortUsers()">
+                    <option value="phone">Phone Number</option>
+                    <option value="role">Role</option>
+                    <option value="points">Points</option>
+                    <option value="messages">Messages</option>
+                    <option value="images">Images</option>
+                    <option value="last_active">Last Active</option>
+                </select>
+                <button id="sortOrder" class="sort-order-btn" onclick="toggleSortOrder()">
+                    ↑↓
+                </button>
+            </div>
+            <button class="clear-filters-btn" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+
     {% if users %}
     <div style="overflow-x: auto;">
-        <table class="table">
+        <table class="table" id="usersTable">
             <thead>
                 <tr>
-                    <th>Phone Number</th>
-                    <th>Role</th>
-                    <th>Points</th>
-                    <th>Messages</th>
-                    <th>Images</th>
-                    <th>Status</th>
-                    <th>Last Active</th>
+                    <th data-sort="phone" onclick="sortTable('phone')" style="cursor: pointer;">
+                        Phone Number <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="role" onclick="sortTable('role')" style="cursor: pointer;">
+                        Role <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="points" onclick="sortTable('points')" style="cursor: pointer;">
+                        Points <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="messages" onclick="sortTable('messages')" style="cursor: pointer;">
+                        Messages <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="images" onclick="sortTable('images')" style="cursor: pointer;">
+                        Images <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="status" onclick="sortTable('status')" style="cursor: pointer;">
+                        Status <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-sort="last_active" onclick="sortTable('last_active')" style="cursor: pointer;">
+                        Last Active <span class="sort-indicator">↕</span>
+                    </th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="usersTableBody">
                 {% for user in users %}
-                <tr>
+                <tr data-role="{{ user.role or 'warga' }}" data-phone="{{ user.phone_number or '' }}">
                     <td>{{ user.phone_number.replace('@c.us', '') if user.phone_number else 'N/A' }}</td>
                     <td><span class="badge badge-{{ user.role or 'warga' }}">{{ (user.role or 'warga').title() }}</span></td>
-                    <td>{{ user.points or 0 }}</td>
-                    <td>{{ user.total_messages or 0 }}</td>
-                    <td>{{ user.total_images or 0 }}</td>
+                    <td data-value="{{ user.points or 0 }}">{{ user.points or 0 }}</td>
+                    <td data-value="{{ user.total_messages or 0 }}">{{ user.total_messages or 0 }}</td>
+                    <td data-value="{{ user.total_images or 0 }}">{{ user.total_images or 0 }}</td>
                     <td>
                         {% if user.is_active == 1 %}
                             <span class="badge" style="background: #f0f9f0; color: #28a745;">Active</span>
@@ -47,7 +95,7 @@
                             <span class="badge" style="background: #fdf2f2; color: #dc3545;">Inactive</span>
                         {% endif %}
                     </td>
-                    <td>{{ user.last_active or 'Never' }}</td>
+                    <td data-value="{{ user.last_active or 'Never' }}">{{ user.last_active or 'Never' }}</td>
                     <td>
                         <div style="display: flex; gap: 4px;">
                             <a href="{{ url_for('edit_user', phone_number=user.phone_number) }}" 
@@ -95,6 +143,154 @@
 </div>
 
 <script>
+let currentSortColumn = 'phone';
+let currentSortOrder = 'asc';
+let originalUsers = [];
+
+// Store original data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('#usersTableBody tr');
+    originalUsers = Array.from(rows).map(row => ({
+        element: row,
+        role: row.dataset.role,
+        phone: row.dataset.phone,
+        points: parseInt(row.querySelector('[data-value]').dataset.value) || 0,
+        messages: parseInt(row.querySelectorAll('[data-value]')[1].dataset.value) || 0,
+        images: parseInt(row.querySelectorAll('[data-value]')[2].dataset.value) || 0,
+        lastActive: row.querySelectorAll('[data-value]')[3].dataset.value
+    }));
+});
+
+function filterUsers() {
+    const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+    const roleFilter = document.getElementById('roleFilter').value;
+    
+    const rows = document.querySelectorAll('#usersTableBody tr');
+    
+    rows.forEach(row => {
+        const phone = row.querySelector('td:first-child').textContent.toLowerCase();
+        const role = row.querySelector('.badge').textContent.toLowerCase();
+        const points = row.querySelectorAll('td')[2].textContent;
+        const messages = row.querySelectorAll('td')[3].textContent;
+        const images = row.querySelectorAll('td')[4].textContent;
+        
+        const matchesSearch = phone.includes(searchTerm) || 
+                            role.includes(searchTerm) || 
+                            points.includes(searchTerm) || 
+                            messages.includes(searchTerm) || 
+                            images.includes(searchTerm);
+        
+        const matchesRole = !roleFilter || role === roleFilter.toLowerCase();
+        
+        row.style.display = (matchesSearch && matchesRole) ? '' : 'none';
+    });
+    
+    updateUserCount();
+}
+
+function sortUsers() {
+    const sortBy = document.getElementById('sortBy').value;
+    sortTable(sortBy);
+}
+
+function sortTable(column) {
+    if (currentSortColumn === column) {
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortOrder = 'asc';
+    }
+    
+    updateSortIndicators();
+    
+    const tbody = document.getElementById('usersTableBody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    rows.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch(column) {
+            case 'phone':
+                aValue = a.querySelector('td:first-child').textContent;
+                bValue = b.querySelector('td:first-child').textContent;
+                break;
+            case 'role':
+                aValue = a.querySelector('.badge').textContent;
+                bValue = b.querySelector('.badge').textContent;
+                break;
+            case 'points':
+                aValue = parseInt(a.querySelectorAll('td')[2].dataset.value) || 0;
+                bValue = parseInt(b.querySelectorAll('td')[2].dataset.value) || 0;
+                break;
+            case 'messages':
+                aValue = parseInt(a.querySelectorAll('td')[3].dataset.value) || 0;
+                bValue = parseInt(b.querySelectorAll('td')[3].dataset.value) || 0;
+                break;
+            case 'images':
+                aValue = parseInt(a.querySelectorAll('td')[4].dataset.value) || 0;
+                bValue = parseInt(b.querySelectorAll('td')[4].dataset.value) || 0;
+                break;
+            case 'last_active':
+                aValue = a.querySelectorAll('td')[6].dataset.value;
+                bValue = b.querySelectorAll('td')[6].dataset.value;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (currentSortOrder === 'asc') {
+            return aValue > bValue ? 1 : -1;
+        } else {
+            return aValue < bValue ? 1 : -1;
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function updateSortIndicators() {
+    const headers = document.querySelectorAll('th[data-sort]');
+    headers.forEach(header => {
+        const indicator = header.querySelector('.sort-indicator');
+        if (header.dataset.sort === currentSortColumn) {
+            indicator.textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+        } else {
+            indicator.textContent = '↕';
+        }
+    });
+    
+    // Update sort order button
+    document.getElementById('sortOrder').textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+}
+
+function toggleSortOrder() {
+    currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    sortTable(currentSortColumn);
+}
+
+function clearFilters() {
+    document.getElementById('userSearch').value = '';
+    document.getElementById('roleFilter').value = '';
+    document.getElementById('sortBy').value = 'phone';
+    currentSortColumn = 'phone';
+    currentSortOrder = 'asc';
+    
+    // Show all rows
+    const rows = document.querySelectorAll('#usersTableBody tr');
+    rows.forEach(row => row.style.display = '');
+    
+    // Reset sort
+    sortTable('phone');
+    updateUserCount();
+}
+
+function updateUserCount() {
+    const visibleRows = document.querySelectorAll('#usersTableBody tr:not([style*="display: none"])');
+    const countElement = document.querySelector('.card-title');
+    countElement.textContent = `User List (${visibleRows.length} users)`;
+}
+
 function exportUsers() {
     // Simple CSV export
     let csv = "Phone Number,Role,Points,Messages,Images,Status,Last Active\n";

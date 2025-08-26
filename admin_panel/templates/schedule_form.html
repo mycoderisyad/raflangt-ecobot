@@ -14,19 +14,13 @@
 
 <div class="card">
     <form method="POST">
-        <div class="form-group">
-            <label class="form-label">Location Name</label>
-            <input type="text" class="form-input" name="location_name" 
-                   value="{{ schedule.location_name if schedule else '' }}" required>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Address</label>
-            <input type="text" class="form-input" name="address" 
-                   value="{{ schedule.address if schedule else '' }}" required>
-        </div>
-
         <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Location Name</label>
+                <input type="text" class="form-input" name="location_name" 
+                       value="{{ schedule.location_name if schedule else '' }}" required>
+            </div>
+
             <div class="form-group">
                 <label class="form-label">Schedule Day</label>
                 <select class="form-input" name="schedule_day" required>
@@ -40,33 +34,57 @@
                     <option value="Minggu" {{ 'selected' if schedule and schedule.schedule_day == 'Minggu' else '' }}>Sunday (Minggu)</option>
                 </select>
             </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Start Time</label>
+                <input type="time" class="form-input" name="start_time" 
+                       value="{{ schedule.start_time if schedule else '' }}" 
+                       placeholder="Start time" required>
+            </div>
 
             <div class="form-group">
-                <label class="form-label">Schedule Time</label>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="time" class="form-input" name="start_time" 
-                           value="{{ schedule.start_time if schedule else '' }}" 
-                           placeholder="Start time" required>
-                    <span style="color: #6f6e69; font-weight: 500;">-</span>
-                    <input type="time" class="form-input" name="end_time" 
-                           value="{{ schedule.end_time if schedule else '' }}" 
-                           placeholder="End time" required>
+                <label class="form-label">End Time</label>
+                <input type="time" class="form-input" name="end_time" 
+                       value="{{ schedule.end_time if schedule else '' }}" 
+                       placeholder="End time" required>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Waste Types</label>
+                <input type="text" class="form-input" name="waste_types" 
+                       value="{{ schedule.waste_types if schedule else '' }}" 
+                       placeholder="e.g., Organic, Plastic, Paper" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Collector</label>
+                <input type="text" class="form-input" name="collector" 
+                       value="{{ schedule.collector if schedule else '' }}" 
+                       placeholder="e.g., John Doe - 08123456789">
+                <div class="field-help">
+                    Name and contact number of the assigned collector
                 </div>
             </div>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Waste Types</label>
-            <input type="text" class="form-input" name="waste_types" 
-                   value="{{ schedule.waste_types if schedule else '' }}" 
-                   placeholder="e.g., Organic, Plastic, Paper" required>
+            <label class="form-label">Address</label>
+            <input type="text" class="form-input" name="address" 
+                   value="{{ schedule.address if schedule else '' }}" 
+                   placeholder="e.g., Jl. Merdeka No. 123, Jakarta" required>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Contact Information</label>
-            <input type="text" class="form-input" name="contact" 
-                   value="{{ schedule.contact if schedule else '' }}" 
-                   placeholder="Phone number or contact person">
+            <label class="form-label">Notes</label>
+            <textarea class="form-input" name="notes" rows="3"
+                      placeholder="Additional notes about this schedule...">{{ schedule.notes if schedule else '' }}</textarea>
+            <div class="field-help">
+                Additional information, special instructions, or notes about this collection schedule
+            </div>
         </div>
 
         {% if action == 'edit' %}
