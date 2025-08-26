@@ -87,8 +87,7 @@ class ConfigManager:
                 == "true",
                 api_key=os.getenv("LUNOS_API_KEY"),
                 base_url=os.getenv("LUNOS_BASE_URL"),
-                text_model=os.getenv("LUNOS_TEXT_MODEL"),
-                vision_model=os.getenv("LUNOS_VISION_MODEL"),
+                text_mode=os.getenv("LUNOS_AGENT_MODE"),
             ),
             "email": EmailConfig(
                 api_key=os.getenv("MAILRY_API_KEY", ""),
