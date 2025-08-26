@@ -19,9 +19,18 @@
             line-height: 1.6;
             min-height: 100vh;
         }
+        
+        html {
+            scroll-padding-top: 88px;
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --container-max: 1200px;
+        }
 
         .container {
-            max-width: 1200px;
+            max-width: var(--container-max);
             margin: 0 auto;
             padding: 0 20px;
         }
@@ -35,14 +44,14 @@
         }
 
         h1 {
-            font-size: 32px;
+            font-size: clamp(22px, 3.2vw, 32px);
             font-weight: 700;
             color: #37352f;
             margin-bottom: 8px;
         }
 
         .subtitle {
-            font-size: 16px;
+            font-size: clamp(13px, 2.2vw, 16px);
             color: #6f6e69;
             font-weight: 400;
         }
@@ -55,6 +64,34 @@
             position: sticky;
             top: 0;
             z-index: 100;
+        }
+
+        /* Mobile nav toggle (hamburger) */
+        .nav-header {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+        .nav-title {
+            font-size: 16px;
+            color: #37352f;
+            font-weight: 600;
+        }
+        .nav-toggle {
+            background: none;
+            border: 1px solid #e9e9e7;
+            padding: 8px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: none;
+        }
+        .nav-toggle .bar {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: #37352f;
+            margin: 4px 0;
         }
 
         .nav-links {
@@ -121,6 +158,9 @@
             border-color: #37352f;
         }
 
+        /* Make long nav rows wrap nicely on small widths */
+        .nav-links { row-gap: 4px; }
+
         /* ===== MAIN CONTENT ===== */
         main {
             background: #ffffff;
@@ -133,12 +173,13 @@
 
         section {
             margin-bottom: 48px;
+            scroll-margin-top: 88px; /* align with scroll-padding-top */
         }
 
         /* ===== TYPOGRAPHY ===== */
         h2 {
             color: #37352f;
-            font-size: 24px;
+            font-size: clamp(18px, 2.6vw, 24px);
             font-weight: 700;
             margin: 32px 0 16px 0;
             padding-bottom: 16px;
@@ -147,14 +188,14 @@
 
         h3 {
             color: #37352f;
-            font-size: 18px;
+            font-size: clamp(16px, 2.2vw, 18px);
             font-weight: 600;
             margin: 24px 0 12px 0;
         }
 
         h4 {
             color: #37352f;
-            font-size: 16px;
+            font-size: clamp(15px, 2vw, 16px);
             font-weight: 600;
             margin: 16px 0 8px 0;
         }
@@ -183,6 +224,9 @@
             border-radius: 3px;
             overflow: hidden;
             margin: 16px 0;
+            display: block;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         th, td {
@@ -262,7 +306,7 @@
         /* ===== FEATURE GRID ===== */
         .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 16px;
             margin: 24px 0;
         }
@@ -272,6 +316,11 @@
             border: 1px solid #e9e9e7;
             border-radius: 3px;
             padding: 16px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
         }
 
         /* ===== BUTTON STYLES ===== */
@@ -367,6 +416,10 @@
 
         /* ===== RESPONSIVE DESIGN ===== */
         @media (max-width: 768px) {
+            /* Show header + toggle on mobile */
+            .nav-header { display: flex; }
+            .nav-toggle { display: inline-block; }
+
             .container {
                 padding: 0 12px;
             }
@@ -380,12 +433,19 @@
             }
             
             .content {
-                padding: 32px 0;
+                padding: 24px 0 40px;
             }
             
             .nav-links {
                 flex-direction: column;
+                justify-content: flex-start;
+                padding: 8px 0;
+                max-height: 0; /* collapsed by default */
+                overflow: hidden;
+                transition: max-height 0.2s ease;
             }
+            /* Expand when nav has .open */
+            nav.open .nav-links { max-height: 480px; }
             
             .nav-links li {
                 border-right: none;
@@ -420,6 +480,15 @@
                 width: 26px;
                 height: 26px;
             }
+
+            /* Larger offset on mobile where the sticky nav stacks and gets taller */
+            html {
+                scroll-padding-top: 120px;
+            }
+            section {
+                scroll-margin-top: 120px;
+            }
+            .btn { width: 100%; }
         }
     </style>
 </head>
@@ -434,8 +503,16 @@
     </header>
 
     <!-- Navigation Section -->
-    <nav>
+    <nav id="site-nav">
         <div class="container">
+            <div class="nav-header">
+                <div class="nav-title">EcoBot</div>
+                <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-links-en nav-links-id">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </button>
+            </div>
             <ul class="nav-links" id="nav-links-en">
                 <li><a href="#introduction">Introduction</a></li>
                 <li><a href="#use-cases">Use Cases</a></li>
@@ -1075,6 +1152,7 @@ heroku config:set WAHA_API_KEY=...
             });
 
             // Handle navigation
+            const navEl = document.getElementById('site-nav');
             const navEn = document.getElementById('nav-links-en');
             const navId = document.getElementById('nav-links-id');
             
@@ -1085,6 +1163,10 @@ heroku config:set WAHA_API_KEY=...
                 if (navEn) navEn.style.display = 'none';
                 if (navId) navId.style.display = 'flex';
             }
+            // collapse nav if open after language switch
+            if (navEl) navEl.classList.remove('open');
+            const toggleBtn = document.getElementById('nav-toggle');
+            if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
 
             // Handle button states
             const btnEn = document.getElementById('btn-en');
@@ -1107,6 +1189,23 @@ heroku config:set WAHA_API_KEY=...
             // Check for stored language preference or default to English
             const savedLang = localStorage.getItem('ecobot-lang') || 'en';
             setLang(savedLang);
+            // Wire up hamburger toggle
+            const nav = document.getElementById('site-nav');
+            const toggle = document.getElementById('nav-toggle');
+            if (toggle && nav) {
+                toggle.addEventListener('click', () => {
+                    const isOpen = nav.classList.toggle('open');
+                    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+                // Close menu when clicking a nav link (better UX)
+                const links = nav.querySelectorAll('.nav-links a');
+                links.forEach(a => a.addEventListener('click', () => {
+                    if (nav.classList.contains('open')) {
+                        nav.classList.remove('open');
+                        toggle.setAttribute('aria-expanded', 'false');
+                    }
+                }));
+            }
         });
     </script>
     <!-- Floating WhatsApp Button -->
