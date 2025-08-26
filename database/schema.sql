@@ -1,6 +1,6 @@
 -- ============================================
 -- EcoBot Database Schema
--- Desa Cukangkawung Waste Management System
+--  Waste Management System
 -- ============================================
 
 -- Drop tables if they exist (for clean reinstall)

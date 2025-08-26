@@ -5,6 +5,7 @@ Handles user registration process
 
 from typing import Dict, Any, Optional
 from core.utils import LoggerUtils, ValidationUtils, MessageFormatter
+from core.config import get_config
 from core.constants import REGISTRATION_STATUS, ICONS
 from database.models import UserModel
 
@@ -16,19 +17,30 @@ class RegistrationService:
         self.user_model = user_model
         self.logger = LoggerUtils.get_logger(__name__)
         self.pending_registrations = {}
+        self.config = get_config()
 
     def is_registration_required(self, phone_number: str) -> bool:
         """Check if user needs to register - always False (auto-registration enabled)"""
-        return False  # Auto-registration enabled, no manual registration needed
+        try:
+            mode = self.config.get_app_config().registration_mode
+            return mode == "manual"
+        except Exception:
+            return False
 
     def handle_registration_command(
         self, phone_number: str, message: str
     ) -> Dict[str, Any]:
-        """Handle registration-related commands - disabled for auto-registration"""
-        return {
-            "status": "registration_disabled", 
-            "message": "Pendaftaran otomatis telah diaktifkan. Anda dapat langsung menggunakan bot tanpa perlu mendaftar manual."
-        }
+        """Handle registration-related commands depending on mode"""
+        if not self.is_registration_required(phone_number):
+            return {
+                "status": "registration_disabled",
+                "message": "Pendaftaran otomatis aktif. Anda dapat langsung menggunakan bot tanpa perlu mendaftar manual.",
+            }
+        # Manual mode: start or process registration
+        if phone_number not in self.pending_registrations:
+            return self._start_registration(phone_number)
+        else:
+            return self._process_registration_info(phone_number, message)
 
     def _start_registration(self, phone_number: str) -> Dict[str, Any]:
         """Start registration process"""
@@ -95,14 +107,14 @@ class RegistrationService:
 
     def _generate_format_error_message(self) -> str:
         """Generate format error message"""
-        response = MessageFormatter.format_info_header("Format Tidak Sesuai")
-        response += "❌ Mohon kirim informasi dengan format yang benar:\n\n"
-        response += "📝 *Format yang benar:*\n"
-        response += "```\n"
-        response += "Nama: (nama lengkap Anda)\n"
-        response += "Alamat: (alamat lengkap Anda)\n"
-        response += "```\n\n"
-        response += "💡 Pastikan Anda mengisi kedua informasi dengan lengkap."
+        response = MessageFormatter.format_info_header("Data Belum Lengkap")
+        response += (
+            "Kirimkan nama dan alamat Anda dalam format bebas.\n\n"
+            "Contoh:\n"
+            "• nama saya jhon, alamat jalan merdeka\n"
+            "• Jhon — Jl. Merdeka 12\n\n"
+            "Sistem akan merapikan data secara otomatis."
+        )
 
         return response
 
@@ -110,7 +122,7 @@ class RegistrationService:
         """Generate registration success message"""
         response = MessageFormatter.format_success_header(f"Selamat Datang, {name}!")
         response += (
-            "🎉 Anda berhasil terdaftar sebagai pengguna EcoBot Desa Cukangkawung.\n\n"
+            "🎉 Anda berhasil terdaftar sebagai pengguna EcoBot .\n\n"
         )
 
         features = [

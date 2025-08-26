@@ -55,6 +55,7 @@ class AppConfig:
     village_coordinates: str
     admin_phones: list
     coordinator_phones: list
+    registration_mode: str
 
 
 class ConfigManager:
@@ -105,20 +106,21 @@ class ConfigManager:
             ),
             "app": AppConfig(
                 name=os.getenv("APP_NAME", "EcoBot"),
-                version=os.getenv("APP_VERSION", "1.0.0"),
+                version=os.getenv("APP_VERSION", "1.5.0"),
                 debug=os.getenv(
                     "DEBUG", "true" if self.environment == "development" else "false"
                 ).lower()
                 == "true",
                 environment=self.environment,
-                village_name=os.getenv("VILLAGE_NAME", "Desa Cukangkawung"),
+                village_name=os.getenv("VILLAGE_NAME"),
                 village_coordinates=os.getenv(
-                    "VILLAGE_COORDINATES", "-6.2088,106.8456"
+                    "VILLAGE_COORDINATES"
                 ),
                 admin_phones=self._parse_phones(os.getenv("ADMIN_PHONE_NUMBERS", "")),
                 coordinator_phones=self._parse_phones(
                     os.getenv("COORDINATOR_PHONE_NUMBERS", "")
                 ),
+                registration_mode=os.getenv("REGISTRATION_MODE", "auto").lower(),
             ),
         }
 

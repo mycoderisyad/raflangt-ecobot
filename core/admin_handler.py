@@ -122,39 +122,30 @@ class AdminCommandHandler:
             }
 
     def _admin_help(self) -> Dict[str, Any]:
-        """Show comprehensive admin help"""
-        help_text = """PANEL ADMIN ECOBOT
-
-MANAJEMEN USER:
-• /admin user_list - Daftar semua user
-• /admin user_add <hp> <nama> [role] - Tambah user baru
-• /admin user_delete <hp> - Hapus user
-• /admin user_role <hp> <role> - Ubah role user
-• /admin user_info <hp> - Info detail user
-
-MANAJEMEN TITIK PENGUMPULAN:
-• /admin point_list - Daftar titik pengumpulan
-• /admin point_add <nama> <alamat> <lat,lng> <jenis> - Tambah titik
-• /admin point_delete <id> - Hapus titik
-• /admin point_update <id> <field> <value> - Update titik
-
-SISTEM & MONITORING:
-• /admin stats - Statistik lengkap sistem
-• /admin logs [level] - Log sistem (INFO/ERROR/ALL)
-• /admin backup - Backup database
-• /admin reset_stats - Reset statistik
-• /admin broadcast <pesan> - Broadcast ke semua user
-• /admin report - Generate laporan PDF via email
-• /admin memory_stats <hp> - Lihat statistik memory AI Agent user
-
-ROLE TERSEDIA: admin, koordinator, warga
-
-CATATAN: Pendaftaran user otomatis diaktifkan. User akan otomatis terdaftar saat pertama kali chat dengan bot.
-
-CONTOH PENGGUNAAN:
-/admin user_add +6281234567890 "John Doe" koordinator
-/admin point_add "TPS Utama" "Jl. Merdeka 123" "-6.123,106.456" organik,anorganik"""
-
+        """Show concise admin help (no emojis/mock)."""
+        help_text = (
+            "PANEL ADMIN ECOBOT\n\n"
+            "MANAJEMEN USER:\n"
+            "• /admin user_list\n"
+            "• /admin user_add <hp> <nama> [role]\n"
+            "• /admin user_delete <hp>\n"
+            "• /admin user_role <hp> <role>\n"
+            "• /admin user_info <hp>\n\n"
+            "MANAJEMEN TITIK PENGUMPULAN:\n"
+            "• /admin point_list\n"
+            "• /admin point_add <nama> <alamat> <lat,lng> <jenis>\n"
+            "• /admin point_delete <id>\n"
+            "• /admin point_update <id> <field> <value>\n\n"
+            "SISTEM & MONITORING:\n"
+            "• /admin stats\n"
+            "• /admin logs [level]\n"
+            "• /admin backup\n"
+            "• /admin reset_stats\n"
+            "• /admin broadcast <pesan>\n"
+            "• /admin report\n"
+            "• /admin memory_stats <hp>\n\n"
+            "ROLE: admin, koordinator, warga"
+        )
         return {"success": True, "message": help_text}
 
     # ========== USER MANAGEMENT ==========
@@ -237,10 +228,9 @@ CONTOH PENGGUNAAN:
             # Create user
             success = self.user_model.create_user(phone, name, role)
             if success:
-                role_emoji = {"admin": "👑", "koordinator": "🎯", "warga": "👤"}
                 return {
                     "success": True,
-                    "message": f"User berhasil ditambahkan!\n\n{role_emoji[role]} {name}\n{phone}\nRole: {role}",
+                    "message": f"User berhasil ditambahkan.\n\nNama: {name}\nHP: {phone}\nRole: {role}",
                 }
             else:
                 return {
@@ -322,10 +312,9 @@ CONTOH PENGGUNAAN:
             # Update role
             success = self.user_model.update_user_role(phone, new_role)
             if success:
-                role_emojis = {"admin": "👑", "koordinator": "🎯", "warga": "👤"}
                 return {
                     "success": True,
-                    "message": f'Role berhasil diubah!\n\n{user.get("name", "Unknown")}\n{phone}\n{role_emojis.get(old_role, "🔹")} {old_role} → {role_emojis.get(new_role, "🔹")} {new_role}',
+                    "message": f"Role berhasil diubah.\n\nNama: {user.get('name', 'Unknown')}\nHP: {phone}\n{old_role} → {new_role}",
                 }
             else:
                 return {
@@ -353,12 +342,11 @@ CONTOH PENGGUNAAN:
                     "message": f"User dengan nomor {phone} tidak ditemukan.",
                 }
 
-            role_emoji = {"admin": "👑", "koordinator": "🎯", "warga": "👤"}
             role = user.get("role", "warga")
 
             info_text = f"""INFORMASI USER
 
-{role_emoji.get(role, '👤')} {user.get('name', 'Unknown')}
+Nama: {user.get('name', 'Unknown')}
 
 Nomor HP: {user.get('phone_number', 'Unknown')}
 Role: {role}
@@ -390,7 +378,7 @@ STATISTIK AKTIVITAS:
             point_list = ["TITIK PENGUMPULAN SAMPAH:\n"]
 
             for point in points:
-                status = "🟢 Aktif" if point.get("is_active", True) else "🔴 Nonaktif"
+                status = "Aktif" if point.get("is_active", True) else "Nonaktif"
                 waste_types = ", ".join(point.get("accepted_waste_types", []))
 
                 point_list.append(f"{point.get('name', 'Unknown')} ({status})")
@@ -464,7 +452,7 @@ STATISTIK AKTIVITAS:
                 "latitude": latitude,
                 "longitude": longitude,
                 "accepted_waste_types": accepted_types,
-                "operating_hours": "07:00-16:00",  # Default
+                "operating_hours": "07:00-16:00", 
                 "contact_info": "",
                 "is_active": True,
             }
@@ -614,97 +602,55 @@ Update terakhir: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"""
             return {"success": False, "message": f"Error mengambil statistik: {str(e)}"}
 
     def _get_system_logs(self, args: str) -> Dict[str, Any]:
-        """Get system logs"""
+        """Tail recent logs from files."""
         try:
-            level = args.strip().upper() if args.strip() else "ALL"
-            valid_levels = ["INFO", "WARNING", "ERROR", "CRITICAL", "ALL"]
+            import os
+            from collections import deque
 
-            if level not in valid_levels:
-                return {
-                    "success": False,
-                    "message": f'Level log tidak valid. Yang tersedia: {", ".join(valid_levels)}',
-                }
+            def tail(file_path: str, n: int = 50) -> List[str]:
+                if not os.path.exists(file_path):
+                    return [f"File tidak ditemukan: {file_path}"]
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    return list(deque(f, maxlen=n))
 
-            # Read recent logs (simplified - in real implementation read from log files)
-            logs_text = f"""SYSTEM LOGS ({level})
+            error_logs = tail("logs/error.log", 50)
+            app_logs = tail("logs/ecobot.log", 50)
 
-Log Terbaru:
-• 2025-08-21 17:30:15 [INFO] - User +6281234567890 sent message
-• 2025-08-21 17:28:12 [INFO] - AI response generated successfully
-• 2025-08-21 17:25:08 [INFO] - Collection point data updated
-• 2025-08-21 17:20:01 [INFO] - Database backup completed
-• 2025-08-21 17:15:30 [INFO] - System health check passed
-
-Summary:
-• INFO: 45 entries
-• WARNING: 2 entries  
-• ERROR: 0 entries
-• CRITICAL: 0 entries
-
-Catatan: Untuk log lengkap, akses server langsung atau gunakan monitoring dashboard."""
-
-            return {"success": True, "message": logs_text}
-
+            content = ["SYSTEM LOGS (tail)", "", "error.log:"] + [l.rstrip() for l in error_logs] + ["", "ecobot.log:"] + [l.rstrip() for l in app_logs]
+            return {"success": True, "message": "\n".join(content)}
         except Exception as e:
             return {"success": False, "message": f"Error mengambil logs: {str(e)}"}
 
     def _backup_database(self) -> Dict[str, Any]:
-        """Backup database"""
+        """Create SQLite backup file under backups/."""
         try:
+            import sqlite3
+            from pathlib import Path
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_file = f"ecobot_backup_{timestamp}.db"
+            backups_dir = Path("backups")
+            backups_dir.mkdir(parents=True, exist_ok=True)
 
-            # In real implementation, create actual backup
-            backup_text = f"""DATABASE BACKUP
+            src_db = Path(self.db_manager.db_path)
+            dst_db = backups_dir / f"ecobot_backup_{timestamp}.db"
 
-Backup berhasil dibuat!
+            with sqlite3.connect(str(src_db)) as src, sqlite3.connect(str(dst_db)) as dst:
+                src.backup(dst)
 
-📁 File: {backup_file}
-Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
-Size: ~2.5 MB
-Lokasi: /home/azureuser/ecobot/backups/
-
-Backup berisi:
-• Data pengguna dan role
-• Titik pengumpulan sampah
-• Riwayat klasifikasi
-• Log interaksi
-• Konfigurasi sistem
-
-Catatan: Backup otomatis dilakukan setiap hari pukul 02:00 WIB."""
-
-            return {"success": True, "message": backup_text}
-
+            return {"success": True, "message": f"Backup dibuat: {dst_db.resolve()}"}
         except Exception as e:
             return {"success": False, "message": f"Error membuat backup: {str(e)}"}
 
     def _reset_statistics(self) -> Dict[str, Any]:
-        """Reset system statistics"""
+        """Reset counters using SQL."""
         try:
-            # In real implementation, reset actual statistics
-            reset_text = f"""RESET STATISTIK
-
-PERINGATAN: Operasi ini akan menghapus semua data statistik berikut:
-• Counter pesan dan gambar user
-• Log aktivitas harian
-• Riwayat interaksi
-• Data performa sistem
-
-Yang TIDAK akan dihapus:
-• Data pengguna dan role
-• Titik pengumpulan
-• Konfigurasi sistem
-
-Status: Statistik berhasil direset pada {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
-
-Hasil:
-• Total pesan: 0
-• Total gambar: 0
-• Interaksi hari ini: 0
-• Counter user: Reset ke 0"""
-
-            return {"success": True, "message": reset_text}
-
+            self.db_manager.execute_update("UPDATE users SET total_messages = 0, total_images = 0")
+            deleted = 0
+            try:
+                deleted = self.db_manager.execute_update("DELETE FROM user_interactions")
+            except Exception:
+                pass
+            return {"success": True, "message": f"Statistik direset. Interaksi yang dihapus: {deleted}"}
         except Exception as e:
             return {"success": False, "message": f"Error reset statistik: {str(e)}"}
 
@@ -727,13 +673,7 @@ Hasil:
                 }
 
             # Format broadcast message
-            broadcast_msg = f"""PENGUMUMAN ADMIN
-
-{message}
-
----
-EcoBot Desa Cukangkawung
-{datetime.now().strftime('%d/%m/%Y %H:%M')}"""
+            broadcast_msg = f"PENGUMUMAN ADMIN\n\n{message}\n\nEcoBot"
 
             # In real implementation, send to all users via WhatsApp service
             sent_count = 0
@@ -747,15 +687,12 @@ EcoBot Desa Cukangkawung
                 except:
                     failed_count += 1
 
-            result_text = f"""BROADCAST SELESAI
-
-Pesan berhasil dikirim ke {sent_count} user
-Gagal kirim ke {failed_count} user
-
-Pesan:
-{message}
-
-Waktu broadcast: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"""
+            result_text = (
+                "BROADCAST SELESAI\n\n"
+                f"Berhasil: {sent_count}\nGagal: {failed_count}\n\n"
+                f"Pesan:\n{message}\n\n"
+                f"Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+            )
 
             return {"success": True, "message": result_text}
 

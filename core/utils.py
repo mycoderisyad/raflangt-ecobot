@@ -165,24 +165,11 @@ class MessageFormatter:
     @staticmethod
     def format_registration_form() -> str:
         """Format registration form template"""
-        return """📝 *Formulir Pendaftaran EcoBot*
-─────────────────────────────────
-
-Silakan isi informasi berikut:
-
-*Format:*
-```
-Nama: (nama lengkap Anda)
-Alamat: (alamat lengkap Anda)
-```
-
-*Contoh:*
-```
-Nama: Budi Santoso
-Alamat: Jl. Merdeka No. 123, RT 02 RW 05
-```
-
-Kirim informasi Anda sesuai format di atas."""
+        return (
+            "Pendaftaran EcoBot\n"
+            "Silakan kirim nama dan alamat Anda (format bebas).\n"
+            "Contoh: 'nama saya jhon, alamat jalan merdeka' atau 'Jhon — Jl. Merdeka 12'.\n"
+        )
     
     @staticmethod
     def format_feature_list(title: str, features: list) -> str:
@@ -211,25 +198,48 @@ class ValidationUtils:
     @staticmethod
     def validate_registration_info(message: str) -> Optional[Dict[str, str]]:
         """Parse and validate registration information"""
-        lines = message.strip().split("\n")
-        
+        text = message.strip()
+        if not text:
+            return None
+
+        lowered = text.lower()
+
+        # Try keyword-based extraction (format bebas)
         name = None
         address = None
-        
-        for line in lines:
-            line = line.strip()
-            if line.lower().startswith("nama:"):
-                name = line.split(":", 1)[1].strip()
-            elif line.lower().startswith("alamat:"):
-                address = line.split(":", 1)[1].strip()
-        
-        # Validate parsed info
+
+        name_match = re.search(r"nama\s*[:\-]?\s*(.+?)(?:,|\n|$)", lowered, re.IGNORECASE)
+        if name_match:
+            name = text[name_match.start(1):name_match.end(1)].strip()
+
+        addr_match = re.search(r"alamat\s*[:\-]?\s*(.+)$", lowered, re.IGNORECASE | re.MULTILINE)
+        if addr_match:
+            address = text[addr_match.start(1):addr_match.end(1)].strip()
+
+        # If keywords not found, fallback heuristics: two lines or two chunks separated by comma/dash
+        if not name or not address:
+            # newline split
+            parts = [p.strip() for p in text.split("\n") if p.strip()]
+            if len(parts) >= 2 and (not name or not address):
+                if not name:
+                    name = parts[0]
+                if not address:
+                    address = parts[1]
+
+        if (not name or not address) and "," in text:
+            comma_parts = [p.strip() for p in text.split(",") if p.strip()]
+            if len(comma_parts) >= 2:
+                if not name:
+                    name = comma_parts[0]
+                if not address:
+                    address = ", ".join(comma_parts[1:]).strip()
+
+        # Final minimal validation; AI Agent will further normalize
         if not name or not address:
             return None
-        
-        if len(name) < 2 or len(address) < 5:
+        if len(name) < 2 or len(address) < 3:
             return None
-        
+
         return {"name": name, "address": address}
     
     @staticmethod

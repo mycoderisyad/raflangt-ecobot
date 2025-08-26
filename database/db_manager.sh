@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================
 # EcoBot Database Management Script
-# Desa Cukangkawung Waste Management System
+#  Waste Management System
 # ============================================
 
 DB_PATH="/home/azureuser/ecobot/database/ecobot.db"

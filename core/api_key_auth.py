@@ -1,12 +1,3 @@
-"""
-Simple API key authentication helper.
-
-Usage:
- - Set environment variable `ADMIN_API_KEYS` with comma-separated keys, or `ADMIN_API_KEY` for a single key.
- - Send requests with header `X-API-Key: <key>` OR `Authorization: ApiKey <key>` OR `Authorization: Bearer <key>`.
-
-This module provides `require_api_key` decorator for Flask routes.
-"""
 import os
 from functools import wraps
 from flask import request, jsonify

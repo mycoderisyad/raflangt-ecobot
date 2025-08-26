@@ -6,7 +6,7 @@
     },
     "weekly_summary": {
       "subject": "EcoBot - Ringkasan Mingguan",
-      "body_template": "Ringkasan aktivitas EcoBot minggu ini ({week_start} - {week_end}):\n\nTotal aktivitas: {total_activities}\nPertumbuhan pengguna: {user_growth}%\nJenis sampah terpopuler: {popular_waste_type}\n\nRekomendasi:\n{recommendations}\n\nSalam,\nTim EcoBot Desa Cukangkawung"
+      "body_template": "Ringkasan aktivitas EcoBot minggu ini ({week_start} - {week_end}):\n\nTotal aktivitas: {total_activities}\nPertumbuhan pengguna: {user_growth}%\nJenis sampah terpopuler: {popular_waste_type}\n\nRekomendasi:\n{recommendations}\n\nSalam,\nTim EcoBot "
     },
     "error_notification": {
       "subject": "EcoBot - Notifikasi Error",

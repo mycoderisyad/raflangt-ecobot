@@ -1,7 +1,7 @@
 {
   "help_message": {
     "title": "*🤖 EcoBot - Asisten Pengelolaan Sampah*",
-    "welcome": "Halo warga Desa Cukangkawung! Saya EcoBot, siap membantu Anda mengelola sampah dengan bijak.",
+    "welcome": "Halo warga ! Saya EcoBot, siap membantu Anda mengelola sampah dengan bijak.",
     "usage_title": "*Cara menggunakan:*",
     "usage_items": [
       "📸 Kirim foto sampah untuk identifikasi dan tips pengelolaan",
@@ -20,7 +20,7 @@
   },
   "location_response": {
     "title": "*Titik Pengumpulan Sampah*",
-    "description": "Lokasi pengumpulan sampah di Desa Cukangkawung:",
+    "description": "Lokasi pengumpulan sampah di :",
     "map_text": "Lihat peta:",
     "accepted_waste_title": "Jenis sampah yang diterima:",
     "accepted_waste_types": {

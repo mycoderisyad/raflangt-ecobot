@@ -1,7 +1,7 @@
 # EcoBot Database Documentation
 
 ## Overview
-Database management system untuk EcoBot - Sistem Pengelolaan Sampah Desa Cukangkawung.
+Database management system untuk EcoBot - Sistem Pengelolaan Sampah .
 
 ## File Structure
 ```

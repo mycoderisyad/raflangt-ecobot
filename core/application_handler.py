@@ -167,19 +167,20 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
                 return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
 
             # Fallback to command parsing only if AI fails
-            command_info = self.command_parser.parse_command(message_body, phone_number)
+            command_info = self.command_parser.parse_command(message_body, phone_number) or {}
             user_role = self.role_manager.get_user_role(normalized_phone)
 
-            if command_info["status"] == "no_permission":
+            status = command_info.get("status")
+            if status == "no_permission":
                 return self.message_service.format_error_response(
                     "no_permission", user_role
                 )
-            elif command_info["status"] == "coming_soon":
+            elif status == "coming_soon":
                 return self.message_service.format_error_response("coming_soon")
-            elif command_info["status"] == "available":
-                            return self._route_command_fallback(
-                command_info, normalized_phone, user_role
-            )
+            elif status == "available":
+                return self._route_command_fallback(
+                    command_info, normalized_phone, user_role
+                )
             else:
                 # Ultimate fallback
                 return self._get_help_message(normalized_phone)
@@ -191,7 +192,7 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
     def _route_command_fallback(
         self, command_info: Dict[str, Any], phone_number: str, user_role: str
     ) -> str:
-        """Fallback command routing when AI fails"""
+        """Fallback command routing; try AI Agent first, then DB-backed handlers"""
         handler = command_info["handler"]
         args = command_info["args"]
 
@@ -199,27 +200,29 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
         if handler in ["help"]:
             return self._get_help_message(phone_number)
         elif handler == "report":
-            return self._handle_report_request(normalized_phone, user_role)
+            return self._handle_report_request(phone_number, user_role)
         elif handler in ["schedule", "location", "points", "statistics"]:
             # Try AI response with specific context
             context_message = f"User asking about {handler}: {args or ''}"
             # Use AI Agent instead of legacy ai_service
             from services.ai_agent import AIAgent
             ai_agent = AIAgent()
-            ai_result = ai_agent.process_message(context_message, normalized_phone, 'hybrid')
+            ai_result = ai_agent.process_message(context_message, phone_number, 'hybrid')
             if ai_result and ai_result.get("status") == "success":
                 return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
 
-        # Ultimate fallback for unsupported features
-        return """🤖 Maaf, fitur ini sedang dalam pengembangan. 
+        # DB-backed fallback handlers per command
+        if handler == "schedule":
+            return self._handle_schedule_request()
+        if handler == "location":
+            return self._handle_location_request()
+        if handler == "statistics":
+            return self._handle_statistics_request(user_role)
+        if handler == "points":
+            return self._handle_points_request(phone_number)
 
-Saat ini saya bisa membantu:
-📸 Identifikasi sampah dari foto
-Jawab pertanyaan tentang pengelolaan sampah
-Info lokasi dan jadwal pengumpulan
-🎓 Tips dan edukasi lingkungan
-
-Coba tanyakan hal lain atau kirim foto sampah ya! 🌱"""
+        # Ultimate fallback: role-based help
+        return self._get_help_message(phone_number)
 
     def _handle_general_conversation(
         self, message: str, phone_number: str = None
@@ -232,29 +235,46 @@ Coba tanyakan hal lain atau kirim foto sampah ya! 🌱"""
         if ai_result and ai_result.get("status") == "success":
             return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
 
-        # Fallback response
-        return """🤖 Halo! Saya EcoBot, asisten pengelolaan sampah untuk desa kita.
-
-📸 Kirim foto sampah untuk identifikasi
-Tanyakan tentang: edukasi, jadwal, lokasi
-Ketik 'help' untuk melihat semua fitur
-
-Apa yang bisa saya bantu hari ini? 🌱"""
+        # Fallback response → role-based help
+        return self._get_help_message(phone_number or "")
 
     def _handle_schedule_request(self) -> str:
-        """Handle schedule request"""
-        # Mock schedule data
-        schedule_data = {
-            "Senin": "Sampah Organik - 07:00-09:00",
-            "Rabu": "Sampah Anorganik - 07:00-09:00",
-            "Jumat": "Sampah B3 - 08:00-10:00",
-        }
-        return self.message_service.format_schedule_response(schedule_data)
+        """Handle schedule request using database data"""
+        try:
+            rows = self.db_manager.execute_query(
+                "SELECT point_id, day_of_week, start_time, end_time FROM collection_schedules WHERE is_active = 1 ORDER BY day_of_week LIMIT 10"
+            )
+            if not rows:
+                return "Maaf, belum ada jadwal pengumpulan yang terdaftar."
+
+            lines = ["Jadwal Pengumpulan Aktif:"]
+            for r in rows:
+                lines.append(
+                    f"• {r.get('day_of_week')} {r.get('start_time')}-{r.get('end_time')} (Point: {r.get('point_id')})"
+                )
+            return "\n".join(lines)
+        except Exception as e:
+            LoggerUtils.log_error(self.logger, e, "fetching schedules")
+            return self.message_service.format_error_response("general_error")
 
     def _handle_location_request(self) -> str:
-        """Handle location request"""
-        maps_data = self.message_service.get_maps_data()
-        return self.message_service.format_location_response(maps_data)
+        """Handle location request using database data"""
+        try:
+            rows = self.db_manager.execute_query(
+                "SELECT name, type, latitude, longitude, description FROM collection_points WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 10"
+            )
+            if not rows:
+                return "Maaf, belum ada titik pengumpulan yang terdaftar."
+
+            lines = ["Titik Pengumpulan Aktif:"]
+            for r in rows:
+                lines.append(
+                    f"• {r.get('name')} ({r.get('type')}) — {r.get('latitude')}, {r.get('longitude')}"
+                )
+            return "\n".join(lines)
+        except Exception as e:
+            LoggerUtils.log_error(self.logger, e, "fetching locations")
+            return self.message_service.format_error_response("general_error")
 
     def _handle_points_request(self, phone_number: str) -> str:
         """Handle points request"""
@@ -265,20 +285,30 @@ Apa yang bisa saya bantu hari ini? 🌱"""
         return self.message_service.format_error_response("coming_soon")
 
     def _handle_statistics_request(self, user_role: str) -> str:
-        """Handle statistics request"""
-        # Mock statistics
-        stats = {
-            "active_users": 45,
-            "images_processed": 123,
-            "successful_classifications": 118,
-            "total_users": 67,
-            "organic_count": 78,
-            "inorganic_count": 45,
-            "b3_count": 12,
-            "system_status": "Normal",
-            "uptime": "99.8%",
-        }
-        return self.message_service.format_statistics_response(stats, user_role)
+        """Handle statistics request using database aggregates"""
+        try:
+            users = self.db_manager.execute_query(
+                "SELECT COUNT(*) as total_users, SUM(CASE WHEN is_active=1 THEN 1 ELSE 0 END) as active_users FROM users"
+            )
+            total_users = users[0]["total_users"] if users else 0
+            active_users = users[0]["active_users"] if users else 0
+
+            cls = self.db_manager.execute_query(
+                "SELECT waste_type, COUNT(*) as count FROM waste_classifications GROUP BY waste_type"
+            )
+            counts = {row.get("waste_type", "unknown"): row.get("count", 0) for row in cls}
+
+            stats = {
+                "active_users": active_users,
+                "total_users": total_users,
+                "organic_count": counts.get("ORGANIK", 0),
+                "inorganic_count": counts.get("ANORGANIK", 0),
+                "b3_count": counts.get("B3", 0),
+            }
+            return self.message_service.format_statistics_response(stats, user_role)
+        except Exception as e:
+            LoggerUtils.log_error(self.logger, e, "fetching statistics")
+            return self.message_service.format_error_response("general_error")
 
     def _handle_report_request(self, phone_number: str, user_role: str) -> str:
         """Handle report request"""
@@ -308,47 +338,61 @@ Apa yang bisa saya bantu hari ini? 🌱"""
 
 
     def _get_help_message(self, phone_number: str) -> str:
-        """Generate comprehensive help message"""
-        user_role = self.role_manager.get_user_role(phone_number)
+        """Generate comprehensive, role-based help message using constants"""
+        from core.constants import COMMAND_MAPPING, FEATURE_STATUS, USER_ROLES
 
-        response = """🤖 EcoBot - Menu Lengkap
-Halo warga Desa Cukangkawung! Berikut fitur yang tersedia:
+        role = self.role_manager.get_user_role(phone_number) or "warga"
 
-📚 Fitur Utama (Semua Pengguna):
-• edukasi - Tips & panduan pengelolaan sampah
-• jadwal - Jadwal pengumpulan sampah
-• lokasi - Titik pengumpulan + peta Google Maps
-• 📸 Kirim foto sampah untuk identifikasi AI
+        # Determine enabled features for the role
+        enabled_map = FEATURE_STATUS.get(role, {})
 
-💡 Contoh Pertanyaan Edukasi:
-• "apa itu kompos?"
-• "bagaimana cara memilah?"
-• "manfaat daur ulang"
-• "sampah organik"
+        # Resolve which commands are visible for this role
+        def command_visible(cmd_key: str) -> bool:
+            feature = COMMAND_MAPPING[cmd_key]["feature"]
+            if role == "admin":
+                return True
+            return enabled_map.get(feature, False)
 
-Fitur Poin (Coming Soon):
-• daftar - Daftar sistem poin
-• point - Cek poin reward
-• redeem - Tukar poin dengan hadiah"""
+        # Build command list text
+        lines = ["🤖 EcoBot - Daftar Fitur"]
+        lines.append(f"Peran kamu: {USER_ROLES.get(role, {}).get('name', role.title())}")
+        lines.append("")
 
-        # Add role-specific features
-        if user_role in ["koordinator", "admin"]:
-            response += """
+        # Show AI Agent modes so users know the three available services
+        lines.append("Mode Layanan AI:")
+        lines.append("• /layanan-ecobot — Mode EcoBot Service (database only)")
+        lines.append("• /general-ecobot — Mode General Waste Management")
+        lines.append("• /hybrid-ecobot — Mode Hybrid (default)")
+        lines.append("")
 
-👥 Fitur Koordinator:
-• statistik - Data pengguna & aktivitas
-• laporan - Generate laporan email"""
+        # Group commands by feature for readability
+        for cmd_key, meta in COMMAND_MAPPING.items():
+            if command_visible(cmd_key):
+                feature = meta.get("feature", "")
+                description = meta.get("description", "")
+                lines.append(f"• {cmd_key} — {description}")
 
-        response += """
+        # Add usage tips
+        lines.append("")
+        lines.append("Cara pakai:")
+        lines.append("• Ketik nama fitur langsung (tanpa /)")
+        lines.append("• Kirim foto sampah untuk analisis AI")
+        lines.append("• Tanya apa saja tentang pengelolaan sampah")
 
-Cara Pakai:
-• Ketik nama fitur langsung (tanpa /)
-• Kirim foto sampah untuk analisis
-• Tanya apa saja tentang sampah!
+        # If admin, append concise Admin Panel commands
+        if role == "admin":
+            try:
+                from core.admin_handler import AdminCommandHandler
+                admin_handler = AdminCommandHandler(self.whatsapp_service, self.message_service)
+                admin_help = admin_handler._admin_help()
+                if admin_help.get("success") and admin_help.get("message"):
+                    lines.append("")
+                    lines.append("PANEL ADMIN:")
+                    lines.append(admin_help["message"])
+            except Exception:
+                pass
 
-Mari bersama jaga lingkungan desa kita!"""
-
-        return response
+        return "\n".join(lines)
 
     def _get_waste_education(self, waste_type: str) -> Dict[str, Any]:
         """Get education content for waste type"""

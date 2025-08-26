@@ -1,11 +1,11 @@
 {
   "collection_points": {
-    "title": "Titik Pengumpulan Sampah - Desa Cukangkawung",
-    "description": "Lokasi pengumpulan sampah untuk warga Desa Cukangkawung",
+    "title": "Titik Pengumpulan Sampah - ",
+    "description": "Lokasi pengumpulan sampah untuk warga ",
     "locations": [
       {
         "id": "CP001",
-        "name": "Balai Desa Cukangkawung",
+        "name": "Balai ",
         "type": "Titik Utama",
         "address": "Jl. Raya Cukangkawung No. 1",
         "coordinates": [-6.2088, 106.8456],
@@ -62,6 +62,6 @@
   },
   "mock_response": {
     "url_template": "https://maps.google.com/maps?q={lat},{lng}&z=15",
-    "default_message": "Peta lokasi pengumpulan sampah Desa Cukangkawung"
+    "default_message": "Peta lokasi pengumpulan sampah "
   }
 }

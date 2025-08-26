@@ -1,9 +1,3 @@
-"""
-AI Agent Service with Long-Term Memory and Database Integration
-Advanced AI agent that can memorize conversations, remember user details, 
-and adapt communication style based on user history and mode
-"""
-
 import os
 import json
 import logging
@@ -23,8 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class AIAgent:
-    """AI Agent with long-term memory capabilities and database integration"""
-    
     def __init__(self):
         self.config = get_config()
         self.api_key = os.getenv("LUNOS_API_KEY")
@@ -100,6 +92,23 @@ class AIAgent:
             conversation_history = self.conversation_model.get_recent_conversation(
                 user_phone, 50  # Increased to 50 conversations for better memory
             )
+
+            # Respect previously saved AI mode preference
+            try:
+                saved_mode = user_facts.get("ai_mode", {}).get("value") if user_facts else None
+                if saved_mode in self.modes:
+                    mode = saved_mode
+            except Exception:
+                pass
+
+            # Prefer saved user_name fact if profile name is unknown
+            try:
+                if user_context.get("name") in ["Teman", "Belum dikenali"] and user_facts:
+                    fact_name = user_facts.get("user_name", {}).get("value")
+                    if fact_name:
+                        user_context["name"] = fact_name
+            except Exception:
+                pass
 
             # Build comprehensive context based on mode
             context = self._build_context(
@@ -298,9 +307,17 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
                       conversation_history: List[Dict], mode: str) -> Dict[str, Any]:
         """Build comprehensive context for the AI agent with enhanced memory"""
         
-        # Get conversation summary for better context
-        conversation_summary = self.conversation_model.get_conversation_summary(user_phone, 7)
-        conversation_topics = self.conversation_model.get_conversation_topics(user_phone, 10)
+        # Get conversation summary/topics once (reuse if already present in user_context)
+        conversation_summary = (
+            user_context.get("recent_activity")
+            if isinstance(user_context, dict) and user_context.get("recent_activity")
+            else self.conversation_model.get_conversation_summary(user_phone, 7)
+        )
+        conversation_topics = (
+            user_context.get("common_topics")
+            if isinstance(user_context, dict) and user_context.get("common_topics")
+            else self.conversation_model.get_conversation_topics(user_phone, 10)
+        )
         
         # Build enhanced context
         context = {
@@ -327,40 +344,65 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
         """Generate response for EcoBot service mode (database-focused)"""
         # Get database data for specific queries
         db_data = self._get_database_data(user_message)
-        
         system_prompt = self._build_ecobot_system_prompt(context, db_data)
-        
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ]
 
+        messages = self._build_messages_with_history(
+            system_prompt, context.get("conversation_history", []), user_message
+        )
         return self._call_lunos_api(messages)
 
     def _generate_general_response(self, user_message: str, context: Dict) -> str:
         """Generate response for general waste management mode"""
         system_prompt = self._build_general_system_prompt(context)
-        
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ]
-
+        messages = self._build_messages_with_history(
+            system_prompt, context.get("conversation_history", []), user_message
+        )
         return self._call_lunos_api(messages)
 
     def _generate_hybrid_response(self, user_message: str, context: Dict) -> str:
         """Generate response for hybrid mode (database + general knowledge)"""
         # Get database data for specific queries
         db_data = self._get_database_data(user_message)
-        
         system_prompt = self._build_hybrid_system_prompt(context, db_data)
-        
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ]
 
+        messages = self._build_messages_with_history(
+            system_prompt, context.get("conversation_history", []), user_message
+        )
         return self._call_lunos_api(messages)
+
+    def _build_messages_with_history(
+        self, system_prompt: str, conversation_history: List[Dict], latest_user_message: str
+    ) -> List[Dict[str, str]]:
+        """Compose messages for the LLM including recent conversation history.
+
+        We include the last few exchanges to provide continuity and personalization
+        while keeping token usage under control.
+        """
+        messages: List[Dict[str, str]] = [{"role": "system", "content": system_prompt}]
+
+        # Adaptive character budget for history (rough token proxy)
+        max_chars = 4000  # adjustable
+        used_chars = 0
+
+        # iterate newest-first and cap by char budget
+        safe_history = conversation_history[::-1] if conversation_history else []
+        limited_history: List[Dict[str, str]] = []
+        for msg in safe_history:
+            role = msg.get("role")
+            content = msg.get("content")
+            if role in ("user", "assistant") and content:
+                inc = len(content)
+                if used_chars + inc > max_chars:
+                    break
+                used_chars += inc
+                limited_history.append({"role": role, "content": content})
+
+        # add back in chronological order
+        for msg in reversed(limited_history):
+            messages.append(msg)
+
+        messages.append({"role": "user", "content": latest_user_message})
+        return messages
 
     def _get_database_data(self, user_message: str) -> Dict[str, Any]:
         """Extract relevant data from database based on user message"""
@@ -370,14 +412,14 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
             # Check for location queries
             if any(word in user_message.lower() for word in ["lokasi", "bank sampah", "tempat sampah", "dimana", "mana"]):
                 result = self.db_manager.execute_query(
-                    "SELECT name, type, latitude, longitude, description FROM collection_points WHERE is_active = 1"
+                    "SELECT name, type, latitude, longitude, description FROM collection_points WHERE is_active = 1 LIMIT 5"
                 )
                 data["collection_points"] = result
 
             # Check for schedule queries
             if any(word in user_message.lower() for word in ["jadwal", "kapan", "waktu", "pengumpulan"]):
                 result = self.db_manager.execute_query(
-                    "SELECT location_name, schedule_day, schedule_time, waste_types FROM collection_schedules WHERE is_active = 1"
+                    "SELECT location_name, schedule_day, schedule_time, waste_types FROM collection_schedules WHERE is_active = 1 LIMIT 5"
                 )
                 data["schedules"] = result
 
@@ -391,7 +433,7 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
             # Check for waste classification data
             if any(word in user_message.lower() for word in ["klasifikasi", "jenis sampah", "analisis"]):
                 result = self.db_manager.execute_query(
-                    "SELECT waste_type, COUNT(*) as count FROM waste_classifications GROUP BY waste_type"
+                    "SELECT waste_type, COUNT(*) as count FROM waste_classifications GROUP BY waste_type LIMIT 5"
                 )
                 data["waste_analysis"] = result
 
@@ -408,17 +450,57 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
             "max_tokens": 800,
             "temperature": 0.7,
         }
-        
-        response = requests.post(
-            f"{self.base_url}/chat/completions",
-            headers=self.headers,
-            json=data,
-            timeout=30,
+
+        # Robust retry with exponential backoff to handle transient network errors (e.g., ECONNRESET)
+        max_retries = 3
+        backoff_seconds = 1.5
+
+        last_error: Optional[Exception] = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = requests.post(
+                    f"{self.base_url}/chat/completions",
+                    headers=self.headers,
+                    json=data,
+                    timeout=30,
+                )
+                response.raise_for_status()
+
+                # Be defensive when parsing provider response
+                result = response.json()
+                try:
+                    content = (
+                        result
+                        .get("choices", [{}])[0]
+                        .get("message", {})
+                        .get("content", "")
+                    )
+                    if not content:
+                        raise KeyError("content")
+                    return str(content).strip()
+                except Exception as parse_error:
+                    logger.error(f"Lunos response parse error: {parse_error}; raw={result}")
+                    return "Maaf, sistem AI sedang tidak bisa memproses jawaban. Coba lagi sebentar ya."
+
+            except requests.exceptions.RequestException as req_error:
+                # Save and retry on transient errors
+                last_error = req_error
+                logger.error(
+                    f"Lunos API request failed (attempt {attempt}/{max_retries}): {req_error}"
+                )
+                if attempt < max_retries:
+                    import time
+                    time.sleep(backoff_seconds * attempt)
+                    continue
+            except Exception as unexpected_error:
+                last_error = unexpected_error
+                logger.error(f"Unexpected error calling Lunos API: {unexpected_error}")
+                break
+
+        # If we reach here, all retries failed
+        raise RuntimeError(
+            f"Failed to call Lunos API after {max_retries} attempts: {last_error}"
         )
-        response.raise_for_status()
-        
-        result = response.json()
-        return result["choices"][0]["message"]["content"].strip()
 
     def _build_ecobot_system_prompt(self, context: Dict, db_data: Dict) -> str:
         """Build system prompt for EcoBot service mode"""
@@ -453,15 +535,35 @@ DATA ECOBOT YANG TERSEDIA:"""
         if db_data.get("collection_points"):
             prompt += "\n\nLOKASI BANK SAMPAH:"
             for point in db_data["collection_points"]:
-                prompt += f"\n- {point[0]} di {point[1]} (Jadwal: {point[2]})"
+                try:
+                    prompt += (
+                        f"\n- {point.get('name')} tipe {point.get('type')} "
+                        f"(Koordinat: {point.get('latitude')}, {point.get('longitude')})"
+                    )
+                except Exception:
+                    continue
 
         if db_data.get("schedules"):
             prompt += "\n\nJADWAL PENGUMPULAN:"
             for schedule in db_data["schedules"]:
-                prompt += f"\n- {schedule[0]} ({schedule[1]} {schedule[2]}) untuk {schedule[3]}"
+                try:
+                    prompt += (
+                        f"\n- {schedule.get('location_name')} ("
+                        f"{schedule.get('schedule_day')} {schedule.get('schedule_time')}) "
+                        f"untuk {schedule.get('waste_types')}"
+                    )
+                except Exception:
+                    continue
 
         if db_data.get("statistics"):
-            prompt += f"\n\nSTATISTIK: Total {db_data['statistics'][0]} user aktif dengan {db_data['statistics'][1]} total poin"
+            try:
+                stats = db_data["statistics"]
+                prompt += (
+                    f"\n\nSTATISTIK: Total {stats.get('total_users', 0)} user aktif "
+                    f"dengan {stats.get('total_points', 0)} total poin"
+                )
+            except Exception:
+                pass
         
         prompt += f"""
 
@@ -596,12 +698,25 @@ DATA ECOBOT YANG TERSEDIA:"""
         if db_data.get("collection_points"):
             prompt += "\n\nLOKASI BANK SAMPAH:"
             for point in db_data["collection_points"]:
-                prompt += f"\n- {point[0]} di {point[1]} (Jadwal: {point[2]})"
+                try:
+                    prompt += (
+                        f"\n- {point.get('name')} tipe {point.get('type')} "
+                        f"(Koordinat: {point.get('latitude')}, {point.get('longitude')})"
+                    )
+                except Exception:
+                    continue
 
         if db_data.get("schedules"):
             prompt += "\n\nJADWAL PENGUMPULAN:"
             for schedule in db_data["schedules"]:
-                prompt += f"\n- {schedule[0]} ({schedule[1]} {schedule[2]}) untuk {schedule[3]}"
+                try:
+                    prompt += (
+                        f"\n- {schedule.get('location_name')} ("
+                        f"{schedule.get('schedule_day')} {schedule.get('schedule_time')}) "
+                        f"untuk {schedule.get('waste_types')}"
+                    )
+                except Exception:
+                    continue
 
         prompt += f"""
 
@@ -839,7 +954,7 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
             "total_messages": len(user_messages),
             "avg_message_length": sum(len(msg.get("content", "")) for msg in user_messages) / len(user_messages),
             "question_frequency": sum(1 for msg in user_messages if "?" in msg.get("content", "")),
-            "emoji_usage": sum(1 for msg in user_messages if any(emoji in msg.get("content", "") for emoji in ["😊", "👍", "❤️", "😄"]),
+            "emoji_usage": sum(1 for msg in user_messages if any(emoji in msg.get("content", "") for emoji in ["😊", "👍", "❤️", "😄"])),
             "topic_diversity": len(set(msg.get("content", "")[:20] for msg in user_messages))
         }
         

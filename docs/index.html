@@ -428,8 +428,8 @@
     <header>
         <div class="container">
             <h1>EcoBot</h1>
-            <p class="subtitle" data-lang="en">Intelligent Waste Management Backend System</p>
-            <p class="subtitle" data-lang="id" style="display: none;">Sistem Manajemen Sampah Cerdas Berbasis AI Agent</p>
+            <p class="subtitle" data-lang="en">WhatsApp-first backend with AI assistance, long-term memory, and admin tools</p>
+            <p class="subtitle" data-lang="id" style="display: none;">Backend WhatsApp dengan AI, memori percakapan jangka panjang, dan fitur admin</p>
         </div>
     </header>
 
@@ -479,11 +479,11 @@
                 <h2 data-lang="en">Introduction</h2>
                 <h2 data-lang="id" style="display:none;">Pendahuluan</h2>
                 
-                <p data-lang="en">EcoBot is a professional Python-based backend system designed to revolutionize community waste management through intelligent automation and seamless integration with messaging platforms. Built with security and scalability in mind, EcoBot serves as the core engine for waste classification, collection coordination, and environmental education initiatives.</p>
-                <p data-lang="id" style="display:none;">EcoBot adalah sistem backend profesional berbasis Python yang dirancang untuk merevolusi pengelolaan sampah komunitas melalui otomatisasi cerdas dan integrasi lancar dengan platform pesan. Dibangun dengan fokus pada keamanan dan skalabilitas, EcoBot berfungsi sebagai mesin inti untuk klasifikasi sampah, koordinasi pengumpulan, dan inisiatif edukasi lingkungan.</p>
+                <p data-lang="en">EcoBot is a Python/Flask backend for WhatsApp-based waste management. It integrates AI text and vision, a SQLite database, and role-based workflows to deliver education, schedules, collection locations, and administrative operations.</p>
+                <p data-lang="id" style="display:none;">EcoBot adalah backend Python/Flask untuk pengelolaan sampah berbasis WhatsApp. Sistem ini mengintegrasikan AI teks dan gambar, database SQLite, serta alur kerja berbasis peran untuk edukasi, jadwal, lokasi pengumpulan, dan operasi administratif.</p>
                 
-                <p data-lang="en">The system was created to address the challenges of waste management in Cukangkawung Village. By optimizing waste sorting, education, and citizen participation, EcoBot embodies the spirit of "AI Agent for Indonesian Independence" — freeing the community from manual limitations and paving the way for digital and environmental self-sufficiency.</p>
-                <p data-lang="id" style="display:none;">Sistem ini diciptakan untuk mengatasi tantangan pengelolaan sampah di Desa Cukangkawung. Dengan mengoptimalkan pemilahan, edukasi, dan partisipasi warga, EcoBot mewujudkan semangat "AI Agent for Kemerdekaan Indonesia" — membebaskan masyarakat dari keterbatasan manual dan membuka jalan menuju kemandirian digital serta lingkungan yang bersih.</p>
+                <p data-lang="en">Version 1.5.0 introduces hybrid AI mode, database-backed long‑term memory, resilient API calls, and a toggleable registration flow.</p>
+                <p data-lang="id" style="display:none;">Versi 1.5.0 menghadirkan mode AI hybrid, memori percakapan berbasis database, pemanggilan API yang lebih tangguh, serta alur registrasi yang dapat diatur.</p>
             </section>
 
             <!-- Use Cases Section -->
@@ -528,51 +528,18 @@
                 <h2 data-lang="id" style="display:none;">Fitur</h2>
                 
                 <ul>
-                    <li data-lang="en"><strong>Interactive Education</strong> - Provides guidance and information on waste sorting and sustainability.</li>
-                    <li data-lang="id" style="display:none;"><strong>Edukasi Interaktif</strong> - Memberikan panduan dan informasi tentang pemilahan sampah dan keberlanjutan.</li>
-                    
-                    <li data-lang="en"><strong>Point System (Coming Soon)</strong> - Provides points as an incentive for citizens who actively participate in waste collection.</li>
-                    <li data-lang="id" style="display:none;"><strong>Sistem Poin (Coming Soon)</strong> - Memberikan poin sebagai insentif bagi warga yang berpartisipasi aktif dalam pengumpulan sampah.</li>
-                    
-                    <li data-lang="en"><strong>Automated Email Notifications</strong> - Automated monthly reports sent to coordinators via the <a href="https://mailry.co/" target="_blank" rel="noopener">Mailry.co</a> API.</li>
-                    <li data-lang="id" style="display:none;"><strong>Notifikasi Email Otomatis</strong> - Laporan bulanan otomatis yang dikirimkan ke koordinator melalui API <a href="https://mailry.co/" target="_blank" rel="noopener">Mailry.co</a>.</li>
-                    
-                    <li data-lang="en"><strong>Multi-Role System</strong> - Supports citizen, coordinator, and admin roles with different access levels.</li>
-                    <li data-lang="id" style="display:none;"><strong>Sistem Multi-Peran</strong> - Mendukung peran warga, koordinator, dan admin dengan tingkat akses yang berbeda.</li>
-                    
-                    <li data-lang="en"><strong>AI Integration</strong> - Uses AI services from <a href="https://lunos.tech/" target="_blank" rel="noopener">Lunos.tech</a> and <a href="https://unli.dev/" target="_blank" rel="noopener">Unli.dev</a> for intelligent classification and image-based responses.</li>
-                    <li data-lang="id" style="display:none;"><strong>Integrasi AI</strong> - Menggunakan layanan AI dari <a href="https://lunos.tech/" target="_blank" rel="noopener">Lunos.tech</a> dan <a href="https://unli.dev/" target="_blank" rel="noopener">Unli.dev</a> untuk klasifikasi cerdas dan respons berbasis gambar.</li>
-                    
-                    <li data-lang="en"><strong>WhatsApp Integration</strong> - Uses <a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA</a> to receive and send messages via WhatsApp.</li>
-                    <li data-lang="id" style="display:none;"><strong>Integrasi WhatsApp</strong> - Menggunakan <a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA</a> untuk menerima dan mengirim pesan melalui WhatsApp.</li>
-                    
-                    <li data-lang="en"><strong>Location Management</strong> - Integration with Google Maps to map waste collection points.</li>
-                    <li data-lang="id" style="display:none;"><strong>Manajemen Lokasi</strong> - Integrasi dengan Google Maps untuk memetakan titik pengumpulan sampah.</li>
-                    
-                    <li data-lang="en"><strong>Lightweight Database</strong> - Uses SQLite for storing user data, logs, and application state.</li>
-                    <li data-lang="id" style="display:none;"><strong>Database Ringan</strong> - Menggunakan SQLite untuk penyimpanan data pengguna, log, dan status aplikasi.</li>
-                    
-                    <li data-lang="en"><strong>Reporting System</strong> - Statistical reports accessible by coordinators.</li>
-                    <li data-lang="id" style="display:none;"><strong>Sistem Laporan</strong> - Laporan statistik yang dapat diakses oleh koordinator.</li>
-                </ul>
-            </section>
-                    <li data-lang="en" style="display:none;"><strong>Interactive Education</strong> - Provides guidance and information on waste sorting and sustainability.</li>
-                    <li data-lang="id"><strong>Sistem Poin (Coming Soon)</strong> - Memberikan poin sebagai insentif bagi warga yang berpartisipasi aktif dalam pengumpulan sampah.</li>
-                    <li data-lang="en" style="display:none;"><strong>Point System (Coming Soon)</strong> - Provides points as an incentive for citizens who actively participate in waste collection.</li>
-                    <li data-lang="id"><strong>Notifikasi Email Otomatis</strong> - Laporan bulanan otomatis yang dikirimkan ke koordinator melalui API <a href="https://mailry.co/" target="_blank" rel="noopener">Mailry.co</a>.</li>
-                    <li data-lang="en" style="display:none;"><strong>Automated Email Notifications</strong> - Automated monthly reports sent to coordinators via the <a href="https://mailry.co/" target="_blank" rel="noopener">Mailry.co</a> API.</li>
-                    <li data-lang="id"><strong>Sistem Multi-Peran</strong> - Mendukung peran warga, koordinator, dan admin dengan tingkat akses yang berbeda.</li>
-                    <li data-lang="en" style="display:none;"><strong>Multi-Role System</strong> - Supports citizen, coordinator, and admin roles with different access levels.</li>
-                    <li data-lang="id"><strong>Integrasi AI</strong> - Menggunakan layanan AI dari <a href="https://lunos.tech/" target="_blank" rel="noopener">Lunos.tech</a> dan <a href="https://unli.dev/" target="_blank" rel="noopener">Unli.dev</a> untuk klasifikasi cerdas dan respons berbasis gambar.</li>
-                    <li data-lang="en" style="display:none;"><strong>AI Integration</strong> - Uses AI services from <a href="https://lunos.tech/" target="_blank" rel="noopener">Lunos.tech</a> and <a href="https://unli.dev/" target="_blank" rel="noopener">Unli.dev</a> for intelligent classification and image-based responses.</li>
-                    <li data-lang="id"><strong>Integrasi WhatsApp</strong> - Menggunakan <a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA</a> untuk menerima dan mengirim pesan melalui WhatsApp.</li>
-                    <li data-lang="en" style="display:none;"><strong>WhatsApp Integration</strong> - Uses <a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA</a> to receive and send messages via WhatsApp.</li>
-                    <li data-lang="id"><strong>Manajemen Lokasi</strong> - Integrasi dengan Google Maps untuk memetakan titik pengumpulan sampah.</li>
-                    <li data-lang="en" style="display:none;"><strong>Location Management</strong> - Integration with Google Maps to map waste collection points.</li>
-                    <li data-lang="id"><strong>Database Ringan</strong> - Menggunakan SQLite untuk penyimpanan data pengguna, log, dan status aplikasi.</li>
-                    <li data-lang="en" style="display:none;"><strong>Lightweight Database</strong> - Uses SQLite for storing user data, logs, and application state.</li>
-                    <li data-lang="id"><strong>Sistem Laporan</strong> - Laporan statistik yang dapat diakses oleh koordinator.</li>
-                    <li data-lang="en" style="display:none;"><strong>Reporting System</strong> - Statistical reports accessible by coordinators.</li>
+                    <li data-lang="en"><strong>AI Modes</strong> - EcoBot (database-only), General, and Hybrid modes selectable via WhatsApp commands.</li>
+                    <li data-lang="id" style="display:none;"><strong>Mode AI</strong> - EcoBot (khusus database), General, dan Hybrid dapat dipilih melalui perintah WhatsApp.</li>
+                    <li data-lang="en"><strong>Conversation Memory</strong> - Long‑term memory stored in SQLite (user facts and conversation history).</li>
+                    <li data-lang="id" style="display:none;"><strong>Memori Percakapan</strong> - Memori jangka panjang tersimpan di SQLite (fakta pengguna dan riwayat percakapan).</li>
+                    <li data-lang="en"><strong>Registration Modes</strong> - Auto or manual, controlled by <code>REGISTRATION_MODE</code>.</li>
+                    <li data-lang="id" style="display:none;"><strong>Mode Registrasi</strong> - Otomatis atau manual, dikontrol oleh <code>REGISTRATION_MODE</code>.</li>
+                    <li data-lang="en"><strong>WhatsApp Integration</strong> - Uses <a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA</a>.</li>
+                    <li data-lang="id" style="display:none;"><strong>Integrasi WhatsApp</strong> - Menggunakan <a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA</a>.</li>
+                    <li data-lang="en"><strong>AI Providers</strong> - <a href="https://lunos.tech/" target="_blank" rel="noopener">Lunos.tech</a> (text) and <a href="https://unli.dev/" target="_blank" rel="noopener">Unli.dev</a> (vision).</li>
+                    <li data-lang="id" style="display:none;"><strong>Penyedia AI</strong> - <a href="https://lunos.tech/" target="_blank" rel="noopener">Lunos.tech</a> (teks) dan <a href="https://unli.dev/" target="_blank" rel="noopener">Unli.dev</a> (visi).</li>
+                    <li data-lang="en"><strong>Admin Commands</strong> - /admin help, user/point management, stats, logs, backup, broadcast, report, memory_stats.</li>
+                    <li data-lang="id" style="display:none;"><strong>Perintah Admin</strong> - /admin help, manajemen user/point, statistik, log, backup, broadcast, report, memory_stats.</li>
                 </ul>
             </section>
 
@@ -655,6 +622,53 @@
                 <h2 data-lang="id">Memulai</h2>
                 <h2 data-lang="en" style="display:none;">Getting Started</h2>
                 
+                <h3 data-lang="en">Quickstart</h3>
+                <h3 data-lang="id" style="display:none;">Quickstart</h3>
+                <ol>
+                    <li>
+                        <p data-lang="en"><strong>Clone and install</strong></p>
+                        <p data-lang="id" style="display:none;"><strong>Klon dan instal</strong></p>
+                        <pre><code>git clone https://github.com/mycoderisyad/raflangt-ecobot.git
+cd raflangt-ecobot
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt</code></pre>
+                    </li>
+                    <li>
+                        <p data-lang="en"><strong>Configure environment</strong></p>
+                        <p data-lang="id" style="display:none;"><strong>Konfigurasi lingkungan</strong></p>
+                        <pre><code>cp .env.example .env
+# edit .env and set at minimum:
+WAHA_BASE_URL=...
+WAHA_API_KEY=...
+LUNOS_API_KEY=...
+LUNOS_BASE_URL=...
+REGISTRATION_MODE=auto</code></pre>
+                    </li>
+                    <li>
+                        <p data-lang="en"><strong>Run the server</strong></p>
+                        <p data-lang="id" style="display:none;"><strong>Jalankan server</strong></p>
+                        <pre><code>python3 main.py</code></pre>
+                    </li>
+                    <li>
+                        <p data-lang="en"><strong>Point WAHA webhook to EcoBot</strong></p>
+                        <p data-lang="id" style="display:none;"><strong>Arahkan webhook WAHA ke EcoBot</strong></p>
+                        <p data-lang="en">Set WAHA instance webhook URL to <code>http://&lt;your-server&gt;:5000/webhook</code> (or your public URL). Ensure the instance is connected.</p>
+                        <p data-lang="id" style="display:none;">Setel URL webhook instance WAHA ke <code>http://&lt;server-anda&gt;:5000/webhook</code> (atau URL publik Anda). Pastikan instance tersambung.</p>
+                    </li>
+                    <li>
+                        <p data-lang="en"><strong>Test via WhatsApp</strong></p>
+                        <p data-lang="id" style="display:none;"><strong>Uji melalui WhatsApp</strong></p>
+                        <ul>
+                            <li data-lang="en">Send <code>help</code> to see features by role</li>
+                            <li data-lang="id" style="display:none;">Kirim <code>help</code> untuk melihat fitur sesuai peran</li>
+                            <li data-lang="en">Try AI modes: <code>/hybrid-ecobot</code>, <code>/layanan-ecobot</code>, <code>/general-ecobot</code></li>
+                            <li data-lang="id" style="display:none;">Coba mode AI: <code>/hybrid-ecobot</code>, <code>/layanan-ecobot</code>, <code>/general-ecobot</code></li>
+                            <li data-lang="en">Send an image to receive waste classification</li>
+                            <li data-lang="id" style="display:none;">Kirim gambar untuk klasifikasi sampah</li>
+                        </ul>
+                    </li>
+                </ol>
+
                 <h3 data-lang="id">Persyaratan</h3>
                 <h3 data-lang="en" style="display:none;">Requirements</h3>
                 <ul>
@@ -774,6 +788,39 @@ gunicorn -w 4 -b 0.0.0.0:8000 'main:create_app("production")'</code></pre>
                             <td>your_mailry_api_key</td>
                         </tr>
                         <tr>
+                            <td><code>MAILRY_BASE_URL</code></td>
+                            <td data-lang="id">Tidak</td>
+                            <td data-lang="en" style="display:none;">No</td>
+                            <td data-lang="id">Base URL API Mailry.co</td>
+                            <td data-lang="en" style="display:none;">Mailry.co API base URL</td>
+                            <td>https://api.mailry.co</td>
+                        </tr>
+                        <tr>
+                            <td><code>MAILRY_FROM_EMAIL</code></td>
+                            <td data-lang="id">Tidak</td>
+                            <td data-lang="en" style="display:none;">No</td>
+                            <td data-lang="id">Alamat pengirim email</td>
+                            <td data-lang="en" style="display:none;">Sender email address</td>
+                            <td>noreply@example.com</td>
+                        </tr>
+                        <tr>
+                            <td><code>MAILRY_TO_EMAIL</code></td>
+                            <td data-lang="id">Tidak</td>
+                            <td data-lang="en" style="display:none;">No</td>
+                            <td data-lang="id">Alamat penerima default</td>
+                            <td data-lang="en" style="display:none;">Default recipient</td>
+                            <td>coordinator@example.com</td>
+                        </tr>
+                        <tr>
+                            <td><code>REGISTRATION_MODE</code></td>
+                            <td data-lang="id">Tidak</td>
+                            <td data-lang="en" style="display:none;">No</td>
+                            <td data-lang="id">Mode registrasi pengguna</td>
+                            <td data-lang="en" style="display:none;">User registration mode</td>
+                            <td data-lang="id"><code>auto</code> atau <code>manual</code></td>
+                            <td data-lang="en" style="display:none;"><code>auto</code> or <code>manual</code></td>
+                        </tr>
+                        <tr>
                             <td><code>ADMIN_PHONE_NUMBERS</code></td>
                             <td data-lang="id">Ya</td>
                             <td data-lang="en" style="display:none;">Yes</td>
@@ -852,7 +899,7 @@ gunicorn -w 4 -b 0.0.0.0:8000 'main:create_app("production")'</code></pre>
 {
     "status": "healthy",
     "service": "EcoBot",
-    "version": "1.0.0",
+    "version": "1.5.0",
     "environment": "production"
 }</code></pre>
 
@@ -965,11 +1012,11 @@ heroku config:set WAHA_API_KEY=...
                     </thead>
                     <tbody>
                         <tr>
-                            <td>1.0.0</td>
-                            <td data-lang="id">2025-08-23</td>
-                            <td data-lang="en" style="display:none;">2025-08-23</td>
-                            <td data-lang="id">Rilis produksi awal dengan fitur inti.</td>
-                            <td data-lang="en" style="display:none;">Initial production release with core features.</td>
+                            <td>1.5.0</td>
+                            <td data-lang="id">2025-08-26</td>
+                            <td data-lang="en" style="display:none;">2025-08-26</td>
+                            <td data-lang="id">Mode AI hybrid, memori percakapan, perintah berbasis peran, konfigurasi REGISTRATION_MODE, dan perbaikan keandalan API.</td>
+                            <td data-lang="en" style="display:none;">Hybrid AI mode, conversation memory, role-based commands, REGISTRATION_MODE config, and API resiliency improvements.</td>
                         </tr>
                     </tbody>
                 </table>

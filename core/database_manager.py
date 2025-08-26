@@ -29,6 +29,12 @@ class DatabaseManager:
         self.logger = LoggerUtils.get_logger(__name__)
         self.db_path = db_path or self._get_default_db_path()
         self._ensure_database_directory()
+        # Ensure schema exists for memory and conversation features
+        try:
+            self.init_database()
+        except Exception:
+            # Schema initialization errors are logged inside init_database
+            pass
         self._initialized = True
 
     def _get_default_db_path(self) -> str:
@@ -48,7 +54,10 @@ class DatabaseManager:
         """Get database connection (creates if not exists)"""
         if self._connection is None:
             try:
-                self._connection = sqlite3.connect(self.db_path)
+                # Allow the same connection object to be used across threads to avoid
+                # 'SQLite objects created in a thread can only be used in that same thread'
+                # errors that appear in our asynchronous handlers.
+                self._connection = sqlite3.connect(self.db_path, check_same_thread=False)
                 self._connection.row_factory = sqlite3.Row
                 self.logger.info(f"Database connection established: {self.db_path}")
             except Exception as e:
@@ -192,6 +201,19 @@ class DatabaseManager:
                 )
             """)
 
+            # User memory (long-term facts/preferences)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_memory (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_phone TEXT NOT NULL,
+                    memory_key TEXT NOT NULL,
+                    memory_value TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_phone, memory_key)
+                )
+            """)
+
             # Collection points table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS collection_points (
@@ -219,6 +241,18 @@ class DatabaseManager:
                     confidence REAL NOT NULL,
                     image_url TEXT,
                     classification_method TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_phone) REFERENCES users (phone_number)
+                )
+            """)
+
+            # Conversation history (per-user chat logs for AI memory)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS conversation_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_phone TEXT NOT NULL,
+                    message_role TEXT NOT NULL CHECK (message_role IN ('user','assistant','system')),
+                    message_content TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_phone) REFERENCES users (phone_number)
                 )
