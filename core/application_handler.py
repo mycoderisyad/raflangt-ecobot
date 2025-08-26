@@ -163,12 +163,15 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
             # Process message with AI Agent (includes long-term memory)
             ai_result = ai_agent.process_message(message_body, normalized_phone, 'hybrid')
             
-            if ai_result and ai_result.get("status") == "success":
+            # If AI produced any reply (success or graceful error), prefer returning it
+            if ai_result and ai_result.get("reply_sent"):
                 return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
 
             # Fallback to command parsing only if AI fails
-            command_info = self.command_parser.parse_command(message_body, phone_number) or {}
             user_role = self.role_manager.get_user_role(normalized_phone)
+            command_info = self.command_parser.parse_command(message_body, user_role) or {}
+            if "args" not in command_info:
+                command_info["args"] = ""
 
             status = command_info.get("status")
             if status == "no_permission":

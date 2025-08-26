@@ -56,6 +56,7 @@ class AppConfig:
     admin_phones: list
     coordinator_phones: list
     registration_mode: str
+    timezone: str = "Asia/Jakarta"
 
 
 class ConfigManager:
@@ -87,7 +88,7 @@ class ConfigManager:
                 == "true",
                 api_key=os.getenv("LUNOS_API_KEY"),
                 base_url=os.getenv("LUNOS_BASE_URL"),
-                text_mode=os.getenv("LUNOS_AGENT_MODE"),
+                text_model=os.getenv("LUNOS_AGENT_MODE"),
             ),
             "email": EmailConfig(
                 api_key=os.getenv("MAILRY_API_KEY", ""),
@@ -120,6 +121,7 @@ class ConfigManager:
                     os.getenv("COORDINATOR_PHONE_NUMBERS", "")
                 ),
                 registration_mode=os.getenv("REGISTRATION_MODE", "auto").lower(),
+                timezone=os.getenv("TIMEZONE", "Asia/Jakarta"),
             ),
         }
 
