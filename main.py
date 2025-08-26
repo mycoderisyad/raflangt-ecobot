@@ -11,6 +11,7 @@ import argparse
 from pathlib import Path
 from flask import Flask
 from dotenv import load_dotenv
+import time
 
 # Add project root to Python path
 project_root = Path(__file__).parent
@@ -72,6 +73,13 @@ def create_app(environment: str = None) -> Flask:
 
     # Load environment configuration
     load_dotenv()
+
+    # Ensure server timezone is Asia/Jakarta for localtime-based operations
+    os.environ.setdefault("TZ", "Asia/Jakarta")
+    try:
+        time.tzset()  # Works on Unix/Linux
+    except Exception:
+        pass
 
     # Setup logging based on environment
     setup_logging(environment)
