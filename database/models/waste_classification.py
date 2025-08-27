@@ -30,16 +30,23 @@ class WasteClassificationModel:
         """Save waste classification result - supports both new and legacy formats"""
         try:
             # Handle new format with classification_result dict
-            if classification_result:
-                waste_type = classification_result.get("waste_type")
-                confidence = classification_result.get("confidence", 0.0)
+            if isinstance(classification_result, dict):
+                waste_type = classification_result.get("waste_type", waste_type)
+                confidence = classification_result.get("confidence", confidence)
                 classification_method = classification_result.get(
-                    "classification_method", "ai"
+                    "classification_method", classification_method
                 )
 
             # Validate required fields
             if not waste_type or confidence is None:
                 logger.error("Missing required classification data")
+                return False
+
+            # Normalize types defensively
+            try:
+                confidence = float(confidence)
+            except Exception:
+                logger.error("Invalid confidence value; must be a number")
                 return False
 
             with self.db.get_connection() as conn:

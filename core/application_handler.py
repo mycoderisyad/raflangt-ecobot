@@ -118,13 +118,16 @@ class ApplicationHandler:
                     from database.models import WasteClassificationModel
                     
                     analysis_result = ai_result.get("analysis_result", {})
-                    if analysis_result.get("waste_type"):
+                    if analysis_result.get("waste_type") is not None:
                         waste_model = WasteClassificationModel(self.db_manager)
+                        # Use keyword args to avoid positional mismatch
                         waste_model.save_classification(
-                            normalized_phone,
-                            analysis_result["waste_type"],
-                            analysis_result["confidence"],
-                            analysis_result.get("method", "ai_agent"),
+                            user_phone=normalized_phone,
+                            classification_result=analysis_result,
+                            waste_type=analysis_result.get("waste_type"),
+                            confidence=analysis_result.get("confidence"),
+                            classification_method=analysis_result.get("method", "ai_agent"),
+                            image_url=analysis_result.get("image_url"),
                         )
                 except Exception as e:
                     LoggerUtils.log_error(self.logger, e, "saving classification")
@@ -155,6 +158,33 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
                     admin_command["command"], admin_command["args"], phone_number
                 )
                 return admin_result.get("message", "Admin command executed")
+
+            # Handle AI mode switch commands BEFORE invoking the AI
+            try:
+                command_info = self.command_parser.parse_command(message_body) or {}
+                if command_info.get("type") == "ai_mode_switch":
+                    from services.ai_agent import AIAgent
+                    ai_agent = AIAgent()
+                    new_mode = command_info.get("mode", "hybrid")
+                    switch_msg = ai_agent.switch_mode(normalized_phone, new_mode)
+                    # Provide concise guidance after switching
+                    if new_mode == "ecobot":
+                        extra = (
+                            "Mode database first aktif. Tanyakan lokasi/jadwal. \n\n"
+                            "Untuk informasi lebih spesifik silakan gunakan /layanan-ecobot"
+                        )
+                    elif new_mode == "general":
+                        extra = (
+                            "Mode AI knowledge aktif. Untuk detail dari database gunakan /layanan-ecobot"
+                        )
+                    else:
+                        extra = (
+                            "Mode hybrid aktif. Data database akan diprioritaskan lalu AI sebagai fallback"
+                        )
+                    return f"{switch_msg}\n\n{extra}"
+            except Exception:
+                # If parsing fails, continue with AI handling
+                pass
 
             # Use AI Agent for natural conversation (primary approach)
             from services.ai_agent import AIAgent

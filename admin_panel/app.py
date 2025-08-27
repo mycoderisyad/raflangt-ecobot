@@ -133,7 +133,7 @@ def dashboard():
             FROM users 
             WHERE last_active IS NOT NULL 
             ORDER BY last_active DESC 
-            LIMIT 5
+            LIMIT 15
         """
         ).fetchall()
 
@@ -727,7 +727,7 @@ def analytics():
             WHERE first_seen IS NOT NULL 
             GROUP BY strftime('%Y-%m', first_seen) 
             ORDER BY month DESC 
-            LIMIT 6
+            LIMIT 12
         """
         ).fetchall()
 

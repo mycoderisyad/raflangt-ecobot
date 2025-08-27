@@ -115,6 +115,28 @@ class AIAgent:
                 user_phone, user_context, user_facts, conversation_history, mode
             )
 
+            # Database-first short-circuit for layanan-ecobot
+            lowered = user_message.lower()
+            db_data_prefetch: Dict[str, Any] = self._get_database_data(user_message)
+            if mode == "ecobot" and (
+                (db_data_prefetch.get("collection_points") or db_data_prefetch.get("schedules"))
+            ):
+                direct_response = self._format_db_response(db_data_prefetch, lowered)
+                # Append required tail via post-process
+                direct_response = self._apply_mode_rules_postprocess(
+                    mode=mode,
+                    response=direct_response,
+                    user_message=user_message,
+                    db_data=db_data_prefetch,
+                )
+                # Save conversation and return early
+                try:
+                    self.conversation_model.add_message(user_phone, "user", user_message)
+                    self.conversation_model.add_message(user_phone, "assistant", direct_response)
+                except Exception:
+                    pass
+                return {"status": "success", "reply_sent": direct_response}
+
             # Generate response based on mode
             if mode == "ecobot":
                 response = self._generate_ecobot_response(user_message, context)
@@ -122,6 +144,18 @@ class AIAgent:
                 response = self._generate_general_response(user_message, context)
             else:  # hybrid mode
                 response = self._generate_hybrid_response(user_message, context)
+
+            # Enforce EcoBotModesPrompt business rules post-processing
+            try:
+                response = self._apply_mode_rules_postprocess(
+                    mode=mode,
+                    response=response,
+                    user_message=user_message,
+                    db_data=self._get_database_data(user_message),
+                )
+            except Exception as _:
+                # If post-processing fails, use the raw response
+                pass
             
             # Extract and save facts from the conversation
             try:
@@ -406,41 +440,130 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
 
     def _get_database_data(self, user_message: str) -> Dict[str, Any]:
         """Extract relevant data from database based on user message"""
-        data = {}
-        
+        data: Dict[str, Any] = {"collection_points": [], "schedules": []}
+
         try:
-            # Check for location queries
-            if any(word in user_message.lower() for word in ["lokasi", "bank sampah", "tempat sampah", "dimana", "mana"]):
-                result = self.db_manager.execute_query(
-                    "SELECT name, type, latitude, longitude, description FROM collection_points WHERE is_active = 1 LIMIT 5"
-                )
-                data["collection_points"] = result
+            lowered = user_message.lower()
 
-            # Check for schedule queries
-            if any(word in user_message.lower() for word in ["jadwal", "kapan", "waktu", "pengumpulan"]):
-                result = self.db_manager.execute_query(
-                    "SELECT location_name, schedule_day, schedule_time, waste_types FROM collection_schedules WHERE is_active = 1 LIMIT 5"
+            # Location: collection_points
+            if any(word in lowered for word in ["lokasi", "bank sampah", "tempat sampah", "dimana", "mana", "location", "maps", "peta"]):
+                cp_query_fields = (
+                    "id, name, type, latitude, longitude, accepted_waste_types, schedule, contact, description"
                 )
-                data["schedules"] = result
+                cp_query_active = (
+                    f"SELECT {cp_query_fields} FROM collection_points WHERE is_active = 1"
+                )
+                cp_rows = self.db_manager.execute_query(cp_query_active)
+                if not cp_rows:
+                    cp_query_all = f"SELECT {cp_query_fields} FROM collection_points"
+                    cp_rows = self.db_manager.execute_query(cp_query_all)
+                # Normalize to list[dict]
+                cp_list = [dict(r) for r in (cp_rows or [])]
+                data["collection_points"] = cp_list
+                try:
+                    logger.info(f"Found {len(cp_list)} collection_points")
+                except Exception:
+                    pass
 
-            # Check for user statistics
-            if any(word in user_message.lower() for word in ["statistik", "data", "aktivitas", "report"]):
+            # Schedule: collection_schedules
+            if any(word in lowered for word in ["jadwal", "kapan", "waktu", "pengumpulan", "schedule"]):
+                sch_fields = (
+                    "id, location_name, address, schedule_day, schedule_time, waste_types, contact"
+                )
+                sch_query_active = (
+                    f"SELECT {sch_fields} FROM collection_schedules WHERE is_active = 1"
+                )
+                sch_rows = self.db_manager.execute_query(sch_query_active)
+                if not sch_rows:
+                    sch_query_all = f"SELECT {sch_fields} FROM collection_schedules"
+                    sch_rows = self.db_manager.execute_query(sch_query_all)
+                sch_list = [dict(r) for r in (sch_rows or [])]
+                data["schedules"] = sch_list
+                try:
+                    logger.info(f"Found {len(sch_list)} schedules")
+                except Exception:
+                    pass
+
+            # Optional: lightweight stats to enrich hybrid/ecobot answers
+            if any(word in lowered for word in ["statistik", "data", "aktivitas", "report"]):
                 result = self.db_manager.execute_query(
                     "SELECT COUNT(*) as total_users, SUM(points) as total_points FROM users WHERE is_active = 1"
                 )
                 data["statistics"] = result[0] if result else None
 
-            # Check for waste classification data
-            if any(word in user_message.lower() for word in ["klasifikasi", "jenis sampah", "analisis"]):
+            if any(word in lowered for word in ["klasifikasi", "jenis sampah", "analisis"]):
                 result = self.db_manager.execute_query(
-                    "SELECT waste_type, COUNT(*) as count FROM waste_classifications GROUP BY waste_type LIMIT 5"
+                    "SELECT waste_type, COUNT(*) as count FROM waste_classifications GROUP BY waste_type"
                 )
                 data["waste_analysis"] = result
 
         except Exception as e:
             logger.error(f"Error getting database data: {str(e)}")
-            
+
         return data
+
+    def _format_db_response(self, db_data: Dict[str, Any], lowered_message: str) -> str:
+        """Compose a deterministic reply from database rows for layanan-ecobot."""
+        parts: List[str] = []
+
+        cps = db_data.get("collection_points") or []
+        sch = db_data.get("schedules") or []
+
+        if cps:
+            parts.append("Bank Sampah / Titik Pengumpulan:")
+            for idx, row in enumerate(cps[:5], start=1):
+                try:
+                    name = row.get('name')
+                    ctype = row.get('type')
+                    lat = row.get('latitude')
+                    lng = row.get('longitude')
+                    accepted = row.get('accepted_waste_types')
+                    schedule = row.get('schedule')
+                    contact = row.get('contact') or '-'
+                    desc = row.get('description') or ''
+
+                    item_lines = [
+                        f"{idx}. {name} ({ctype})",
+                        f"   - Lokasi: {lat}, {lng}",
+                        f"   - Diterima: {accepted}",
+                        f"   - Jadwal: {schedule}",
+                        f"   - Kontak: {contact}",
+                    ]
+                    if desc:
+                        item_lines.append(f"   - Catatan: {desc}")
+                    parts.append("\n".join(item_lines))
+                except Exception:
+                    continue
+
+        if sch:
+            parts.append("")
+            parts.append("Jadwal Pengumpulan:")
+            for idx, row in enumerate(sch[:5], start=1):
+                try:
+                    loc = row.get('location_name')
+                    addr = row.get('address')
+                    day = row.get('schedule_day')
+                    time = row.get('schedule_time')
+                    types = row.get('waste_types')
+                    contact = row.get('contact') or '-'
+                    parts.append(
+                        "\n".join(
+                            [
+                                f"{idx}. {loc}",
+                                f"   - Alamat: {addr}",
+                                f"   - Waktu: {day} {time}",
+                                f"   - Jenis: {types}",
+                                f"   - Kontak: {contact}",
+                            ]
+                        )
+                    )
+                except Exception:
+                    continue
+
+        if not parts:
+            return "Maaf, data belum tersedia di database EcoBot."
+
+        return "\n".join(parts).strip()
 
     def _call_lunos_api(self, messages: List[Dict]) -> str:
         """Call Lunos API for response generation"""
@@ -574,12 +697,13 @@ ANALISIS GAYA KOMUNIKASI USER:
 - Topik favorit: {communication_style.get('preferred_topics', 'Belum teridentifikasi')}
 
 INSTRUKSI KHUSUS:
-1. HANYA gunakan data dari database EcoBot yang tersedia
-2. Jika user bertanya tentang lokasi/jadwal yang tidak ada di database, katakan data tidak tersedia
-3. Fokus pada fitur EcoBot: lokasi, jadwal, poin, statistik
-4. Jangan berikan informasi umum tentang sampah, hanya data spesifik EcoBot
-5. Gunakan nama user jika tersedia
-6. Respons maksimal 3-4 kalimat, fokus pada data yang diminta
+1. PRIORITY: Database terlebih dahulu (Database first).
+2. Jika database ada datanya, tampilkan langsung (jangan minta user ulangi lokasi).
+3. Jika data tersedia di database, jawab sesuai data tersebut.
+4. Jika database kosong, jawab singkat dan ramah lalu arahkan ke /general-ecobot atau /hybrid-ecobot.
+5. Fokus pada fitur EcoBot: lokasi, jadwal, poin, statistik.
+6. Jangan memberikan informasi umum panjang bila data tidak ada; cukup ringkas + arahkan.
+7. Gunakan nama user jika tersedia dan batasi 3-4 kalimat.
 
 CONTOH RESPONS:
 - "Berdasarkan database EcoBot, ada 5 lokasi bank sampah aktif di Kampung Hijau"
@@ -598,7 +722,9 @@ PENGEMBANGAN RELASI:
 - Berikan saran yang spesifik berdasarkan data EcoBot
 - Ingat konteks percakapan sebelumnya
 
-PENTING: Kamu adalah asisten EcoBot yang memberikan informasi spesifik dari database dengan personalisasi tinggi."""
+PENTING: Kamu adalah asisten EcoBot yang memberikan informasi spesifik dari database dengan personalisasi tinggi.
+
+Tambahkan kalimat penutup: yang natural, sopan dan ramah serta singkat."""
 
         return prompt
 
@@ -607,8 +733,6 @@ PENTING: Kamu adalah asisten EcoBot yang memberikan informasi spesifik dari data
         user_context = context["user_context"]
         user_facts = context["user_facts"]
         conversation_history = context["conversation_history"]
-
-        # Analyze user communication style from history
         communication_style = self._analyze_user_style(conversation_history)
 
         prompt = f"""Kamu adalah {self.personality['name']} dalam mode General Waste Management.
@@ -635,12 +759,11 @@ ANALISIS GAYA KOMUNIKASI USER:
 - Topik favorit: {communication_style.get('preferred_topics', 'Belum teridentifikasi')}
 
 INSTRUKSI KHUSUS:
-1. Berikan edukasi umum tentang pengelolaan sampah
-2. Gunakan pengetahuan umum tentang lingkungan dan sampah
-3. Jangan berikan informasi spesifik EcoBot (lokasi, jadwal, dll)
-4. Fokus pada tips, edukasi, dan pengetahuan umum
-5. Gunakan nama user jika tersedia
-6. Respons natural dan edukatif
+1. PRIORITY: AI domain knowledge terlebih dahulu (AI first).
+2. Berikan edukasi umum tentang pengelolaan sampah.
+3. Jika pertanyaan berkaitan dengan database EcoBot (lokasi, jadwal, collection point), jawab singkat secara umum lalu arahkan user untuk beralih ke mode /layanan-ecobot agar mendapat jawaban detail.
+4. Jika pertanyaan tidak berkaitan dengan database, jawab normal tanpa mengarahkan user ke mode lain.
+5. Gunakan nama user jika tersedia. Respons natural dan edukatif.
 
 CONTOH TOPIK:
 - Cara memilah sampah organik dan anorganik
@@ -727,12 +850,12 @@ ANALISIS GAYA KOMUNIKASI USER:
 - Topik favorit: {communication_style.get('preferred_topics', 'Belum teridentifikasi')}
 
 INSTRUKSI KHUSUS:
-1. Gunakan data EcoBot jika tersedia dan relevan
-2. Berikan edukasi umum jika tidak ada data spesifik
-3. Kombinasikan informasi database + pengetahuan umum
-4. Fokus pada pengelolaan sampah dan lingkungan
-5. Gunakan nama user jika tersedia
-6. Respons natural dan informatif
+1. PRIORITY: Database terlebih dahulu, lalu AI sebagai fallback.
+2. Jika pertanyaan user sesuai data di database, jawab berdasarkan database sesuai role akses.
+3. Jika data tidak tersedia di database, gunakan pengetahuan AI untuk menjawab.
+4. Kombinasikan informasi database + pengetahuan umum sesuai kebutuhan.
+5. Tambahkan konfirmasi di akhir jawaban: "Apakah informasi ini membantu? Jika ingin lokasi lain, silakan sebutkan tempat tinggal Anda".
+6. Respons natural dan informatif.
 
 STRATEGI:
 - Jika ada data EcoBot yang relevan, gunakan itu
@@ -755,6 +878,64 @@ PERSONALISASI:
 PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi umum dengan personalisasi tinggi."""
         
         return prompt
+
+    def _is_db_related(self, user_message: str) -> bool:
+        """Detect if a message is about EcoBot database topics."""
+        lowered = user_message.lower()
+        keywords = [
+            "lokasi",
+            "bank sampah",
+            "collection point",
+            "titik",
+            "peta",
+            "maps",
+            "jadwal",
+            "waktu",
+            "pengumpulan",
+        ]
+        return any(word in lowered for word in keywords)
+
+    def _apply_mode_rules_postprocess(
+        self,
+        mode: str,
+        response: str,
+        user_message: str,
+        db_data: Dict[str, Any],
+    ) -> str:
+        """Apply deterministic business rules to the LLM response per mode.
+
+        This ensures required endings and guidance regardless of model behavior.
+        """
+        safe_response = (response or "").strip()
+
+        if mode == "ecobot":
+            # No tail in layanan-ecobot as requested; only guidance when data missing
+            if self._is_db_related(user_message) and not any(
+                key in db_data for key in ("collection_points", "schedules", "statistics")
+            ):
+                guidance = (
+                    "Data yang kamu minta belum tersedia di database EcoBot. "
+                    "Kamu bisa tetap bertanya dengan mode /hybrid-ecobot atau /general-ecobot untuk jawaban umum."
+                )
+                safe_response = f"{guidance}\n\n{safe_response}" if safe_response else guidance
+            return safe_response
+
+        if mode == "general":
+            if self._is_db_related(user_message):
+                notice = (
+                    "Untuk detail lokasi/jadwal dari database EcoBot, silakan gunakan mode /layanan-ecobot."
+                )
+                if notice not in safe_response:
+                    safe_response = f"{safe_response}\n\n{notice}".strip()
+            return safe_response
+
+        # hybrid
+        confirm = (
+            "Apakah informasi ini membantu? Jika ingin lokasi lain, silakan sebutkan tempat tinggal Anda"
+        )
+        if confirm not in safe_response:
+            safe_response = f"{safe_response}\n\n{confirm}".strip()
+        return safe_response
     
     def _analyze_user_style(self, conversation_history: List[Dict]) -> Dict[str, str]:
         """Analyze user communication style from conversation history"""
