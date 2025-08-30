@@ -28,7 +28,7 @@ class MessageService:
             return {}
 
         # Load all JSON files from messages directory
-        for json_file in messages_dir.glob(".json"):
+        for json_file in messages_dir.glob("*.json"):
             try:
                 with open(json_file, "r", encoding="utf-8") as f:
                     file_data = json.load(f)

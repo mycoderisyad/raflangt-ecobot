@@ -1,10 +1,10 @@
 {
   "help_message": {
-    "title": "*🤖 EcoBot - Asisten Pengelolaan Sampah*",
-    "welcome": "Halo warga ! Saya EcoBot, siap membantu Anda mengelola sampah dengan bijak.",
+    "title": "*EcoBot - Asisten Pengelolaan Sampah*",
+    "welcome": "Halo warga! Saya EcoBot, siap membantu Anda mengelola sampah dengan bijak.",
     "usage_title": "*Cara menggunakan:*",
     "usage_items": [
-      "📸 Kirim foto sampah untuk identifikasi dan tips pengelolaan",
+      "Kirim foto sampah untuk identifikasi dan tips pengelolaan",
       "Ketik 'lokasi' untuk melihat titik pengumpulan terdekat",
       "Ketik 'edukasi' untuk tips daur ulang dan pengelolaan sampah",
       "Tanya apa saja tentang sampah, saya siap membantu!"

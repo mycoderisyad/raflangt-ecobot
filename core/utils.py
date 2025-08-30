@@ -149,18 +149,18 @@ class MessageFormatter:
     
     @staticmethod
     def format_welcome_header(title: str) -> str:
-        """Format welcome message header"""
-        return f"🤖 {title}\n{'─' * 35}\n\n"
+        """Format welcome message header without emojis."""
+        return f"{title}\n{'─' * 35}\n\n"
     
     @staticmethod
     def format_info_header(title: str) -> str:
-        """Format information message header"""
-        return f"ℹ️ {title}\n{'─' * 35}\n\n"
+        """Format information message header without emojis."""
+        return f"{title}\n{'─' * 35}\n\n"
     
     @staticmethod
     def format_success_header(title: str) -> str:
-        """Format success message header"""
-        return f"✅ {title}\n{'─' * 35}\n\n"
+        """Format success message header without emojis."""
+        return f"{title}\n{'─' * 35}\n\n"
     
     @staticmethod
     def format_registration_form() -> str:
@@ -173,8 +173,8 @@ class MessageFormatter:
     
     @staticmethod
     def format_feature_list(title: str, features: list) -> str:
-        """Format feature list"""
-        header = f"🔧 {title}\n{'─' * 35}\n\n"
+        """Format feature list header without emojis."""
+        header = f"{title}\n{'─' * 35}\n\n"
         feature_list = "\n".join([f"• {feature}" for feature in features])
         return header + feature_list
     

@@ -250,24 +250,24 @@ class EmailService:
                 leading=12,
             )
 
-            # Header with logo placeholder
-            story.append(Paragraph("🌱 ECOBOT SYSTEM REPORT", title_style))
+            # Header
+            story.append(Paragraph("ECOBOT SYSTEM REPORT", title_style))
             story.append(
                 Paragraph(
-                    f"📅 Generated on: {datetime.now().strftime('%A, %d %B %Y at %H:%M WIB')}",
+                    f"Generated on: {datetime.now().strftime('%A, %d %B %Y at %H:%M WIB')}",
                     normal_style,
                 )
             )
             story.append(
                 Paragraph(
-                    f"🆔 Report ID: {uuid.uuid4().hex[:8].upper()}",
+                    f"Report ID: {uuid.uuid4().hex[:8].upper()}",
                     normal_style,
                 )
             )
             story.append(Spacer(1, 0.4 * inch))
 
             # Executive Summary Section
-            story.append(Paragraph("📊 EXECUTIVE SUMMARY", subtitle_style))
+            story.append(Paragraph("EXECUTIVE SUMMARY", subtitle_style))
             summary_data = [
                 ["Metric", "Current Value", "Status", "Trend"],
                 [
@@ -321,7 +321,7 @@ class EmailService:
             story.append(Spacer(1, 0.4 * inch))
 
             # System Health Overview with enhanced styling
-            story.append(Paragraph("🏥 SYSTEM HEALTH OVERVIEW", subtitle_style))
+            story.append(Paragraph("SYSTEM HEALTH OVERVIEW", subtitle_style))
             
             # Health metrics in a grid layout
             health_metrics = [
@@ -380,25 +380,25 @@ class EmailService:
             story.append(Spacer(1, 0.4 * inch))
 
             # User Statistics with enhanced visualization
-            story.append(Paragraph("👥 USER STATISTICS & ENGAGEMENT", subtitle_style))
+            story.append(Paragraph("USER STATISTICS & ENGAGEMENT", subtitle_style))
             
             # User distribution chart (text-based)
             user_distribution = [
                 ["User Category", "Count", "Percentage", "Growth"],
                 [
-                    "👑 Admin Users",
+                    "Admin Users",
                     str(user_stats.get("admin_count", 0)),
                     f"{(user_stats.get('admin_count', 0) / max(user_stats.get('total_users', 1), 1) * 100):.1f}%",
                     self._get_growth_indicator(user_stats.get("admin_growth", 0)),
                 ],
                 [
-                    "🎯 Coordinators",
+                    "Coordinators",
                     str(user_stats.get("koordinator_count", 0)),
                     f"{(user_stats.get('koordinator_count', 0) / max(user_stats.get('total_users', 1), 1) * 100):.1f}%",
                     self._get_growth_indicator(user_stats.get("koordinator_growth", 0)),
                 ],
                 [
-                    "👤 Citizens (Warga)",
+                    "Citizens (Warga)",
                     str(user_stats.get("warga_count", 0)),
                     f"{(user_stats.get('warga_count', 0) / max(user_stats.get('total_users', 1), 1) * 100):.1f}%",
                     self._get_growth_indicator(user_stats.get("warga_growth", 0)),
@@ -521,13 +521,13 @@ class EmailService:
                 story.append(Spacer(1, 0.3 * inch))
 
                 # Performance insights
-                story.append(Paragraph("📈 PERFORMANCE INSIGHTS", section_style))
+                story.append(Paragraph("PERFORMANCE INSIGHTS", section_style))
                 insights = [
-                    f"• 🎯 Overall Classification Accuracy: {performance_metrics.get('classification_accuracy', 0):.1f}%",
-                    f"• 🚀 Processing Speed: {performance_metrics.get('avg_processing_time', 0):.1f} seconds per image",
-                    f"• 📊 Daily Volume: {performance_metrics.get('daily_classifications', 0)} images processed today",
-                    f"• 🔍 AI Model Confidence: {performance_metrics.get('avg_confidence', 0):.1f}% average confidence score",
-                    f"• 📱 User Satisfaction: {performance_metrics.get('user_satisfaction', 0):.1f}/5.0 rating",
+                    f"• Overall Classification Accuracy: {performance_metrics.get('classification_accuracy', 0):.1f}%",
+                    f"• Processing Speed: {performance_metrics.get('avg_processing_time', 0):.1f} seconds per image",
+                    f"• Daily Volume: {performance_metrics.get('daily_classifications', 0)} images processed today",
+                    f"• AI Model Confidence: {performance_metrics.get('avg_confidence', 0):.1f}% average confidence score",
+                    f"• User Satisfaction: {performance_metrics.get('user_satisfaction', 0):.1f}/5.0 rating",
                 ]
                 
                 for insight in insights:
@@ -536,7 +536,7 @@ class EmailService:
                 story.append(Spacer(1, 0.3 * inch))
 
             # Collection Points Status
-            story.append(Paragraph("🗺️ COLLECTION POINTS & INFRASTRUCTURE", subtitle_style))
+            story.append(Paragraph("COLLECTION POINTS & INFRASTRUCTURE", subtitle_style))
             collection_data = [
                 ["Metric", "Current", "Previous", "Change", "Status"],
                 [
@@ -591,7 +591,7 @@ class EmailService:
             story.append(Spacer(1, 0.4 * inch))
 
             # Recent Activities & Alerts
-            story.append(Paragraph("🔔 RECENT ACTIVITIES & SYSTEM ALERTS", subtitle_style))
+            story.append(Paragraph("RECENT ACTIVITIES & SYSTEM ALERTS", subtitle_style))
             
             if recent_activities:
                 for activity in recent_activities[:5]:  # Show last 5 activities
@@ -604,17 +604,17 @@ class EmailService:
 
             # System Alerts
             if system_alerts:
-                story.append(Paragraph("⚠️ ACTIVE SYSTEM ALERTS", section_style))
+                story.append(Paragraph("ACTIVE SYSTEM ALERTS", section_style))
                 for alert in system_alerts:
                     alert_text = f"• {alert.get('severity', 'INFO')}: {alert.get('message', '')}"
                     story.append(Paragraph(alert_text, normal_style))
             else:
-                story.append(Paragraph("✅ No active system alerts - All systems operational", normal_style))
+                story.append(Paragraph("No active system alerts - All systems operational", normal_style))
             
             story.append(Spacer(1, 0.4 * inch))
 
             # Recommendations & Next Steps
-            story.append(Paragraph("💡 RECOMMENDATIONS & NEXT STEPS", subtitle_style))
+            story.append(Paragraph("RECOMMENDATIONS & NEXT STEPS", subtitle_style))
             recommendations = self._generate_recommendations(report_data)
             
             for i, rec in enumerate(recommendations, 1):
@@ -627,10 +627,10 @@ class EmailService:
             footer_text = f"""
             <para align="center">
             <font size="9" color="#666666">
-            📊 This comprehensive report was automatically generated by EcoBot System<br/>
-            📧 For support and inquiries: {self.to_email}<br/>
-            🆔 Report ID: {uuid.uuid4().hex[:8].upper()} | Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>
-            🌱 EcoBot - Empowering Sustainable Waste Management
+            This comprehensive report was automatically generated by EcoBot System<br/>
+            For support and inquiries: {self.to_email}<br/>
+            Report ID: {uuid.uuid4().hex[:8].upper()} | Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>
+            EcoBot - Empowering Sustainable Waste Management
             </font>
             </para>
             """
@@ -650,143 +650,143 @@ class EmailService:
 
     def _get_status_icon(self, status: str) -> str:
         """Get status icon for summary table"""
-        status_icons = {
-            "EXCELLENT": "🟢",
-            "GOOD": "🟢", 
-            "FAIR": "🟡",
-            "POOR": "🔴",
-            "CRITICAL": "🔴",
-            "UNKNOWN": "⚪"
+        status_labels = {
+            "EXCELLENT": "EXCELLENT",
+            "GOOD": "GOOD", 
+            "FAIR": "FAIR",
+            "POOR": "POOR",
+            "CRITICAL": "CRITICAL",
+            "UNKNOWN": "UNKNOWN"
         }
-        return status_icons.get(status, "⚪")
+        return status_labels.get(status, "UNKNOWN")
 
     def _get_trend_indicator(self, trend: str) -> str:
         """Get trend indicator"""
         trend_indicators = {
-            "up": "📈",
-            "down": "📉",
-            "stable": "➡️",
-            "fluctuating": "📊"
+            "up": "UP",
+            "down": "DOWN",
+            "stable": "STABLE",
+            "fluctuating": "FLUCTUATING"
         }
-        return trend_indicators.get(trend, "➡️")
+        return trend_indicators.get(trend, "STABLE")
 
     def _get_score_status(self, score: float) -> str:
         """Get score status indicator"""
         if score >= 90:
-            return "🟢 Excellent"
+            return "Excellent"
         elif score >= 80:
-            return "🟢 Good"
+            return "Good"
         elif score >= 70:
-            return "🟡 Fair"
+            return "Fair"
         elif score >= 60:
-            return "🟡 Average"
+            return "Average"
         else:
-            return "🔴 Poor"
+            return "Poor"
 
     def _get_engagement_status(self, rate: float) -> str:
         """Get engagement status indicator"""
         if rate >= 80:
-            return "🟢 High"
+            return "High"
         elif rate >= 60:
-            return "🟡 Medium"
+            return "Medium"
         elif rate >= 40:
-            return "🟡 Low"
+            return "Low"
         else:
-            return "🔴 Very Low"
+            return "Very Low"
 
     def _get_accuracy_status(self, accuracy: float) -> str:
         """Get accuracy status indicator"""
         if accuracy >= 95:
-            return "🟢 Excellent"
+            return "Excellent"
         elif accuracy >= 90:
-            return "🟢 Good"
+            return "Good"
         elif accuracy >= 85:
-            return "🟡 Fair"
+            return "Fair"
         else:
-            return "🔴 Needs Improvement"
+            return "Needs Improvement"
 
     def _get_uptime_status(self, uptime: float) -> str:
         """Get uptime status indicator"""
         if uptime >= 99.9:
-            return "🟢 Excellent"
+            return "Excellent"
         elif uptime >= 99.5:
-            return "🟢 Good"
+            return "Good"
         elif uptime >= 99.0:
-            return "🟡 Fair"
+            return "Fair"
         else:
-            return "🔴 Poor"
+            return "Poor"
 
     def _get_response_status(self, response_time: float) -> str:
         """Get response time status indicator"""
         if response_time <= 200:
-            return "🟢 Fast"
+            return "Fast"
         elif response_time <= 500:
-            return "🟡 Normal"
+            return "Normal"
         else:
-            return "🔴 Slow"
+            return "Slow"
 
     def _get_error_status(self, error_rate: float) -> str:
         """Get error rate status indicator"""
         if error_rate <= 0.1:
-            return "🟢 Low"
+            return "Low"
         elif error_rate <= 1.0:
-            return "🟡 Normal"
+            return "Normal"
         else:
-            return "🔴 High"
+            return "High"
 
     def _get_memory_status(self, memory: float) -> str:
         """Get memory usage status indicator"""
         if memory <= 60:
-            return "🟢 Good"
+            return "Good"
         elif memory <= 80:
-            return "🟡 Normal"
+            return "Normal"
         else:
-            return "🔴 High"
+            return "High"
 
     def _get_cpu_status(self, cpu: float) -> str:
         """Get CPU usage status indicator"""
         if cpu <= 50:
-            return "🟢 Good"
+            return "Good"
         elif cpu <= 70:
-            return "🟡 Normal"
+            return "Normal"
         else:
-            return "🔴 High"
+            return "High"
 
     def _get_growth_indicator(self, growth: float) -> str:
         """Get growth indicator"""
         if growth > 0:
-            return "📈 +{:.1f}%".format(growth)
+            return "+{:.1f}%".format(growth)
         elif growth < 0:
-            return "📉 {:.1f}%".format(growth)
+            return "{:.1f}%".format(growth)
         else:
-            return "➡️ 0%"
+            return "0%"
 
     def _get_change_indicator(self, change: float) -> str:
         """Get change indicator"""
         if change > 0:
-            return "📈 +{:.1f}%".format(change)
+            return "+{:.1f}%".format(change)
         elif change < 0:
-            return "📉 {:.1f}%".format(change)
+            return "{:.1f}%".format(change)
         else:
-            return "➡️ 0%"
+            return "0%"
 
     def _get_collection_status(self, count: int) -> str:
         """Get collection points status"""
         if count >= 10:
-            return "🟢 Excellent"
+            return "Excellent"
         elif count >= 5:
-            return "🟡 Good"
+            return "Good"
         else:
-            return "🔴 Limited"
+            return "Limited"
 
     def _get_coverage_status(self, coverage: float) -> str:
         """Get coverage status"""
         if coverage >= 50:
-            return "🟢 Wide"
+            return "Wide"
         elif coverage >= 20:
-            return "🟡 Moderate"
+            return "Moderate"
         else:
-            return "🔴 Limited"
+            return "Limited"
 
     def _get_recent_activities(self) -> List[Dict]:
         """Get recent system activities"""

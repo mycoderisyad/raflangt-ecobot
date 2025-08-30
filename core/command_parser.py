@@ -1,6 +1,5 @@
-"""
-Command Parser for EcoBot
-Handles various commands and routes them to appropriate handlers
+"""Command Parser for EcoBot.
+Parses user messages into structured commands with role-aware access control.
 """
 
 import re
@@ -21,18 +20,13 @@ class CommandParser:
 
     def parse_command(self, message: str, user_role: str = "warga") -> Dict[str, Any]:
         """
-        Parse user message and extract command information
-        
-        Args:
-            message: User message text
-            user_role: User's role in the system
-            
-        Returns:
-            Dict containing command information
+        Parse a user message and extract command information.
+
+        Returns a dict containing command metadata and target handler.
         """
         message = message.strip()
         
-        # Check for AI mode switching commands first
+        # AI mode switching commands (explicit prefix only)
         ai_mode_commands = {
             "/layanan-ecobot": "ecobot",
             "/general-ecobot": "general", 
@@ -50,7 +44,7 @@ class CommandParser:
                     "feature": "ai_agent"
                 }
         
-        # Check for help command
+        # Help command (explicit prefix only)
         if message.lower().startswith("/help") or message.lower().startswith("/bantuan"):
             return {
                 "type": "help",
@@ -60,7 +54,7 @@ class CommandParser:
                 "feature": "edukasi"
             }
         
-        # Check for other commands
+        # Feature commands (word-start or exact match only)
         for command_key, command_info in self.command_mapping.items():
             if self._matches_command(message, command_info["aliases"]):
                 # Check if user has access to this feature
@@ -92,9 +86,28 @@ class CommandParser:
         }
 
     def _matches_command(self, message: str, aliases: list) -> bool:
-        """Check if message matches any command alias"""
-        message_lower = message.lower()
-        return any(alias.lower() in message_lower for alias in aliases)
+        """Check if message matches a command alias as a word/prefix.
+
+        Rules:
+        - Aliases starting with '/' must be a message prefix.
+        - Plain aliases must appear at the beginning as a whole word
+          (exact or followed by whitespace/punctuation).
+        """
+        message_lower = message.strip().lower()
+        for alias in aliases:
+            a = alias.strip().lower()
+            if not a:
+                continue
+            if a.startswith("/"):
+                if message_lower.startswith(a):
+                    return True
+                continue
+            # Word-start or exact match
+            if message_lower == a:
+                return True
+            if message_lower.startswith(a + " "):
+                return True
+        return False
 
     def _can_access_feature(self, user_role: str, feature: str) -> bool:
         """Check if user can access specific feature"""
@@ -137,29 +150,29 @@ class CommandParser:
         return available_commands
 
     def get_command_help(self, user_role: str = "warga") -> str:
-        """Generate help message for available commands"""
+        """Generate help message for available commands (text-only)."""
         available_commands = self.get_available_commands(user_role)
         
-        help_text = f"🤖 **ECOBOB COMMANDS** 🤖\n\n"
+        help_text = "EcoBot Commands\n\n"
         help_text += f"Role: {self.user_roles.get(user_role, {}).get('name', user_role)}\n\n"
         
-        # AI Mode Commands
-        help_text += "🔧 **AI AGENT MODES:**\n"
-        help_text += "• `/layanan-ecobot` - Mode EcoBot Service (database only)\n"
-        help_text += "• `/general-ecobot` - Mode General Waste Management\n"
-        help_text += "• `/hybrid-ecobot` - Mode Hybrid (default)\n\n"
+        # AI mode commands
+        help_text += "AI Agent Modes:\n"
+        help_text += "• /layanan-ecobot - Mode EcoBot Service (database only)\n"
+        help_text += "• /general-ecobot - Mode General Waste Management\n"
+        help_text += "• /hybrid-ecobot - Mode Hybrid (default)\n\n"
         
-        # Feature Commands
-        help_text += "📋 **FITUR UTAMA:**\n"
+        # Feature commands
+        help_text += "Fitur Utama:\n"
         for command_key, command_info in available_commands.items():
             if command_key not in ["layanan-ecobot", "general-ecobot", "hybrid-ecobot"]:
                 aliases = ", ".join(command_info["aliases"][:3])  # Show first 3 aliases
                 help_text += f"• `{aliases}` - {command_info['description']}\n"
         
-        help_text += "\n💡 **TIPS:**\n"
+        help_text += "\nTips:\n"
         help_text += "• Gunakan command untuk fitur spesifik\n"
         help_text += "• Tanpa command = AI Agent natural conversation\n"
-        help_text += "• `/help` untuk melihat command ini lagi\n"
+        help_text += "• /help untuk melihat command ini lagi\n"
         
         return help_text
 

@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import requests
+import random
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from dotenv import load_dotenv
@@ -78,6 +79,50 @@ class AIAgent:
         else:
             self.use_ai = True
             logger.info(f"AI Agent initialized with model: {self.model}")
+
+    # ----------------------
+    # Friendly identity helpers
+    # ----------------------
+    def _generate_alias(self, user_phone: str) -> str:
+        """Create a stable friendly alias based on phone digits.
+
+        Example: '62XXXXXXXXXX@c.us' -> 'soeco1234' (last 4 digits).
+        """
+        digits = "".join(c for c in (user_phone or "") if c.isdigit())
+        tail = digits[-4:] or "0000"
+        return f"soeco{tail}"
+
+    def _get_display_name(self, user_phone: str, user_context: Dict[str, Any], user_facts: Dict[str, Any]) -> str:
+        """Resolve a friendly display name with fallbacks and memory.
+
+        Preference order:
+        1) Explicit user name in DB (non-empty and not placeholder)
+        2) Remembered fact 'user_name'
+        3) Remembered alias 'user_alias'
+        4) Generate alias 'soecoXXXX' (saved to memory)
+        """
+        # 1) DB/user context name
+        ctx_name = (user_context or {}).get("name")
+        if ctx_name and str(ctx_name).strip().lower() not in ("teman", "belum dikenali", "none", "null"):
+            return str(ctx_name).strip()
+
+        # 2) Memory user_name
+        fact_name = (user_facts or {}).get("user_name", {}).get("value") if user_facts else None
+        if fact_name and str(fact_name).strip().lower() not in ("none", "null"):
+            return str(fact_name).strip()
+
+        # 3) Existing alias
+        fact_alias = (user_facts or {}).get("user_alias", {}).get("value") if user_facts else None
+        if fact_alias:
+            return str(fact_alias).strip()
+
+        # 4) Generate + persist alias
+        alias = self._generate_alias(user_phone)
+        try:
+            self.memory_model.save_user_fact(user_phone, "user_alias", alias)
+        except Exception:
+            pass
+        return alias
     
     def process_message(self, user_message: str, user_phone: str, mode: str = "hybrid") -> Dict[str, Any]:
         """Process user message with specified mode"""
@@ -101,12 +146,15 @@ class AIAgent:
             except Exception:
                 pass
 
-            # Prefer saved user_name fact if profile name is unknown
+            # Prefer saved user_name/alias if profile name is unknown or None
             try:
-                if user_context.get("name") in ["Teman", "Belum dikenali"] and user_facts:
-                    fact_name = user_facts.get("user_name", {}).get("value")
-                    if fact_name:
-                        user_context["name"] = fact_name
+                raw_name = user_context.get("name")
+                if (
+                    not raw_name
+                    or str(raw_name).strip().lower() in ("teman", "belum dikenali", "none", "null")
+                ):
+                    display_name = self._get_display_name(user_phone, user_context, user_facts)
+                    user_context["name"] = display_name
             except Exception:
                 pass
 
@@ -182,8 +230,8 @@ class AIAgent:
         try:
             # Get user context for personalized response
             user_context = self._get_user_context(user_phone)
-            user_name = user_context.get("name", "Teman")
             user_facts = self.memory_model.get_all_user_facts(user_phone)
+            user_name = self._get_display_name(user_phone, user_context, user_facts)
 
             # Analyze the image using image analysis service
             analysis_result = self.image_analyzer.analyze_waste_image(
@@ -196,33 +244,47 @@ class AIAgent:
                 description = analysis_result.get("description", "")
                 tips = analysis_result.get("tips", "")
 
-                # Create personalized response using AI agent context
-                if user_name != "Teman" and user_name != "Belum dikenali":
-                    greeting = f"Halo {user_name}! "
-                else:
-                    greeting = "Halo! "
+                # Build a more human greeting and tone
+                greeting = f"Halo {user_name}! "
 
-                # Generate personalized response based on waste type
+                # Slightly varied encouragement to feel less robotic
+                random.seed(f"{user_name}-{waste_type}")  # stable per user/type
                 if waste_type == "ORGANIK":
-                    encouragement = "Bagus sekali! Sampah organik bisa jadi kompos lho! "
+                    encouragement = random.choice([
+                        "Mantap! Sampah organik bisa jadi kompos lho.",
+                        "Keren—ini cocok buat kompos di rumah!",
+                        "Nice! Bahan organik, gampang diolah jadi kompos.",
+                    ]) + " "
                 elif waste_type == "ANORGANIK":
-                    encouragement = "Perfect! Jangan lupa pisahkan untuk daur ulang ya! "
+                    encouragement = random.choice([
+                        "Sip! Jangan lupa pisahkan untuk didaur ulang, ya.",
+                        "Oke! Ini bisa dikumpulkan untuk recycling.",
+                        "Baik! Pisahkan bersih-bersih dulu sebelum didaur ulang.",
+                    ]) + " "
                 elif waste_type == "B3":
-                    encouragement = "Hati-hati! Sampah ini perlu penanganan khusus. "
+                    encouragement = random.choice([
+                        "Perhatian ya—ini termasuk B3, perlu penanganan khusus.",
+                        "Hati-hati, ini B3. Simpan terpisah dan serahkan ke fasilitas khusus.",
+                        "Ini kategori B3. Jangan dibuang sembarangan, ya.",
+                    ]) + " "
                 else:
-                    encouragement = "Mari kita pelajari jenis sampah ini bersama! "
+                    encouragement = random.choice([
+                        "Kita cek bareng, ya. Jenisnya belum jelas.",
+                        "Hmm… belum 100% jelas. Yuk kita pelajari bareng.",
+                        "Menarik—belum teridentifikasi. Coba kirim angle lain kalau bisa.",
+                    ]) + " "
 
                 # Format confidence as percentage
                 confidence_percent = int(confidence * 100)
 
                 response = f"""{greeting}{encouragement}
 
-**HASIL IDENTIFIKASI:**
-• **Jenis Sampah:** {waste_type}
-• **Tingkat Keyakinan:** {confidence_percent}%
-• **Yang Terdeteksi:** {description}
+*HASIL IDENTIFIKASI:*
+• *Jenis Sampah:* {waste_type}
+• *Tingkat Keyakinan:* {confidence_percent}%
+• *Yang Terdeteksi:* {description}
 
-**Tips Pengelolaan:**
+*Tips Pengelolaan:*
 {tips}
 
 Terima kasih sudah peduli lingkungan! Kirim foto sampah lain kalau mau belajar lebih banyak! """
@@ -724,7 +786,8 @@ PENGEMBANGAN RELASI:
 
 PENTING: Kamu adalah asisten EcoBot yang memberikan informasi spesifik dari database dengan personalisasi tinggi.
 
-Tambahkan kalimat penutup: yang natural, sopan dan ramah serta singkat."""
+Tambahkan kalimat penutup: yang natural, sopan dan ramah serta singkat.
+"""
 
         return prompt
 
@@ -1081,8 +1144,9 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
     def _fallback_response(self, user_message: str, user_phone: str, mode: str = "hybrid") -> str:
         """Fallback response when AI is not available"""
         try:
+            user_context = self._get_user_context(user_phone)
             user_facts = self.memory_model.get_all_user_facts(user_phone)
-            user_name = user_facts.get("user_name", {}).get("value", "Teman") if user_facts else "Teman"
+            user_name = self._get_display_name(user_phone, user_context, user_facts)
             
             if mode == "ecobot":
                 return f"Halo {user_name}! Maaf, layanan AI EcoBot sedang tidak tersedia. Silakan gunakan command /help untuk melihat fitur yang tersedia."
@@ -1135,7 +1199,8 @@ PENTING: Kamu adalah asisten hybrid yang memberikan informasi EcoBot + edukasi u
             "total_messages": len(user_messages),
             "avg_message_length": sum(len(msg.get("content", "")) for msg in user_messages) / len(user_messages),
             "question_frequency": sum(1 for msg in user_messages if "?" in msg.get("content", "")),
-            "emoji_usage": sum(1 for msg in user_messages if any(emoji in msg.get("content", "") for emoji in ["😊", "👍", "❤️", "😄"])),
+            # Do not track emojis; keep numeric field for compatibility
+            "emoji_usage": 0,
             "topic_diversity": len(set(msg.get("content", "")[:20] for msg in user_messages))
         }
         

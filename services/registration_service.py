@@ -121,26 +121,24 @@ class RegistrationService:
     def _generate_success_message(self, name: str) -> str:
         """Generate registration success message"""
         response = MessageFormatter.format_success_header(f"Selamat Datang, {name}!")
-        response += (
-            "🎉 Anda berhasil terdaftar sebagai pengguna EcoBot .\n\n"
-        )
+        response += ("Anda berhasil terdaftar sebagai pengguna EcoBot.\n\n")
 
         features = [
-            "🎓 *Edukasi* - Tips pengelolaan sampah ramah lingkungan",
-            "📅 *Jadwal* - Jadwal pengumpulan sampah terbaru",
-            "📍 *Lokasi* - Titik pengumpulan sampah terdekat",
-            "🏆 *Point* - Sistem reward (segera hadir)",
+            "Edukasi - Tips pengelolaan sampah ramah lingkungan",
+            "Jadwal - Jadwal pengumpulan sampah terbaru",
+            "Lokasi - Titik pengumpulan sampah terdekat",
+            "Point - Sistem reward (segera hadir)",
         ]
         response += MessageFormatter.format_feature_list(
             "Fitur yang Tersedia", features
         )
 
-        response += "\n\n💡 *Cara Penggunaan:*\n"
-        response += "• 📸 Kirim foto sampah untuk identifikasi otomatis\n"
-        response += '• 💬 Ketik nama fitur (contoh: "edukasi", "lokasi")\n'
-        response += "• ❓ Tanya langsung tentang pengelolaan sampah\n\n"
+        response += "\n\nCara Penggunaan:\n"
+        response += "• Kirim foto sampah untuk identifikasi otomatis\n"
+        response += '• Ketik nama fitur (contoh: "edukasi", "lokasi")\n'
+        response += "• Tanya langsung tentang pengelolaan sampah\n\n"
         response += (
-            "🌱 *Selamat bergabung dalam program pengelolaan sampah ramah lingkungan!*"
+            "Selamat bergabung dalam program pengelolaan sampah ramah lingkungan!"
         )
 
         return response
@@ -148,8 +146,8 @@ class RegistrationService:
     def get_unregistered_user_message(self) -> str:
         """Get message for unregistered users - auto-registration enabled"""
         return (
-            "🎉 Selamat datang di EcoBot!\n\n"
-            "✅ Pendaftaran otomatis telah diaktifkan\n"
-            "📱 Anda dapat langsung menggunakan semua fitur bot\n\n"
+            "Selamat datang di EcoBot!\n\n"
+            "Pendaftaran otomatis telah diaktifkan\n"
+            "Anda dapat langsung menggunakan semua fitur bot\n\n"
             "Ketik 'bantuan' untuk melihat fitur yang tersedia."
         )

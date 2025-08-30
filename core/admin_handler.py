@@ -461,7 +461,12 @@ STATISTIK AKTIVITAS:
             if success:
                 return {
                     "success": True,
-                    "message": f'Titik pengumpulan berhasil ditambahkan!\n\n{name}\n🏠 {address}\nJenis: {", ".join(accepted_types)}\nKoordinat: {latitude}, {longitude}',
+                    "message": (
+                        f"Titik pengumpulan berhasil ditambahkan!\n\n"
+                        f"{name}\nAlamat: {address}\n"
+                        f"Jenis: {', '.join(accepted_types)}\n"
+                        f"Koordinat: {latitude}, {longitude}"
+                    ),
                 }
             else:
                 return {
@@ -572,11 +577,11 @@ STATISTIK AKTIVITAS:
 
             stats_text = f"""STATISTIK SISTEM ECOBOT
 
-👥 PENGGUNA:
+PENGGUNA:
 • Total user: {user_stats.get('total_users', 0)}
-• Admin: {user_stats.get('admin_count', 0)} 👑
-• Koordinator: {user_stats.get('koordinator_count', 0)} 🎯
-• Warga: {user_stats.get('warga_count', 0)} 👤
+• Admin: {user_stats.get('admin_count', 0)}
+• Koordinator: {user_stats.get('koordinator_count', 0)}
+• Warga: {user_stats.get('warga_count', 0)}
 • User aktif hari ini: {user_stats.get('active_today', 0)}
 
 TITIK PENGUMPULAN:
@@ -748,24 +753,24 @@ Update terakhir: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"""
             stats_text = f"""MEMORY STATS AI AGENT
 User: {phone}
 
-📊 STATISTIK MEMORY:
+STATISTIK MEMORY:
 • Total Facts: {memory_stats.get('user_facts_count', 0)}
 • Total Conversations: {memory_stats.get('conversation_count', 0)}
 
-📈 AKTIVITAS TERKINI (30 hari):
+AKTIVITAS TERKINI (30 hari):
 • Total Messages: {memory_stats.get('recent_activity', {}).get('total_messages', 0)}
 • User Messages: {memory_stats.get('recent_activity', {}).get('user_messages', 0)}
 • Bot Messages: {memory_stats.get('recent_activity', {}).get('bot_messages', 0)}
 • First Message: {memory_stats.get('recent_activity', {}).get('first_message', 'N/A')}
 • Last Message: {memory_stats.get('recent_activity', {}).get('last_message', 'N/A')}
 
-🎯 TOPIK YANG SERING DIBICARAKAN:
+TOPIK YANG SERING DIBICARAKAN:
 {chr(10).join([f"• {topic}" for topic in memory_stats.get('common_topics', [])]) if memory_stats.get('common_topics') else "• Tidak ada data"}
 
-🔑 MEMORY KEYS:
+MEMORY KEYS:
 {chr(10).join([f"• {key}" for key in memory_stats.get('memory_keys', [])]) if memory_stats.get('memory_keys') else "• Tidak ada data"}
 
-💬 PERCAKAPAN TERAKHIR:
+PERCAKAPAN TERAKHIR:
 {memory_stats.get('last_conversation', 'Tidak ada data')}"""
             
             return {"success": True, "message": stats_text}

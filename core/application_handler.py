@@ -18,6 +18,7 @@ from services.message_service import MessageService
 from services.registration_service import RegistrationService
 from database.models import UserModel
 from core.database_manager import get_database_manager
+from core.utils import normalize_phone_for_db
 
 
 class ApplicationHandler:
@@ -42,6 +43,10 @@ class ApplicationHandler:
         self.registration_service = RegistrationService(self.user_model)
         self.report_service = None  # Will be initialized when needed
 
+        # Session-level guard to prevent duplicate first-time help spam
+        # Tracks phone numbers that already received the initial help in this process
+        self._welcome_sent_in_session = set()
+
         self.logger.info("Application handler initialized successfully")
 
     def handle_incoming_message(self, request) -> Dict[str, Any]:
@@ -56,36 +61,41 @@ class ApplicationHandler:
             if not message_data:
                 return {"status": "ignored", "message": "Not a message event"}
 
+            # Normalize phone and ensure user exists early so we can check first-interaction
+            from_number = message_data.get("from_number", "")
+            normalized_phone = normalize_phone_for_db(from_number)
+            self.user_model.create_or_update_user(normalized_phone)
+
+                         # Don't auto-send help message to new users - let AI agent handle naturally
+             # Only show help when explicitly requested with /help command
+
             # Route message based on type
             if message_data["message_type"] == "image":
                 reply = self._handle_image_message(
                     message_data["media_url"],
                     message_data.get("media_info", {}),
-                    message_data["from_number"],
+                    normalized_phone,
                 )
-                self.user_model.increment_user_stats(
-                    message_data["from_number"], "image"
-                )
+                self.user_model.increment_user_stats(normalized_phone, "image")
             elif (
                 message_data["message_type"] == "text" and message_data["message_body"]
             ):
                 reply = self._handle_text_message(
-                    message_data["message_body"], message_data["from_number"]
+                    message_data["message_body"], normalized_phone
                 )
-                self.user_model.increment_user_stats(
-                    message_data["from_number"], "message"
-                )
+                self.user_model.increment_user_stats(normalized_phone, "message")
             else:
-                reply = self._get_help_message(message_data["from_number"])
+                # Non-text/image events: ignore silently (no auto-reply)
+                reply = ""
 
             # Send reply
-            success = self.whatsapp_service.send_message(
-                message_data["from_number"], reply
-            )
+            success = True
+            if isinstance(reply, str) and reply.strip():
+                success = self.whatsapp_service.send_message(normalized_phone, reply)
 
             return {
                 "status": "success" if success else "partial_success",
-                "message": "Message processed",
+                "message": "Message processed" if reply else "Event ignored",
             }
 
         except Exception as e:
@@ -147,7 +157,6 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
         """Handle text message with AI-first approach"""
         try:
             # Auto-create user if not exists (no manual registration required)
-            from core.utils import normalize_phone_for_db
             normalized_phone = normalize_phone_for_db(phone_number)
             self.user_model.create_or_update_user(normalized_phone)
 
@@ -182,6 +191,9 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
                             "Mode hybrid aktif. Data database akan diprioritaskan lalu AI sebagai fallback"
                         )
                     return f"{switch_msg}\n\n{extra}"
+                # Explicit help command: show help immediately
+                if command_info.get("type") == "help":
+                    return self._get_help_message(normalized_phone)
             except Exception:
                 # If parsing fails, continue with AI handling
                 pass
@@ -197,6 +209,10 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
             if ai_result and ai_result.get("reply_sent"):
                 return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
 
+            # Check if this is a database-related query that should bypass AI
+            if self._is_database_query(message_body):
+                return self._handle_database_query_directly(message_body, normalized_phone, user_role)
+            
             # Fallback to command parsing only if AI fails
             user_role = self.role_manager.get_user_role(normalized_phone)
             command_info = self.command_parser.parse_command(message_body, user_role) or {}
@@ -215,8 +231,8 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
                     command_info, normalized_phone, user_role
                 )
             else:
-                # Ultimate fallback
-                return self._get_help_message(normalized_phone)
+                # Ultimate fallback: give a helpful response
+                return "Maaf, ada kendala dalam memproses pesan. Silakan coba lagi atau gunakan /help untuk melihat fitur yang tersedia."
 
         except Exception as e:
             LoggerUtils.log_error(self.logger, e, "handling text message")
@@ -254,8 +270,6 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
         if handler == "points":
             return self._handle_points_request(phone_number)
 
-        # Ultimate fallback: role-based help
-        return self._get_help_message(phone_number)
 
     def _handle_general_conversation(
         self, message: str, phone_number: str = None
@@ -267,10 +281,10 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
         ai_result = ai_agent.process_message(message, phone_number, 'hybrid')
         if ai_result and ai_result.get("status") == "success":
             return ai_result.get("reply_sent", "Maaf, ada kesalahan dalam pemrosesan pesan.")
-
-        # Fallback response → role-based help
-        return self._get_help_message(phone_number or "")
-
+        else:
+            # Fallback response
+            return ""
+            
     def _handle_schedule_request(self) -> str:
         """Handle schedule request using database data"""
         try:
@@ -370,6 +384,36 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
 
 
 
+    def _is_database_query(self, message: str) -> bool:
+        """Check if message is asking for database data (locations, schedules, etc.)"""
+        lowered = message.lower()
+        db_keywords = [
+            "lokasi", "location", "bank sampah", "tempat sampah", "titik",
+            "jadwal", "schedule", "waktu", "pengumpulan", "kapan",
+            "statistik", "statistics", "data", "aktivitas"
+        ]
+        return any(keyword in lowered for keyword in db_keywords)
+
+    def _handle_database_query_directly(self, message: str, phone_number: str, user_role: str) -> str:
+        """Handle database queries directly without going through AI agent"""
+        try:
+            from services.ai_agent import AIAgent
+            ai_agent = AIAgent()
+            
+            # Get database data using the same method as AI agent
+            db_data = ai_agent._get_database_data(message)
+            
+            # Format response directly using the same formatter
+            if db_data.get("collection_points") or db_data.get("schedules"):
+                return ai_agent._format_db_response(db_data, message.lower())
+            else:
+                # No data found, give helpful response
+                return "Maaf, data yang Anda minta belum tersedia di database EcoBot. Silakan coba lagi nanti atau gunakan /help untuk melihat fitur yang tersedia."
+                
+        except Exception as e:
+            LoggerUtils.log_error(self.logger, e, "handling database query directly")
+            return "Maaf, ada kendala dalam mengakses database. Silakan coba lagi nanti."
+
     def _get_help_message(self, phone_number: str) -> str:
         """Generate comprehensive, role-based help message using constants"""
         from core.constants import COMMAND_MAPPING, FEATURE_STATUS, USER_ROLES
@@ -387,7 +431,7 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
             return enabled_map.get(feature, False)
 
         # Build command list text
-        lines = ["🤖 EcoBot - Daftar Fitur"]
+        lines = ["EcoBot - Daftar Fitur"]
         lines.append(f"Peran kamu: {USER_ROLES.get(role, {}).get('name', role.title())}")
         lines.append("")
 
@@ -426,6 +470,25 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
                 pass
 
         return "\n".join(lines)
+
+    def _should_send_welcome(self, phone_number: str) -> bool:
+        """Decide whether to send initial help message.
+
+        Shown only when this is the user's first interaction (no messages/images yet),
+        and only once per process using a lightweight session guard to prevent
+        accidental duplicates from webhook retries.
+        """
+        try:
+            if phone_number in self._welcome_sent_in_session:
+                return False
+            stats = self.user_model.get_user_stats(phone_number)
+            # If user record not found or has zero interactions, show welcome
+            total_msgs = (stats or {}).get("total_messages", 0)
+            total_imgs = (stats or {}).get("total_images", 0)
+            return (total_msgs + total_imgs) == 0
+        except Exception:
+            # Be conservative: avoid sending help to prevent spam on errors
+            return False
 
     def _get_waste_education(self, waste_type: str) -> Dict[str, Any]:
         """Get education content for waste type"""

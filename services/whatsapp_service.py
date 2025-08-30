@@ -18,7 +18,7 @@ class WhatsAppService:
         self.api_key = os.getenv("WAHA_API_KEY")
         self.base_url = os.getenv("WAHA_BASE_URL")
         self.session_name = os.getenv("WAHA_SESSION_NAME", "default")
-        self.environment = os.getenv("ENVIRONMENT", "development")
+        self.environment = os.getenv("ENVIRONMENT")
         self.logger = logging.getLogger(__name__)
 
         if not self.api_key and self.environment == "production":
@@ -191,7 +191,7 @@ class WhatsAppService:
             if event != "message":
                 return None
 
-            # Enhanced detection for image messages
+            # Image detection based on explicit indicators only
             is_image = False
             media_url = None
             media_info = {}
@@ -202,32 +202,26 @@ class WhatsAppService:
                 media_info = payload.get("media", {})
                 media_url = media_info.get("url")
 
-            # Method 2: Check hasMedia flag and mime type
-            elif payload.get("hasMedia") or "mimetype" in str(payload):
-                is_image = True
-                if "mimetype" in payload and "image" in payload.get("mimetype", ""):
-                    media_info = {
-                        "url": f"https://waha.rafgt.my.id/api/files/default/{payload.get('id', 'unknown')}.jpeg",
-                        "mimetype": payload.get("mimetype", "image/jpeg"),
-                        "filename": payload.get("id", "unknown") + ".jpeg",
-                    }
-                    media_url = media_info["url"]
-                elif payload.get("media"):
-                    media_info = payload.get("media", {})
+            # Method 2: Check media object presence with mime type
+            elif payload.get("media") and isinstance(payload.get("media"), dict):
+                m = payload.get("media")
+                mime = m.get("mimetype") or payload.get("mimetype") or ""
+                if isinstance(mime, str) and mime.startswith("image/"):
+                    is_image = True
+                    media_info = m
                     media_url = media_info.get("url")
 
             # Method 3: Check _data for image indicators
-            elif "_data" in payload:
+            elif isinstance(payload.get("_data"), dict):
                 _data = payload.get("_data", {})
                 if "mimetype" in _data and "image" in _data.get("mimetype", ""):
                     is_image = True
                     message_id = payload.get("id", "unknown")
+                    # Do not construct hardcoded URLs; leave url None if not provided
                     media_info = {
-                        "url": f"https://waha.rafgt.my.id/api/files/default/{message_id}.jpeg",
                         "mimetype": _data.get("mimetype", "image/jpeg"),
-                        "filename": message_id + ".jpeg",
+                        "filename": (message_id + ".jpeg") if message_id else None,
                     }
-                    media_url = media_info["url"]
 
             # Determine message type
             message_type = "image" if is_image else payload.get("type", "text")
