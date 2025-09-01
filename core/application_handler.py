@@ -115,12 +115,31 @@ class ApplicationHandler:
             if not image_data:
                 return self.message_service.format_error_response("general_error")
 
-            # Use AI Agent for image analysis (includes personalization and memory)
-            from services.ai_agent import AIAgent
-            ai_agent = AIAgent()
+            # Check if this is a sticker first
+            from services.image_analysis_service import ImageAnalysisService
+            image_analyzer = ImageAnalysisService()
+            is_sticker = image_analyzer.is_sticker(image_data)
             
-            # Process image with AI Agent
-            ai_result = ai_agent.process_image_message(image_data, normalized_phone, 'hybrid')
+            if is_sticker:
+                # Handle sticker with AI agent for natural conversation
+                from services.ai_agent import AIAgent
+                ai_agent = AIAgent()
+                
+                # Create a context message for the sticker
+                sticker_context = "User sent a sticker. Respond naturally and appropriately to the sticker based on its context and emotion."
+                ai_result = ai_agent.process_message(sticker_context, normalized_phone, 'hybrid')
+                
+                if ai_result and ai_result.get("reply_sent"):
+                    return ai_result.get("reply_sent")
+                else:
+                    return "Sticker yang keren! 😊 Ada yang bisa saya bantu?"
+            else:
+                # Use AI Agent for waste image analysis (includes personalization and memory)
+                from services.ai_agent import AIAgent
+                ai_agent = AIAgent()
+                
+                # Process image with AI Agent
+                ai_result = ai_agent.process_image_message(image_data, normalized_phone, 'hybrid')
             
             if ai_result and ai_result.get("status") == "success":
                 # Save classification to database if available
@@ -386,13 +405,48 @@ Silakan coba lagi dalam beberapa saat atau hubungi admin untuk bantuan."""
 
     def _is_database_query(self, message: str) -> bool:
         """Check if message is asking for database data (locations, schedules, etc.)"""
-        lowered = message.lower()
-        db_keywords = [
-            "lokasi", "location", "bank sampah", "tempat sampah", "titik",
-            "jadwal", "schedule", "waktu", "pengumpulan", "kapan",
-            "statistik", "statistics", "data", "aktivitas"
+        lowered = message.lower().strip()
+        
+        # More specific patterns to avoid false positives
+        location_patterns = [
+            "lokasi", "location", "bank sampah", "tempat sampah", "titik pengumpulan",
+            "dimana", "mana", "peta", "maps"
         ]
-        return any(keyword in lowered for keyword in db_keywords)
+        
+        schedule_patterns = [
+            "jadwal", "schedule", "waktu pengumpulan", "kapan pengumpulan",
+            "hari apa", "jam berapa"
+        ]
+        
+        stats_patterns = [
+            "statistik", "statistics", "data aktivitas", "laporan"
+        ]
+        
+        # Check for explicit requests, not just keyword presence
+        is_location_query = any(pattern in lowered for pattern in location_patterns) and (
+            "?" in lowered or 
+            "dimana" in lowered or 
+            "mana" in lowered or
+            lowered.startswith("lokasi") or
+            lowered.startswith("location")
+        )
+        
+        is_schedule_query = any(pattern in lowered for pattern in schedule_patterns) and (
+            "?" in lowered or
+            "kapan" in lowered or
+            "jadwal" in lowered or
+            lowered.startswith("jadwal") or
+            lowered.startswith("schedule")
+        )
+        
+        is_stats_query = any(pattern in lowered for pattern in stats_patterns) and (
+            "?" in lowered or
+            "statistik" in lowered or
+            lowered.startswith("statistik") or
+            lowered.startswith("statistics")
+        )
+        
+        return is_location_query or is_schedule_query or is_stats_query
 
     def _handle_database_query_directly(self, message: str, phone_number: str, user_role: str) -> str:
         """Handle database queries directly without going through AI agent"""

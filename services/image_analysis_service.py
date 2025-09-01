@@ -62,6 +62,22 @@ class ImageAnalysisService:
             logger.error(f"Error encoding image to base64: {str(e)}")
             return None
 
+    def is_sticker(self, image_data: bytes) -> bool:
+        """Detect if image is likely a sticker (animated GIF, small size, etc.)"""
+        try:
+            # Check if it's a GIF (common sticker format)
+            if image_data.startswith(b'GIF'):
+                return True
+            
+            # Check file size - stickers are usually small
+            if len(image_data) < 100 * 1024:  # Less than 100KB
+                return True
+                
+            # Additional checks could be added here for other sticker formats
+            return False
+        except Exception:
+            return False
+
     def analyze_waste_image(
         self, image_data: bytes, user_phone: str = None
     ) -> Dict[str, Any]:
@@ -70,6 +86,17 @@ class ImageAnalysisService:
         Returns waste classification with confidence score
         """
         try:
+            # Check if this is a sticker first
+            if self.is_sticker(image_data):
+                return {
+                    "success": True,
+                    "is_sticker": True,
+                    "waste_type": "STICKER",
+                    "confidence": 1.0,
+                    "description": "Sticker detected",
+                    "tips": "This is a sticker, not waste for analysis",
+                }
+
             if not self.api_key:
                 logger.warning("Unli.dev API key not configured")
                 return {

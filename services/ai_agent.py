@@ -632,7 +632,7 @@ Silakan coba lagi dalam beberapa saat. Jika masalah berlanjut, hubungi admin ya!
         data = {
             "model": self.model,
             "messages": messages,
-            "max_tokens": 800,
+            "max_tokens": 1000,
             "temperature": 0.7,
         }
 
