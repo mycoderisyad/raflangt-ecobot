@@ -57,6 +57,8 @@ class TelegramChannel(BaseChannel):
             return None
 
         chat_id = str(msg["chat"]["id"])
+        username = msg.get("from", {}).get("username", "") or ""
+
         # Photo message
         if "photo" in msg:
             photos = msg["photo"]
@@ -64,6 +66,7 @@ class TelegramChannel(BaseChannel):
             file_id = photos[-1]["file_id"]
             return {
                 "from_id": chat_id,
+                "username": username,
                 "message_type": "image",
                 "body": msg.get("caption", ""),
                 "caption": msg.get("caption", ""),
@@ -77,6 +80,7 @@ class TelegramChannel(BaseChannel):
 
         return {
             "from_id": chat_id,
+            "username": username,
             "message_type": "text",
             "body": text,
             "caption": "",

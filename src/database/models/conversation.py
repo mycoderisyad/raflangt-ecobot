@@ -38,6 +38,21 @@ class ConversationModel:
             )
             return row["cnt"] if row else 0
 
+    def trim(self, user_phone: str, max_messages: int = 60) -> int:
+        """Keep only the most recent *max_messages* rows for this user."""
+        with get_db() as db:
+            return db.execute(
+                """DELETE FROM conversation_history
+                   WHERE user_phone = %s
+                     AND id NOT IN (
+                       SELECT id FROM conversation_history
+                       WHERE user_phone = %s
+                       ORDER BY created_at DESC
+                       LIMIT %s
+                     )""",
+                (user_phone, user_phone, max_messages),
+            )
+
     def clear_old(self, user_phone: str, keep_days: int = 30) -> int:
         with get_db() as db:
             return db.execute(

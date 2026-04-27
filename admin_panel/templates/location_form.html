@@ -14,6 +14,7 @@
 
 <div class="card">
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label class="form-label">Location Name</label>
             <input type="text" class="form-input" name="name" 
@@ -144,6 +145,11 @@ function deleteLocation(locationId) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '{{ url_for("delete_location", location_id="LOCATION_PLACEHOLDER") }}'.replace('LOCATION_PLACEHOLDER', encodeURIComponent(locationId));
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrf_token';
+        csrf.value = '{{ csrf_token() }}';
+        form.appendChild(csrf);
         document.body.appendChild(form);
         form.submit();
     }

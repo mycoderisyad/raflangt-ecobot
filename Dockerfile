@@ -11,6 +11,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN useradd -m -r -s /bin/false appuser && chown -R appuser:appuser /app
+
+USER appuser
+
 ENV ENVIRONMENT=production
 ENV PORT=8000
 

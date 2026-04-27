@@ -21,6 +21,8 @@ Intent yang valid:
 - "location" — bertanya tentang lokasi/titik pengumpulan sampah
 - "statistics" — meminta data statistik (khusus koordinator/admin)
 - "report" — meminta generate laporan/report (khusus koordinator/admin)
+- "broadcast" — ingin kirim pengumuman/broadcast ke semua user (khusus admin)
+- "settings" — ingin mengatur profil/pengaturan (username, reminder, dll)
 - "registration" — ingin mendaftar
 - "chat" — percakapan umum / tidak jelas kategorinya
 
@@ -35,6 +37,8 @@ KEYWORD_MAP = {
     "location": ["lokasi", "maps", "peta", "titik", "tempat", "dimana", "di mana"],
     "statistics": ["statistik", "stats", "data", "analytics"],
     "report": ["laporan", "report", "email", "pdf"],
+    "broadcast": ["broadcast", "pengumuman", "umumkan", "siarkan"],
+    "settings": ["setting", "pengaturan", "profil", "profile", "atur nama", "ubah nama", "ganti nama", "reminder"],
     "registration": ["daftar", "register", "signup"],
 }
 
@@ -44,6 +48,16 @@ def resolve_intent(message: str, use_ai: bool = True) -> Dict[str, Any]:
 
     Returns {"intent": str, "confidence": float}.
     """
+    # Fast path: short messages that clearly match keywords skip the AI call
+    lower = message.strip().lower()
+    word_count = len(lower.split())
+
+    if word_count <= 5:
+        for intent, keywords in KEYWORD_MAP.items():
+            for kw in keywords:
+                if kw in lower:
+                    return {"intent": intent, "confidence": 0.75}
+
     if use_ai:
         try:
             raw = chat_completion(
@@ -61,8 +75,7 @@ def resolve_intent(message: str, use_ai: bool = True) -> Dict[str, Any]:
         except Exception as e:
             logger.warning("AI intent resolution failed, falling back to keywords: %s", e)
 
-    # Keyword fallback
-    lower = message.strip().lower()
+    # Keyword fallback for longer messages
     for intent, keywords in KEYWORD_MAP.items():
         for kw in keywords:
             if kw in lower:

@@ -51,7 +51,7 @@ class Agent:
             messages = self._build_messages(system_prompt, user_phone, message)
 
             # Call AI
-            reply = chat_completion(messages, temperature=0.7, max_tokens=1024)
+            reply = chat_completion(messages, temperature=0.7, max_tokens=400)
 
             # Persist
             self._save_turn(user_phone, message, reply)
@@ -95,7 +95,7 @@ class Agent:
             messages.extend(history)
             messages.append({"role": "user", "content": user_content})
 
-            reply = chat_completion_with_image(messages, temperature=0.5, max_tokens=1024)
+            reply = chat_completion_with_image(messages, temperature=0.5, max_tokens=500)
 
             self._save_turn(user_phone, "[Mengirim foto]", reply)
             return reply
@@ -122,6 +122,8 @@ class Agent:
         try:
             self.conversation.add_message(user_phone, "user", user_msg)
             self.conversation.add_message(user_phone, "assistant", assistant_msg)
+            # Auto-trim to prevent unbounded growth (keep last 60 messages)
+            self.conversation.trim(user_phone, max_messages=60)
         except Exception as e:
             logger.error("Error saving conversation turn: %s", e)
 

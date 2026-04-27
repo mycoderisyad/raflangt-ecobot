@@ -4,6 +4,8 @@
 flask==2.3.3
 requests==2.31.0
 python-dotenv==1.0.0
+flask-limiter>=3.5.0
+flask-wtf>=1.2.0
 
 # AI — OpenAI-compatible SDK (Gemini & OpenAI)
 openai>=1.0.0

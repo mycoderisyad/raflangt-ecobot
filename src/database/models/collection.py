@@ -66,7 +66,7 @@ class CollectionScheduleModel:
         with get_db() as db:
             return db.fetchall(
                 "SELECT * FROM collection_schedules WHERE schedule_day = %s AND is_active = TRUE",
-                (day.lower(),),
+                (day,),
             )
 
     def create(self, data: Dict[str, Any]) -> None:

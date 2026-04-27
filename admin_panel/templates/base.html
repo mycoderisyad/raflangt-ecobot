@@ -29,6 +29,7 @@
                 <li><a href="{{ url_for('locations') }}" class="{% if request.endpoint == 'locations' %}active{% endif %}">Locations</a></li>
                 <li><a href="{{ url_for('schedules') }}" class="{% if request.endpoint == 'schedules' %}active{% endif %}">Schedules</a></li>
                 <li><a href="{{ url_for('analytics') }}" class="{% if request.endpoint == 'analytics' %}active{% endif %}">Analytics</a></li>
+                <li><a href="{{ url_for('broadcast') }}" class="{% if request.endpoint == 'broadcast' %}active{% endif %}">Broadcast</a></li>
                 <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">Settings</a></li>
             </ul>
         </div>

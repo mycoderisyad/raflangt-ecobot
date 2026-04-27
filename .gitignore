@@ -32,6 +32,7 @@ venv.bak/
 .coverage
 htmlcov/
 .tox/
+tests/
 
 # Type checkers
 .mypy_cache/

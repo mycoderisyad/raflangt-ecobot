@@ -11,8 +11,6 @@ def index():
     cfg = get_settings().app
     return jsonify({
         "name": cfg.name,
-        "version": cfg.version,
-        "environment": cfg.environment,
         "status": "running",
     })
 

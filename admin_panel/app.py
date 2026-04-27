@@ -4,8 +4,10 @@ EcoBot Admin Panel - Simple Notion-like Interface
 Clean, minimal admin interface for monitoring EcoBot system
 """
 
+import hmac
 import os
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 from flask import (
     Flask,
@@ -20,7 +22,9 @@ from flask import (
 from functools import wraps
 from dotenv import load_dotenv
 import logging
-from datetime import datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -30,7 +34,7 @@ sys.path.insert(0, str(project_root))
 load_dotenv(project_root / ".env")
 
 # Initialise settings & database pool once
-from src.config import init_settings
+from src.config import init_settings, get_settings
 from src.database.connection import init_db, get_db
 
 init_settings()
@@ -41,6 +45,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
 # Admin panel security configuration
 ADMIN_PANEL_SECRET_KEY = os.getenv("ADMIN_PANEL_SECRET_KEY")
 if not ADMIN_PANEL_SECRET_KEY:
@@ -49,6 +54,25 @@ if not ADMIN_PANEL_SECRET_KEY:
     sys.exit(1)
 
 app.secret_key = ADMIN_PANEL_SECRET_KEY
+
+# Session security hardening
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Strict"
+app.config["SESSION_COOKIE_SECURE"] = os.getenv("ENVIRONMENT", "development") == "production"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
+app.config["SESSION_PERMANENT"] = True
+
+# CSRF protection
+app.config["WTF_CSRF_TIME_LIMIT"] = 28800  # 8 hours
+csrf = CSRFProtect(app)
+
+# Rate limiter (in-memory; swap storage_uri to Redis in production)
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
+)
 
 # Admin credentials from .env
 ADMIN_USERNAME = os.getenv("ADMIN_PANEL_USERNAME", "admin")
@@ -76,18 +100,24 @@ def index():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute; 20 per hour", methods=["POST"])
 def login():
     """Admin login page"""
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
 
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        user_ok = hmac.compare_digest(username.encode(), ADMIN_USERNAME.encode())
+        pass_ok = hmac.compare_digest(password.encode(), ADMIN_PASSWORD.encode())
+
+        if user_ok and pass_ok:
+            session.permanent = True
             session["authenticated"] = True
             session["username"] = username
             flash("Welcome to EcoBot Admin Panel", "success")
             return redirect(url_for("dashboard"))
         else:
+            logger.warning("Failed admin login attempt from %s", request.remote_addr)
             flash("Invalid credentials", "error")
 
     return render_template("login.html")
@@ -164,13 +194,14 @@ def create_user():
     if request.method == "POST":
         try:
             phone_number = request.form.get("phone_number")
+            username = request.form.get("username", "").strip() or None
             role = request.form.get("role", "warga")
             points = int(request.form.get("points", 0))
 
             with get_db() as db:
                 db.execute(
-                    "INSERT INTO users (phone_number, role, points, is_active, first_seen) VALUES (%s, %s, %s, TRUE, NOW())",
-                    (phone_number, role, points),
+                    "INSERT INTO users (phone_number, username, role, points, is_active, first_seen) VALUES (%s, %s, %s, %s, TRUE, NOW())",
+                    (phone_number, username, role, points),
                 )
 
             flash("User created successfully", "success")
@@ -189,13 +220,14 @@ def edit_user(phone_number):
     try:
         with get_db() as db:
             if request.method == "POST":
+                username = request.form.get("username", "").strip() or None
                 role = request.form.get("role")
                 points = int(request.form.get("points", 0))
                 is_active = bool(request.form.get("is_active"))
 
                 db.execute(
-                    "UPDATE users SET role = %s, points = %s, is_active = %s WHERE phone_number = %s",
-                    (role, points, is_active, phone_number),
+                    "UPDATE users SET username = %s, role = %s, points = %s, is_active = %s WHERE phone_number = %s",
+                    (username, role, points, is_active, phone_number),
                 )
                 flash("User updated successfully", "success")
                 return redirect(url_for("users"))
@@ -574,6 +606,75 @@ def analytics():
         return render_template(
             "analytics.html", stats={}, monthly_stats=[], top_users=[]
         )
+
+
+@app.route("/broadcast", methods=["GET", "POST"])
+@require_auth
+def broadcast():
+    """Broadcast message to all active users"""
+    if request.method == "POST":
+        try:
+            message_text = request.form.get("message", "").strip()
+            target = request.form.get("target", "all")  # all, telegram, whatsapp
+
+            if not message_text or len(message_text) < 5:
+                flash("Pesan broadcast minimal 5 karakter", "error")
+                return redirect(url_for("broadcast"))
+
+            from src.database.models.user import UserModel
+            user_model = UserModel()
+            phones = user_model.get_all_active_phones()
+
+            if not phones:
+                flash("Tidak ada user aktif", "error")
+                return redirect(url_for("broadcast"))
+
+            sent = 0
+            cfg_obj = get_settings()
+
+            content = f"\ud83d\udce2 **Pengumuman**\n\n{message_text}"
+
+            if target in ("all", "telegram") and cfg_obj.telegram.enabled:
+                from src.channels.telegram import TelegramChannel
+                tg = TelegramChannel()
+                for phone in phones:
+                    if phone.isdigit():
+                        if tg.send_message(phone, content):
+                            sent += 1
+
+            if target in ("all", "whatsapp") and cfg_obj.whatsapp.enabled:
+                from src.channels.whatsapp import WhatsAppChannel
+                wa = WhatsAppChannel()
+                for phone in phones:
+                    if "@" in phone:
+                        wa_content = f"\ud83d\udce2 *Pengumuman*\n\n{message_text}"
+                        if wa.send_message(phone, wa_content):
+                            sent += 1
+
+            flash(f"Broadcast terkirim ke {sent}/{len(phones)} user", "success")
+            return redirect(url_for("broadcast"))
+        except Exception as e:
+            logger.error(f"Broadcast error: {str(e)}")
+            flash("Error mengirim broadcast", "error")
+
+    # GET — show form with user count
+    try:
+        with get_db() as db:
+            row = db.fetch_one(
+                "SELECT COUNT(*) AS cnt FROM users WHERE is_active = TRUE AND registration_status = 'registered'"
+            )
+            total_active = row["cnt"] if row else 0
+    except Exception:
+        total_active = 0
+
+    cfg_obj = get_settings()
+
+    return render_template(
+        "broadcast.html",
+        total_active=total_active,
+        telegram_enabled=cfg_obj.telegram.enabled,
+        whatsapp_enabled=cfg_obj.whatsapp.enabled,
+    )
 
 
 @app.route("/settings")

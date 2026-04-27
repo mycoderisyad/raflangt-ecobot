@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Broadcast - EcoBot Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Broadcast</h1>
+    <p class="page-subtitle">Kirim pengumuman ke semua user aktif</p>
+</div>
+
+<div class="grid-2">
+    <!-- Broadcast Form -->
+    <div class="card">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 16px; font-weight: 600;">Kirim Pengumuman</h3>
+
+        <form method="POST" id="broadcastForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label">Target Channel</label>
+                <select class="form-input" name="target">
+                    <option value="all">Semua Channel</option>
+                    {% if telegram_enabled %}
+                    <option value="telegram">Telegram Only</option>
+                    {% endif %}
+                    {% if whatsapp_enabled %}
+                    <option value="whatsapp">WhatsApp Only</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Isi Pesan</label>
+                <textarea class="form-input" name="message" rows="6" 
+                          placeholder="Tulis pengumuman di sini (min. 5 karakter)..."
+                          required minlength="5" style="resize: vertical;"></textarea>
+                <div style="font-size: 12px; color: #6f6e69; margin-top: 4px;">
+                    Pesan akan otomatis diberi prefix "📢 Pengumuman"
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button type="submit" class="btn btn-primary" onclick="return confirm('Kirim broadcast ke {{ total_active }} user aktif?')">
+                    Kirim Broadcast
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info Panel -->
+    <div>
+        <div class="card">
+            <h3 style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">Info</h3>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 4px;">User Aktif</div>
+                    <div style="font-size: 24px; font-weight: 600; color: var(--text-primary);">{{ total_active }}</div>
+                </div>
+
+                <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 4px;">Telegram</div>
+                    <div style="font-size: 14px; font-weight: 500;">
+                        {% if telegram_enabled %}
+                            <span class="badge" style="background: #f0f9f0; color: #28a745;">Enabled</span>
+                        {% else %}
+                            <span class="badge" style="background: #fdf2f2; color: #dc3545;">Disabled</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px;">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 4px;">WhatsApp</div>
+                    <div style="font-size: 14px; font-weight: 500;">
+                        {% if whatsapp_enabled %}
+                            <span class="badge" style="background: #f0f9f0; color: #28a745;">Enabled</span>
+                        {% else %}
+                            <span class="badge" style="background: #fdf2f2; color: #dc3545;">Disabled</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+            <h3 style="margin-bottom: 12px; color: var(--text-primary); font-size: 16px; font-weight: 600;">Tips</h3>
+            <ul style="font-size: 13px; color: var(--text-secondary); line-height: 1.8; padding-left: 18px;">
+                <li>Gunakan broadcast untuk pengumuman jadwal, event, atau info penting.</li>
+                <li>User juga bisa kirim broadcast via chat: <code>broadcast: [isi pesan]</code></li>
+                <li>Pesan akan dikirim ke semua user yang berstatus aktif dan terdaftar.</li>
+                <li>Hindari spam — gunakan broadcast seperlunya saja.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

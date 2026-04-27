@@ -110,6 +110,7 @@
                             <form method="POST" action="{{ url_for('delete_location', location_id=location.id) }}" 
                                   style="display: inline;" 
                                   onsubmit="return confirm('Are you sure you want to delete this location?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn" 
                                         style="padding: 4px 8px; font-size: 12px; background: #fdf2f2; color: #dc3545; border-color: #dc3545;">Delete</button>
                             </form>

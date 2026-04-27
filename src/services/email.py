@@ -36,7 +36,7 @@ def send_email(
 
     try:
         params = {
-            "from_": cfg.from_email or "EcoBot <noreply@ecobot.id>",
+            "from": cfg.from_email or "EcoBot <noreply@ecobot.id>",
             "to": [recipient],
             "subject": subject,
             "html": html,

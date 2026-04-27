@@ -76,6 +76,15 @@ class DB:
             return cur.rowcount
 
 
+def close_db() -> None:
+    """Close the connection pool gracefully."""
+    global _pool
+    if _pool is not None:
+        _pool.closeall()
+        _pool = None
+        logger.info("PostgreSQL connection pool closed")
+
+
 @contextmanager
 def get_db():
     """Yield a DB wrapper, returning the connection to the pool afterwards."""

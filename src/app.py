@@ -1,5 +1,6 @@
 """Flask application factory + ASGI wrapper for uvicorn."""
 
+import atexit
 import logging
 import sys
 from pathlib import Path
@@ -9,7 +10,34 @@ from dotenv import load_dotenv
 from asgiref.wsgi import WsgiToAsgi
 
 from src.config import init_settings, get_settings
-from src.database import init_db
+from src.database import init_db, close_db
+
+
+_PLACEHOLDER_SECRETS = {
+    "change-me-to-a-random-string",
+    "change-me-to-something-random",
+    "your-secret-key",
+    "secret",
+    "",
+}
+
+
+def _check_secrets(environment: str) -> None:
+    """In production, abort if any critical secret is a known placeholder."""
+    if environment != "production":
+        return
+    import os as _os
+    checks = {
+        "API_SECRET_KEY": _os.getenv("API_SECRET_KEY", ""),
+        "ADMIN_PANEL_SECRET_KEY": _os.getenv("ADMIN_PANEL_SECRET_KEY", ""),
+        "ADMIN_PANEL_PASSWORD": _os.getenv("ADMIN_PANEL_PASSWORD", ""),
+    }
+    for name, value in checks.items():
+        if value in _PLACEHOLDER_SECRETS or value == "admin":
+            raise RuntimeError(
+                f"SECURITY ERROR: {name} is set to a weak/placeholder value. "
+                "Set a strong random secret before running in production."
+            )
 
 
 def create_app() -> Flask:
@@ -17,6 +45,7 @@ def create_app() -> Flask:
     load_dotenv()
 
     settings = init_settings()
+    _check_secrets(settings.app.environment)
     _setup_logging(settings.app.environment)
 
     # Initialise database pool
@@ -32,6 +61,14 @@ def create_app() -> Flask:
     app.register_blueprint(wa_webhook_bp)
     app.register_blueprint(tg_webhook_bp)
     app.register_blueprint(users_bp)
+
+    # Start background scheduler for reminders
+    from src.services.scheduler import start_scheduler, stop_scheduler
+    start_scheduler()
+
+    # Graceful shutdown
+    atexit.register(stop_scheduler)
+    atexit.register(close_db)
 
     logger = logging.getLogger(__name__)
     logger.info("EcoBot %s started — env=%s", settings.app.version, settings.app.environment)
