@@ -38,7 +38,16 @@ cd raflangt-ecobot
 python -m venv venv && venv\Scripts\activate   # Windows
 pip install -r requirements.txt
 cp .env.example .env                           # edit with your keys
-python main.py                                 # development server
+
+# First-time database setup (PostgreSQL must be running)
+python manage.py db:setup
+
+# Setup webhooks
+python manage.py webhook:tg         # register Telegram webhook
+python manage.py webhook:wa         # WhatsApp (WAHA) setup guide
+
+# Start dev server (uvicorn with hot reload)
+python main.py
 ```
 
 ### Production (Docker)
@@ -46,6 +55,24 @@ python main.py                                 # development server
 ```bash
 cp .env.example .env   # fill in real values
 docker compose up -d --build
+```
+
+## Management CLI (`manage.py`)
+
+```bash
+# Database
+python manage.py db:create          # create PostgreSQL database
+python manage.py db:migrate         # run migration files
+python manage.py db:seed            # insert sample data
+python manage.py db:setup           # create + migrate + seed (first time)
+python manage.py db:reset           # drop all tables, re-migrate + seed
+python manage.py db:status          # show tables and row counts
+
+# Webhooks
+python manage.py webhook:tg         # set Telegram webhook URL
+python manage.py webhook:tg:info    # check Telegram webhook status
+python manage.py webhook:tg:delete  # remove Telegram webhook
+python manage.py webhook:wa         # WhatsApp (WAHA) setup guide
 ```
 
 ## Key Environment Variables

@@ -21,15 +21,38 @@ def build_db_context(intent: str) -> str:
     return "\n".join(p for p in parts if p)
 
 
+def _format_waste_types(raw) -> str:
+    """Convert JSONB waste_types to readable string."""
+    if isinstance(raw, list):
+        return ", ".join(raw)
+    if isinstance(raw, str):
+        try:
+            import json
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                return ", ".join(parsed)
+        except (json.JSONDecodeError, TypeError):
+            pass
+        return raw
+    return str(raw) if raw else ""
+
+
 def _schedules_context() -> str:
     try:
         model = CollectionScheduleModel()
         schedules = model.get_all_active()
         if not schedules:
             return "Jadwal pengumpulan: belum ada data."
-        lines = ["**Jadwal Pengumpulan Sampah:**"]
+        lines = ["Jadwal Pengumpulan Sampah:"]
         for s in schedules:
-            lines.append(f"- {s['location_name']} ({s['address']}): {s['schedule_day']} {s['schedule_time']}")
+            wt = _format_waste_types(s.get("waste_types"))
+            contact = s.get("contact") or ""
+            line = f"- {s['schedule_day']} {s['schedule_time']}: {s['location_name']}, {s['address']}"
+            if wt:
+                line += f" (jenis: {wt})"
+            if contact:
+                line += f" — PJ: {contact}"
+            lines.append(line)
         return "\n".join(lines)
     except Exception as e:
         logger.error("Error loading schedules context: %s", e)
@@ -42,12 +65,18 @@ def _locations_context() -> str:
         points = model.get_all_active()
         if not points:
             return "Titik pengumpulan: belum ada data."
-        lines = ["**Titik Pengumpulan Sampah:**"]
+        lines = ["Titik Pengumpulan Sampah:"]
         for p in points:
-            desc = f"- {p['name']} ({p['type']}): {p.get('description', '')}"
+            wt = _format_waste_types(p.get("accepted_waste_types"))
+            desc = p.get("description") or ""
+            line = f"- {p['name']} ({p['type']})"
+            if desc:
+                line += f": {desc}"
             if p.get("schedule"):
-                desc += f" — Jadwal: {p['schedule']}"
-            lines.append(desc)
+                line += f" — Jadwal: {p['schedule']}"
+            if wt:
+                line += f" — Jenis: {wt}"
+            lines.append(line)
         return "\n".join(lines)
     except Exception as e:
         logger.error("Error loading locations context: %s", e)

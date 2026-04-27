@@ -17,8 +17,16 @@ def get_ai_client() -> OpenAI:
     global _client
     if _client is None:
         cfg = get_settings().ai
-        _client = OpenAI(api_key=cfg.api_key, base_url=cfg.base_url)
-        logger.info("AI client initialised — provider=%s model=%s", cfg.provider, cfg.model)
+        base_url = cfg.base_url
+        if not base_url or not base_url.startswith("http"):
+            base_url = (
+                "https://generativelanguage.googleapis.com/v1beta/openai/"
+                if cfg.provider == "gemini"
+                else "https://api.openai.com/v1/"
+            )
+            logger.warning("AI_BASE_URL empty/invalid, using default: %s", base_url)
+        _client = OpenAI(api_key=cfg.api_key, base_url=base_url)
+        logger.info("AI client initialised — provider=%s model=%s base_url=%s", cfg.provider, cfg.model, base_url)
     return _client
 
 

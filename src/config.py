@@ -26,13 +26,13 @@ class DatabaseConfig:
 class AIConfig:
     provider: str = "gemini"
     api_key: str = ""
-    model: str = "gemini-2.0-flash"
+    model: str = ""
     base_url: str = ""
 
     @classmethod
     def from_env(cls) -> "AIConfig":
         provider = os.getenv("AI_PROVIDER", "gemini").lower()
-        base_url = os.getenv("AI_BASE_URL", "")
+        base_url = os.getenv("AI_BASE_URL", "").strip()
         if not base_url:
             if provider == "gemini":
                 base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -115,7 +115,7 @@ class AppConfig:
             version=os.getenv("APP_VERSION", "2.0.0"),
             environment=env,
             debug=env == "development",
-            port=int(os.getenv("PORT", "5000" if env == "development" else "8000")),
+            port=int(os.getenv("PORT", "8000")),
             timezone=os.getenv("TIMEZONE", "Asia/Jakarta"),
             village_name=os.getenv("VILLAGE_NAME", ""),
             village_coordinates=os.getenv("VILLAGE_COORDINATES", ""),

@@ -7,6 +7,7 @@ import requests
 
 from src.config import get_settings
 from src.channels.base import BaseChannel
+from src.utils.formatting import md_to_telegram_html
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +23,27 @@ class TelegramChannel(BaseChannel):
 
     def send_message(self, recipient: str, text: str) -> bool:
         try:
+            # Convert AI Markdown → Telegram HTML
+            html_text = md_to_telegram_html(text)
             resp = requests.post(
                 f"{self._api}/sendMessage",
-                json={"chat_id": recipient, "text": text, "parse_mode": "Markdown"},
+                json={"chat_id": recipient, "text": html_text, "parse_mode": "HTML"},
                 timeout=30,
             )
             if resp.status_code == 200:
                 return True
+
+            # HTML parse failed → retry as plain text (strip formatting)
+            if resp.status_code == 400 and "parse entities" in resp.text:
+                logger.warning("TG HTML parse failed, retrying as plain text")
+                resp = requests.post(
+                    f"{self._api}/sendMessage",
+                    json={"chat_id": recipient, "text": text},
+                    timeout=30,
+                )
+                if resp.status_code == 200:
+                    return True
+
             logger.error("TG send failed %s: %s", resp.status_code, resp.text)
             return False
         except Exception as e:

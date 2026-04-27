@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS collection_schedules (
     id SERIAL PRIMARY KEY,
     location_name TEXT NOT NULL,
     address TEXT NOT NULL,
-    schedule_day TEXT NOT NULL CHECK (schedule_day IN ('senin','selasa','rabu','kamis','jumat','sabtu','minggu')),
+    schedule_day TEXT NOT NULL CHECK (schedule_day IN ('Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu')),
     schedule_time TEXT NOT NULL,
     waste_types JSONB NOT NULL,
     contact TEXT,
