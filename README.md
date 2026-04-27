@@ -1,87 +1,87 @@
-# EcoBot
+# EcoBot v2 — Waste Management Assistant
 
-Backend for WhatsApp-based waste management with AI assistance and role-based features.
+A modular Python/Flask backend for waste management via **WhatsApp** and **Telegram**. Powered by **Gemini** or **OpenAI** (selectable at runtime), backed by **PostgreSQL**, with role-based workflows, AI vision for waste classification, and automated email reports via **Resend**.
 
-## Overview
+## Architecture
 
-EcoBot is a Flask backend that integrates WhatsApp messaging, AI text/image services, and a SQLite database to provide education, schedules, locations, and admin operations. The bot supports three AI modes and long‑term conversation memory stored in the database.
+```
+src/
+├── ai/           # AI provider, agent, prompt templates
+├── api/          # Flask blueprints (webhooks, users, health)
+├── channels/     # WhatsApp (WAHA) + Telegram abstraction
+├── core/         # Orchestrator, intent resolver, constants
+├── database/     # PostgreSQL pool, migrations, models
+├── services/     # Email (Resend), reports (PDF), registration
+├── utils/        # Logger, phone, formatting helpers
+├── config.py     # Centralised settings from env vars
+└── app.py        # Flask application factory
+```
 
 ## Features
 
-- AI chat with conversation memory (database backed)
-- Image analysis for waste classification
-- Role-based commands: warga, koordinator, admin
-- Collection points and schedules from the database
-- Admin command suite over WhatsApp
-- Configurable registration flow (auto or manual)
+- **Dual AI Provider** — Gemini multimodal or OpenAI via a single OpenAI-compatible SDK
+- **Multi-Channel** — WhatsApp (WAHA) + Telegram Bot API
+- **Natural Language** — No slash commands required; LLM-based intent resolution
+- **AI Vision** — Send a photo → waste classification + recycling tips
+- **PostgreSQL** — Conversation history, user memory, waste stats
+- **Role-Based Access** — admin / koordinator / warga
+- **Modular Prompts** — Markdown templates composed at runtime
+- **Email Reports** — PDF generation + delivery via Resend
+- **Admin Panel** — Flask templates with extracted CSS
+- **Docker-Ready** — `docker compose up` for production
 
-## Tech Stack
-
-- Python 3.10+, Flask
-- SQLite
-- [WAHA for WhatsApp integration](https://waha.devlike.pro/)
-- AI providers: [Lunos.tech](https://lunos.tech/) (text), [Unli.dev](https://unli.dev/) (vision)
-- Mail Service: [Mailry.co](https://mailry.co/)
-
-## Setup
-
-Requirements: Python 3.10+, pip, virtualenv, API keys for WAHA/Lunos/Mailry.
+## Quick Start
 
 ```bash
 git clone https://github.com/mycoderisyad/raflangt-ecobot.git
 cd raflangt-ecobot
-python3 -m venv venv && source venv/bin/activate
+python -m venv venv && venv\Scripts\activate   # Windows
 pip install -r requirements.txt
-cp .env.example .env
-# edit .env with your keys
+cp .env.example .env                           # edit with your keys
+python main.py                                 # development server
 ```
 
-### Key environment variables
-
-- WAHA_BASE_URL, WAHA_API_KEY, WAHA_SESSION_NAME, WEBHOOK_URL
-- LUNOS_API_KEY, LUNOS_BASE_URL, LUNOS_AGENT_MODE,
-- MAILRY_API_KEY, MAILRY_BASE_URL, MAILRY_FROM_EMAIL, MAILRY_TO_EMAIL
-- GOOGLE_MAPS_API_KEY
-- REGISTRATION_MODE=auto|manual (default: auto)
-
-## Run
+### Production (Docker)
 
 ```bash
-python3 main.py              # development
-python3 main.py --production # production
+cp .env.example .env   # fill in real values
+docker compose up -d --build
 ```
 
-## AI Modes
+## Key Environment Variables
 
-- /layanan-ecobot: EcoBot Service (database only)
-- /general-ecobot: General Waste Management
-- /hybrid-ecobot: Hybrid (default)
+| Variable | Description | Default |
+|---|---|---|
+| `AI_PROVIDER` | `gemini` or `openai` | `gemini` |
+| `AI_API_KEY` | API key for chosen provider | — |
+| `AI_MODEL` | Model name | `gemini-2.0-flash` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://…/ecobot` |
+| `WHATSAPP_ENABLED` | Enable WhatsApp channel | `true` |
+| `WAHA_BASE_URL` | WAHA API URL | — |
+| `WAHA_API_KEY` | WAHA API key | — |
+| `TELEGRAM_ENABLED` | Enable Telegram channel | `false` |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token | — |
+| `RESEND_API_KEY` | Resend email API key | — |
+| `ADMIN_PHONE_NUMBERS` | Comma-separated admin phones | — |
 
-## Commands by role
+See `.env.example` for the full list.
 
-Warga:
-- edukasi, jadwal, lokasi, help
+## Webhooks
 
-Koordinator:
-- Semua perintah warga + statistik, laporan
+| Channel | Endpoint |
+|---|---|
+| WhatsApp (WAHA) | `POST /webhook/whatsapp` |
+| Telegram | `POST /webhook/telegram` |
+| Health check | `GET /health` |
 
-Admin:
-- Semua perintah koordinator + point, redeem, /admin (user and point management, stats, logs, backup, broadcast, report, memory_stats)
+## Roles & Access
 
-## Registration
-
-Auto registration is enabled by default. To require manual registration, set REGISTRATION_MODE=manual. When manual mode is on, the bot collects name and address in free form and normalizes them via AI/utils before storing.
-
-## Database
-
-SQLite file path can be set via DATABASE_PATH. Tables include users, collection_points, collection_schedules, waste_classifications, user_memory, conversation_history, user_interactions, system_logs.
-
-## Endpoints
-
-- GET /           – health/info
-- GET /health     – system health
-- POST /webhook   – WhatsApp webhook
+| Role | Capabilities |
+|---|---|
+| **warga** | Chat, education, schedule, location, image analysis |
+| **koordinator** | + statistics, reports |
+| **admin** | + full admin panel, user management |
 
 ## License
 
-Apache 2.0. See LICENSE.
+MIT

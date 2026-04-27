@@ -46,9 +46,6 @@ dmypy.json
 *.sqlite
 *.sqlite3
 *.db-journal
-database/*.db
-!database/schema.sql
-!database/dummy_data.sql
 
 # ============================================================================
 # Logs & Temporary Files

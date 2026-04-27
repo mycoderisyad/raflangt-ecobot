@@ -1,0 +1,12 @@
+.git
+.env
+__pycache__
+*.pyc
+*.pyo
+venv/
+.venv/
+database/*.db
+logs/
+.plan/
+*.md
+!requirements.txt

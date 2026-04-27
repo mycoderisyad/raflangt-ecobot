@@ -20,7 +20,6 @@ from flask import (
 from functools import wraps
 from dotenv import load_dotenv
 import logging
-import sqlite3
 from datetime import datetime
 
 # Add project root to Python path
@@ -29,6 +28,13 @@ sys.path.insert(0, str(project_root))
 
 # Load environment variables
 load_dotenv(project_root / ".env")
+
+# Initialise settings & database pool once
+from src.config import init_settings
+from src.database.connection import init_db, get_db
+
+init_settings()
+init_db()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -47,15 +53,6 @@ app.secret_key = ADMIN_PANEL_SECRET_KEY
 # Admin credentials from .env
 ADMIN_USERNAME = os.getenv("ADMIN_PANEL_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PANEL_PASSWORD", "admin123")
-DATABASE_PATH = os.getenv("DATABASE_PATH", "database/ecobot.db")
-
-
-def get_db_connection():
-    """Get database connection"""
-    db_path = project_root / DATABASE_PATH
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
-    return conn
 
 
 def require_auth(f):
@@ -109,35 +106,25 @@ def logout():
 def dashboard():
     """Main dashboard with statistics"""
     try:
-        conn = get_db_connection()
+        with get_db() as db:
+            users = db.fetch_all("SELECT * FROM users")
 
-        # Get user statistics
-        users = conn.execute("SELECT * FROM users").fetchall()
+            total_users = len(users)
+            active_users = len([u for u in users if u.get("is_active")])
+            total_points = sum(u.get("points") or 0 for u in users)
+            total_messages = sum(u.get("total_messages") or 0 for u in users)
+            total_images = sum(u.get("total_images") or 0 for u in users)
 
-        total_users = len(users)
-        active_users = len([u for u in users if u["is_active"] == 1])
-        total_points = sum(u["points"] or 0 for u in users)
-        total_messages = sum(u["total_messages"] or 0 for u in users)
-        total_images = sum(u["total_images"] or 0 for u in users)
+            roles = {}
+            for user in users:
+                role = user.get("role") or "warga"
+                roles[role] = roles.get(role, 0) + 1
 
-        # Role distribution
-        roles = {}
-        for user in users:
-            role = user["role"] or "warga"
-            roles[role] = roles.get(role, 0) + 1
-
-        # Recent activity
-        recent_activity = conn.execute(
-            """
-            SELECT phone_number, last_active, total_messages, role 
-            FROM users 
-            WHERE last_active IS NOT NULL 
-            ORDER BY last_active DESC 
-            LIMIT 15
-        """
-        ).fetchall()
-
-        conn.close()
+            recent_activity = db.fetch_all(
+                """SELECT phone_number, last_active, total_messages, role
+                   FROM users WHERE last_active IS NOT NULL
+                   ORDER BY last_active DESC LIMIT 15"""
+            )
 
         stats = {
             "total_users": total_users,
@@ -161,11 +148,8 @@ def dashboard():
 def users():
     """Users management page"""
     try:
-        conn = get_db_connection()
-        users_data = conn.execute(
-            "SELECT * FROM users ORDER BY last_active DESC"
-        ).fetchall()
-        conn.close()
+        with get_db() as db:
+            users_data = db.fetch_all("SELECT * FROM users ORDER BY last_active DESC")
         return render_template("users.html", users=users_data)
     except Exception as e:
         logger.error(f"Users page error: {str(e)}")
@@ -183,18 +167,11 @@ def create_user():
             role = request.form.get("role", "warga")
             points = int(request.form.get("points", 0))
 
-            conn = get_db_connection()
-            conn.execute(
-                "INSERT INTO users (phone_number, role, points, is_active, first_seen) VALUES (?, ?, ?, 1, ?)",
-                (
-                    phone_number,
-                    role,
-                    points,
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                ),
-            )
-            conn.commit()
-            conn.close()
+            with get_db() as db:
+                db.execute(
+                    "INSERT INTO users (phone_number, role, points, is_active, first_seen) VALUES (%s, %s, %s, TRUE, NOW())",
+                    (phone_number, role, points),
+                )
 
             flash("User created successfully", "success")
             return redirect(url_for("users"))
@@ -210,27 +187,20 @@ def create_user():
 def edit_user(phone_number):
     """Edit user"""
     try:
-        conn = get_db_connection()
+        with get_db() as db:
+            if request.method == "POST":
+                role = request.form.get("role")
+                points = int(request.form.get("points", 0))
+                is_active = bool(request.form.get("is_active"))
 
-        if request.method == "POST":
-            role = request.form.get("role")
-            points = int(request.form.get("points", 0))
-            is_active = 1 if request.form.get("is_active") else 0
+                db.execute(
+                    "UPDATE users SET role = %s, points = %s, is_active = %s WHERE phone_number = %s",
+                    (role, points, is_active, phone_number),
+                )
+                flash("User updated successfully", "success")
+                return redirect(url_for("users"))
 
-            conn.execute(
-                "UPDATE users SET role = ?, points = ?, is_active = ? WHERE phone_number = ?",
-                (role, points, is_active, phone_number),
-            )
-            conn.commit()
-            conn.close()
-
-            flash("User updated successfully", "success")
-            return redirect(url_for("users"))
-
-        user = conn.execute(
-            "SELECT * FROM users WHERE phone_number = ?", (phone_number,)
-        ).fetchone()
-        conn.close()
+            user = db.fetch_one("SELECT * FROM users WHERE phone_number = %s", (phone_number,))
 
         if user:
             return render_template("user_form.html", user=user, action="edit")
@@ -249,11 +219,8 @@ def edit_user(phone_number):
 def delete_user(phone_number):
     """Delete user"""
     try:
-        conn = get_db_connection()
-        conn.execute("DELETE FROM users WHERE phone_number = ?", (phone_number,))
-        conn.commit()
-        conn.close()
-
+        with get_db() as db:
+            db.execute("DELETE FROM users WHERE phone_number = %s", (phone_number,))
         flash("User deleted successfully", "success")
     except Exception as e:
         logger.error(f"Delete user error: {str(e)}")
@@ -267,11 +234,8 @@ def delete_user(phone_number):
 def locations():
     """Collection points management"""
     try:
-        conn = get_db_connection()
-        locations_data = conn.execute(
-            "SELECT * FROM collection_points ORDER BY name"
-        ).fetchall()
-        conn.close()
+        with get_db() as db:
+            locations_data = db.fetch_all("SELECT * FROM collection_points ORDER BY name")
         return render_template("locations.html", locations=locations_data)
     except Exception as e:
         logger.error(f"Locations error: {str(e)}")
@@ -305,23 +269,13 @@ def create_location():
             contact = request.form.get("contact", "")
             description = request.form.get("description", "")
 
-            conn = get_db_connection()
-            conn.execute(
-                "INSERT INTO collection_points (id, name, type, latitude, longitude, accepted_waste_types, schedule, contact, description, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
-                (
-                    location_id,
-                    name,
-                    location_type,
-                    latitude,
-                    longitude,
-                    waste_types,
-                    schedule,
-                    contact,
-                    description,
-                ),
-            )
-            conn.commit()
-            conn.close()
+            with get_db() as db:
+                db.execute(
+                    """INSERT INTO collection_points
+                       (id, name, type, latitude, longitude, accepted_waste_types, schedule, contact, description, is_active)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)""",
+                    (location_id, name, location_type, latitude, longitude, waste_types, schedule, contact, description),
+                )
 
             flash("Collection point created successfully", "success")
             return redirect(url_for("locations"))
@@ -337,57 +291,33 @@ def create_location():
 def edit_location(location_id):
     """Edit existing collection point"""
     try:
-        conn = get_db_connection()
+        with get_db() as db:
+            if request.method == "POST":
+                name = request.form.get("name")
+                location_type = request.form.get("type", "TPS")
+                latitude = float(request.form.get("latitude", 0)) if request.form.get("latitude") else None
+                longitude = float(request.form.get("longitude", 0)) if request.form.get("longitude") else None
+                waste_types = request.form.get("waste_types")
+                schedule = request.form.get("schedule")
+                contact = request.form.get("contact", "")
+                description = request.form.get("description", "")
+                is_active = bool(request.form.get("is_active"))
 
-        if request.method == "POST":
-            name = request.form.get("name")
-            location_type = request.form.get("type", "TPS")
-            latitude = (
-                float(request.form.get("latitude", 0))
-                if request.form.get("latitude")
-                else None
-            )
-            longitude = (
-                float(request.form.get("longitude", 0))
-                if request.form.get("longitude")
-                else None
-            )
-            waste_types = request.form.get("waste_types")
-            schedule = request.form.get("schedule")
-            contact = request.form.get("contact", "")
-            description = request.form.get("description", "")
-            is_active = 1 if request.form.get("is_active") else 0
+                db.execute(
+                    """UPDATE collection_points
+                       SET name=%s, type=%s, latitude=%s, longitude=%s,
+                           accepted_waste_types=%s, schedule=%s, contact=%s,
+                           description=%s, is_active=%s, updated_at=NOW()
+                       WHERE id=%s""",
+                    (name, location_type, latitude, longitude, waste_types, schedule, contact, description, is_active, location_id),
+                )
+                flash("Collection point updated successfully", "success")
+                return redirect(url_for("locations"))
 
-            conn.execute(
-                "UPDATE collection_points SET name = ?, type = ?, latitude = ?, longitude = ?, accepted_waste_types = ?, schedule = ?, contact = ?, description = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (
-                    name,
-                    location_type,
-                    latitude,
-                    longitude,
-                    waste_types,
-                    schedule,
-                    contact,
-                    description,
-                    is_active,
-                    location_id,
-                ),
-            )
-            conn.commit()
-            conn.close()
-
-            flash("Collection point updated successfully", "success")
-            return redirect(url_for("locations"))
-
-        location = conn.execute(
-            "SELECT * FROM collection_points WHERE id = ?", (location_id,)
-        ).fetchone()
-        conn.close()
+            location = db.fetch_one("SELECT * FROM collection_points WHERE id = %s", (location_id,))
 
         if location:
-            return render_template(
-                "location_form.html", location=location, action="edit"
-            )
+            return render_template("location_form.html", location=location, action="edit")
         else:
             flash("Location not found", "error")
             return redirect(url_for("locations"))
@@ -403,11 +333,8 @@ def edit_location(location_id):
 def delete_location(location_id):
     """Delete collection point"""
     try:
-        conn = get_db_connection()
-        conn.execute("DELETE FROM collection_points WHERE id = ?", (location_id,))
-        conn.commit()
-        conn.close()
-
+        with get_db() as db:
+            db.execute("DELETE FROM collection_points WHERE id = %s", (location_id,))
         flash("Collection point deleted successfully", "success")
     except Exception as e:
         logger.error(f"Delete location error: {str(e)}")
@@ -421,51 +348,30 @@ def delete_location(location_id):
 def schedules():
     """Schedules management"""
     try:
-        conn = get_db_connection()
-        schedules_query = """
-            SELECT * FROM collection_schedules 
-            ORDER BY 
-                CASE schedule_day
-                    WHEN 'Senin' THEN 1
-                    WHEN 'Selasa' THEN 2
-                    WHEN 'Rabu' THEN 3
-                    WHEN 'Kamis' THEN 4
-                    WHEN 'Jumat' THEN 5
-                    WHEN 'Sabtu' THEN 6
-                    WHEN 'Minggu' THEN 7
-                    ELSE 8
-                END,
-                schedule_time ASC
-        """
-        schedules = conn.execute(schedules_query).fetchall()
-        conn.close()
-        
-        # Debug: Convert to list of dicts for better template access
+        with get_db() as db:
+            rows = db.fetch_all(
+                """SELECT * FROM collection_schedules
+                   ORDER BY
+                       CASE schedule_day
+                           WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3
+                           WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6
+                           WHEN 'Minggu' THEN 7 ELSE 8
+                       END, schedule_time ASC"""
+            )
+
         schedules_list = []
-        for row in schedules:
-            # Parse address to extract notes if they exist
-            address = row[2]  # address is at index 2
+        for row in rows:
+            address = row.get("address") or ""
             notes = ""
-            clean_address = address
-            if address and " | Notes: " in address:
+            if " | Notes: " in address:
                 parts = address.split(" | Notes: ", 1)
-                clean_address = parts[0]
+                address = parts[0]
                 notes = parts[1] if len(parts) > 1 else ""
-            
-            schedules_list.append({
-                'id': row[0],
-                'location_name': row[1],
-                'address': clean_address,
-                'notes': notes,
-                'schedule_day': row[3],
-                'schedule_time': row[4],
-                'waste_types': row[5],
-                'contact': row[6],  # This stores the collector
-                'is_active': row[7],
-                'created_at': row[8],
-                'updated_at': row[9]
-            })
-        
+            row_copy = dict(row)
+            row_copy["address"] = address
+            row_copy["notes"] = notes
+            schedules_list.append(row_copy)
+
         return render_template("schedules.html", schedules=schedules_list)
     except Exception as e:
         logger.error(f"Schedules error: {str(e)}")
@@ -478,50 +384,20 @@ def schedules():
 def schedules_debug():
     """Debug schedules data"""
     try:
-        conn = get_db_connection()
-        schedules_query = """
-            SELECT * FROM collection_schedules 
-            ORDER BY 
-                CASE schedule_day
-                    WHEN 'Senin' THEN 1
-                    WHEN 'Selasa' THEN 2
-                    WHEN 'Rabu' THEN 3
-                    WHEN 'Kamis' THEN 4
-                    WHEN 'Jumat' THEN 5
-                    WHEN 'Sabtu' THEN 6
-                    WHEN 'Minggu' THEN 7
-                    ELSE 8
-                END,
-                schedule_time ASC
-        """
-        schedules = conn.execute(schedules_query).fetchall()
-        conn.close()
-        
-        # Convert to list of dicts
-        schedules_list = []
-        for row in schedules:
-            schedules_list.append({
-                'id': row[0],
-                'location_name': row[1],
-                'address': row[2],
-                'schedule_day': row[3],
-                'schedule_time': row[4],
-                'waste_types': row[5],
-                'contact': row[6],
-                'is_active': row[7],
-                'created_at': row[8],
-                'updated_at': row[9]
-            })
-        
-        # Return JSON for debugging
+        with get_db() as db:
+            rows = db.fetch_all(
+                """SELECT * FROM collection_schedules
+                   ORDER BY
+                       CASE schedule_day
+                           WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3
+                           WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6
+                           WHEN 'Minggu' THEN 7 ELSE 8
+                       END, schedule_time ASC"""
+            )
         return {
-            "total_schedules": len(schedules_list),
-            "schedules": schedules_list,
-            "debug_info": {
-                "raw_data_type": str(type(schedules)),
-                "processed_data_type": str(type(schedules_list)),
-                "sample_schedule": schedules_list[0] if schedules_list else None
-            }
+            "total_schedules": len(rows),
+            "schedules": rows,
+            "debug_info": {"sample_schedule": rows[0] if rows else None},
         }
     except Exception as e:
         return {"error": str(e)}
@@ -553,20 +429,13 @@ def create_schedule():
             if notes:
                 full_address = f"{address} | Notes: {notes}"
 
-            conn = get_db_connection()
-            conn.execute(
-                "INSERT INTO collection_schedules (location_name, address, schedule_day, schedule_time, waste_types, contact, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
-                (
-                    location_name,
-                    full_address,
-                    schedule_day,
-                    schedule_time,
-                    waste_types,
-                    contact,
-                ),
-            )
-            conn.commit()
-            conn.close()
+            with get_db() as db:
+                db.execute(
+                    """INSERT INTO collection_schedules
+                       (location_name, address, schedule_day, schedule_time, waste_types, contact, is_active)
+                       VALUES (%s, %s, %s, %s, %s, %s, TRUE)""",
+                    (location_name, full_address, schedule_day, schedule_time, waste_types, contact),
+                )
 
             flash("Collection schedule created successfully", "success")
             return redirect(url_for("schedules"))
@@ -582,93 +451,61 @@ def create_schedule():
 def edit_schedule(schedule_id):
     """Edit existing collection schedule"""
     try:
-        conn = get_db_connection()
+        with get_db() as db:
+            if request.method == "POST":
+                location_name = request.form.get("location_name")
+                address = request.form.get("address")
+                schedule_day = request.form.get("schedule_day")
+                start_time = request.form.get("start_time")
+                end_time = request.form.get("end_time")
+                waste_types = request.form.get("waste_types")
+                collector = request.form.get("collector", "")
+                notes = request.form.get("notes", "")
+                is_active = bool(request.form.get("is_active"))
 
-        if request.method == "POST":
-            location_name = request.form.get("location_name")
-            address = request.form.get("address")
-            schedule_day = request.form.get("schedule_day")
-            start_time = request.form.get("start_time")
-            end_time = request.form.get("end_time")
-            waste_types = request.form.get("waste_types")
-            collector = request.form.get("collector", "")
-            notes = request.form.get("notes", "")
-            is_active = 1 if request.form.get("is_active") else 0
+                schedule_time = f"{start_time}-{end_time}"
+                contact = collector
+                full_address = f"{address} | Notes: {notes}" if notes else address
 
-            # Combine start and end time into schedule_time format
-            schedule_time = f"{start_time}-{end_time}"
+                db.execute(
+                    """UPDATE collection_schedules
+                       SET location_name=%s, address=%s, schedule_day=%s, schedule_time=%s,
+                           waste_types=%s, contact=%s, is_active=%s, updated_at=NOW()
+                       WHERE id=%s""",
+                    (location_name, full_address, schedule_day, schedule_time, waste_types, contact, is_active, schedule_id),
+                )
+                flash("Collection schedule updated successfully", "success")
+                return redirect(url_for("schedules"))
 
-            # For now, we'll store collector in contact field and notes in address field
-            contact = collector
-            # Combine address and notes for now (since we don't have a separate notes column)
-            full_address = address
-            if notes:
-                full_address = f"{address} | Notes: {notes}"
-
-            conn.execute(
-                "UPDATE collection_schedules SET location_name = ?, address = ?, schedule_day = ?, schedule_time = ?, waste_types = ?, contact = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (
-                    location_name,
-                    full_address,
-                    schedule_day,
-                    schedule_time,
-                    waste_types,
-                    contact,
-                    is_active,
-                    schedule_id,
-                ),
-            )
-            conn.commit()
-            conn.close()
-
-            flash("Collection schedule updated successfully", "success")
-            return redirect(url_for("schedules"))
-
-        schedule = conn.execute(
-            "SELECT * FROM collection_schedules WHERE id = ?", (schedule_id,)
-        ).fetchone()
-        conn.close()
+            schedule = db.fetch_one("SELECT * FROM collection_schedules WHERE id = %s", (schedule_id,))
 
         if schedule:
-            # Parse schedule_time to extract start_time and end_time
-            schedule_time = schedule[4]  # schedule_time is at index 4
+            schedule_time = schedule.get("schedule_time") or ""
             start_time = ""
             end_time = ""
-            
-            if schedule_time and "-" in schedule_time:
-                time_parts = schedule_time.split("-")
-                if len(time_parts) == 2:
-                    start_time = time_parts[0].strip()
-                    end_time = time_parts[1].strip()
-            
-            # Parse address to extract notes if they exist
-            address = schedule[2]  # address is at index 2
+            if "-" in schedule_time:
+                parts = schedule_time.split("-")
+                if len(parts) == 2:
+                    start_time = parts[0].strip()
+                    end_time = parts[1].strip()
+
+            address = schedule.get("address") or ""
             notes = ""
-            if address and " | Notes: " in address:
-                parts = address.split(" | Notes: ", 1)
-                address = parts[0]
-                notes = parts[1] if len(parts) > 1 else ""
-            
-            # Create schedule dict with parsed time and notes
-            schedule_dict = {
-                'id': schedule[0],
-                'location_name': schedule[1],
-                'address': address,
-                'schedule_day': schedule[3],
-                'schedule_time': schedule[4],
-                'start_time': start_time,
-                'end_time': end_time,
-                'waste_types': schedule[5],
-                'collector': schedule[6],  # contact field stores collector
-                'notes': notes,
-                'is_active': schedule[7],
-                'created_at': schedule[8],
-                'updated_at': schedule[9]
-            }
-            
-            return render_template(
-                "schedule_form.html", schedule=schedule_dict, action="edit"
-            )
+            if " | Notes: " in address:
+                addr_parts = address.split(" | Notes: ", 1)
+                address = addr_parts[0]
+                notes = addr_parts[1] if len(addr_parts) > 1 else ""
+
+            schedule_dict = dict(schedule)
+            schedule_dict.update({
+                "address": address,
+                "start_time": start_time,
+                "end_time": end_time,
+                "collector": schedule.get("contact", ""),
+                "notes": notes,
+            })
+
+            return render_template("schedule_form.html", schedule=schedule_dict, action="edit")
         else:
             flash("Schedule not found", "error")
             return redirect(url_for("schedules"))
@@ -684,11 +521,8 @@ def edit_schedule(schedule_id):
 def delete_schedule(schedule_id):
     """Delete collection schedule"""
     try:
-        conn = get_db_connection()
-        conn.execute("DELETE FROM collection_schedules WHERE id = ?", (schedule_id,))
-        conn.commit()
-        conn.close()
-
+        with get_db() as db:
+            db.execute("DELETE FROM collection_schedules WHERE id = %s", (schedule_id,))
         flash("Collection schedule deleted successfully", "success")
     except Exception as e:
         logger.error(f"Delete schedule error: {str(e)}")
@@ -702,46 +536,31 @@ def delete_schedule(schedule_id):
 def analytics():
     """Analytics and reports"""
     try:
-        conn = get_db_connection()
+        with get_db() as db:
+            users = db.fetch_all("SELECT * FROM users")
 
-        # Get basic stats
-        users = conn.execute("SELECT * FROM users").fetchall()
+            stats = {
+                "total_users": len(users),
+                "active_users": len([u for u in users if u.get("is_active")]),
+                "total_points": sum(u.get("points") or 0 for u in users),
+                "total_messages": sum(u.get("total_messages") or 0 for u in users),
+                "total_images": sum(u.get("total_images") or 0 for u in users),
+            }
 
-        stats = {
-            "total_users": len(users),
-            "active_users": len([u for u in users if u["is_active"] == 1]),
-            "total_points": sum(u["points"] or 0 for u in users),
-            "total_messages": sum(u["total_messages"] or 0 for u in users),
-            "total_images": sum(u["total_images"] or 0 for u in users),
-        }
+            monthly_stats = db.fetch_all(
+                """SELECT TO_CHAR(first_seen, 'YYYY-MM') as month,
+                          COUNT(*) as new_users,
+                          SUM(total_messages) as messages,
+                          SUM(total_images) as images
+                   FROM users WHERE first_seen IS NOT NULL
+                   GROUP BY TO_CHAR(first_seen, 'YYYY-MM')
+                   ORDER BY month DESC LIMIT 12"""
+            )
 
-        # Monthly statistics (last 6 months)
-        monthly_stats = conn.execute(
-            """
-            SELECT 
-                strftime('%Y-%m', first_seen) as month,
-                COUNT(*) as new_users,
-                SUM(total_messages) as messages,
-                SUM(total_images) as images
-            FROM users 
-            WHERE first_seen IS NOT NULL 
-            GROUP BY strftime('%Y-%m', first_seen) 
-            ORDER BY month DESC 
-            LIMIT 12
-        """
-        ).fetchall()
-
-        # Top users by points
-        top_users = conn.execute(
-            """
-            SELECT phone_number, points, total_messages, role 
-            FROM users 
-            ORDER BY points DESC 
-            LIMIT 10
-        """
-        ).fetchall()
-
-        conn.close()
+            top_users = db.fetch_all(
+                """SELECT phone_number, points, total_messages, role
+                   FROM users ORDER BY points DESC LIMIT 10"""
+            )
 
         return render_template(
             "analytics.html",
@@ -761,11 +580,14 @@ def analytics():
 @require_auth
 def settings():
     """System settings and configuration"""
+    db_url = os.getenv("DATABASE_URL", "")
+    db_display = db_url.split("@")[-1] if "@" in db_url else db_url  # hide credentials
     app_info = {
         "name": os.getenv("APP_NAME", "EcoBot"),
-        "version": os.getenv("APP_VERSION", "1.0.0"),
+        "version": os.getenv("APP_VERSION", "2.0.0"),
         "environment": os.getenv("ENVIRONMENT", "production"),
-        "database_path": os.getenv("DATABASE_PATH", "database/ecobot.db"),
+        "database": f"PostgreSQL ({db_display})" if db_display else "Not configured",
+        "ai_provider": os.getenv("AI_PROVIDER", "gemini"),
         "village_name": os.getenv("VILLAGE_NAME", "Not set"),
     }
     return render_template("settings.html", app_info=app_info)
@@ -776,19 +598,18 @@ def settings():
 def api_stats():
     """API endpoint for real-time statistics"""
     try:
-        conn = get_db_connection()
-        users = conn.execute("SELECT * FROM users").fetchall()
+        with get_db() as db:
+            users = db.fetch_all("SELECT * FROM users")
 
         stats = {
             "total_users": len(users),
-            "active_users": len([u for u in users if u["is_active"] == 1]),
-            "total_points": sum(u["points"] or 0 for u in users),
-            "total_messages": sum(u["total_messages"] or 0 for u in users),
-            "total_images": sum(u["total_images"] or 0 for u in users),
+            "active_users": len([u for u in users if u.get("is_active")]),
+            "total_points": sum(u.get("points") or 0 for u in users),
+            "total_messages": sum(u.get("total_messages") or 0 for u in users),
+            "total_images": sum(u.get("total_images") or 0 for u in users),
             "timestamp": datetime.now().isoformat(),
         }
 
-        conn.close()
         return jsonify(stats)
     except Exception as e:
         logger.error(f"API stats error: {str(e)}")

@@ -1,29 +1,28 @@
-# EcoBot - Microservice Architecture Dependencies
+# EcoBot v2 — Dependencies
 
 # Core framework
 flask==2.3.3
 requests==2.31.0
 python-dotenv==1.0.0
 
-# AI Services
+# AI — OpenAI-compatible SDK (Gemini & OpenAI)
 openai>=1.0.0
 
-# AI Agent & Memory Management
-redis==5.0.1
-apscheduler==3.10.4
-psycopg2-binary==2.9.7
+# Database — PostgreSQL
+psycopg2-binary>=2.9.9
 
-# Image processing (for AI classification)
-Pillow==10.0.1
+# Email — Resend
+resend>=2.0.0
 
-# PDF generation for reports
+# PDF reports
 reportlab==4.0.4
 
-# Cloudflare bypass for email service
-cloudscraper==1.2.71
+# Image processing
+Pillow==10.0.1
 
-# Production server
-gunicorn==21.2.0
+# Production server (ASGI)
+uvicorn[standard]>=0.30.0
+asgiref>=3.7.0
 
 # Development tools (optional)
 pytest==7.4.2
