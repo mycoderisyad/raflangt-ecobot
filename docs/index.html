@@ -1,733 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoBot Documentation - Intelligent Waste Management System</title>
-    <link rel="stylesheet" href="css/docs.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoBot &mdash; Intelligent Waste Management Documentation</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- Header Section -->
-    <header>
-        <div class="container">
-            <h1>EcoBot</h1>
-            <p class="subtitle" data-lang="en">WhatsApp-first backend with AI assistance, long-term memory, and admin tools</p>
-            <p class="subtitle" data-lang="id" style="display: none;">Backend WhatsApp dengan AI, memori percakapan jangka panjang, dan fitur admin</p>
-        </div>
-    </header>
+  <nav id="main-nav"></nav>
 
-    <!-- Navigation Section -->
-    <nav id="site-nav">
-        <div class="container">
-            <div class="nav-header">
-                <div class="nav-title">EcoBot</div>
-                <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-links-en nav-links-id">
-                    <span class="bar"></span>
-                    <span class="bar"></span>
-                    <span class="bar"></span>
-                </button>
-            </div>
-            <ul class="nav-links" id="nav-links-en">
-                <li><a href="#introduction">Introduction</a></li>
-                <li><a href="#use-cases">Use Cases</a></li>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#overview">System Overview</a></li>
-                <li><a href="#getting-started">Getting Started</a></li>
-                <li><a href="#configuration">Configuration</a></li>
-                <li><a href="#api">API Documentation</a></li>
-                <li><a href="#usage">Usage Examples</a></li>
-                <li><a href="#deployment">Deployment</a></li>
-                <li><a href="#security">Security</a></li>
-                <li><a href="https://wa.me/6287875366731" target="_blank" rel="noopener">Contact Bot</a></li>
-            </ul>
-            <ul class="nav-links" id="nav-links-id" style="display: none;">
-                <li><a href="#introduction">Pendahuluan</a></li>
-                <li><a href="#use-cases">Kasus Penggunaan</a></li>
-                <li><a href="#features">Fitur</a></li>
-                <li><a href="#overview">Arsitektur</a></li>
-                <li><a href="#getting-started">Memulai</a></li>
-                <li><a href="#configuration">Konfigurasi</a></li>
-                <li><a href="#api">Dokumentasi API</a></li>
-                <li><a href="#usage">Contoh Penggunaan</a></li>
-                <li><a href="#deployment">Deployment</a></li>
-                <li><a href="#security">Keamanan</a></li>
-                <li><a href="https://wa.me/6287875366731" target="_blank" rel="noopener">Hubungi Bot</a></li>
-            </ul>
-        </div>
-    </nav>
-
-    <!-- Language Toggle -->
-    <div class="language-toggle">
-        <button onclick="setLang('en')" id="btn-en" class="active">English</button>
-        <button onclick="setLang('id')" id="btn-id">Bahasa Indonesia</button>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <h1>Eco<span class="accent">Bot</span> Documentation</h1>
+      <p class="lead">
+        AI-powered waste management platform for WhatsApp &amp; Telegram.
+        Built with Flask, PostgreSQL, and Gemini/OpenAI — version <strong>2.0.0</strong>.
+      </p>
+      <div class="hero-actions">
+        <a href="getting-started.html" class="btn btn-primary">Get Started</a>
+        <a href="api.html" class="btn btn-outline">API Reference</a>
+        <a href="https://github.com/mycoderisyad/raflangt-ecobot" target="_blank" rel="noopener" class="btn btn-outline">
+          GitHub
+        </a>
+      </div>
     </div>
+  </section>
 
-    <main class="container">
-        <div class="content">
-            
-            <!-- Introduction Section -->
-            <section id="introduction">
-                <h2 data-lang="en">Introduction</h2>
-                <h2 data-lang="id" style="display:none;">Pendahuluan</h2>
-                
-                <p data-lang="en">EcoBot is a Python/Flask backend for WhatsApp-based waste management. It integrates AI text and vision, a SQLite database, and role-based workflows to deliver education, schedules, collection locations, and administrative operations.</p>
-                <p data-lang="id" style="display:none;">EcoBot adalah backend Python/Flask untuk pengelolaan sampah berbasis WhatsApp. Sistem ini mengintegrasikan AI teks dan gambar, database SQLite, serta alur kerja berbasis peran untuk edukasi, jadwal, lokasi pengumpulan, dan operasi administratif.</p>
-                
-                <p data-lang="en">Version 1.5.0 introduces hybrid AI mode, database-backed long‑term memory, resilient API calls, and a toggleable registration flow.</p>
-                <p data-lang="id" style="display:none;">Versi 1.5.0 menghadirkan mode AI hybrid, memori percakapan berbasis database, pemanggilan API yang lebih tangguh, serta alur registrasi yang dapat diatur.</p>
-            </section>
+  <!-- Quick overview cards -->
+  <section class="page-content">
+    <div class="container">
 
-            <!-- Use Cases Section -->
-            <section id="use-cases">
-                <h2 data-lang="en">Use Cases / Functions</h2>
-                <h2 data-lang="id" style="display:none;">Kasus Penggunaan / Fungsi</h2>
-                
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <h4 data-lang="en">WhatsApp Chatbot Integration</h4>
-                        <h4 data-lang="id" style="display:none;">WhatsApp Chatbot</h4>
-                        <p data-lang="en">Citizens can report waste collection needs, classify waste types, and receive instant feedback through WhatsApp messaging, making the service accessible to all community members.</p>
-                        <p data-lang="id" style="display:none;">Warga dapat melaporkan kebutuhan pengumpulan sampah, mengklasifikasi jenis sampah, dan menerima umpan balik instan melalui WhatsApp, menjadikan layanan ini mudah diakses oleh seluruh anggota komunitas.</p>
-                    </div>
-                    
-                    <div class="feature-card">
-                        <h4 data-lang="en">Administrative & Coordinator Access</h4>
-                        <h4 data-lang="id" style="display:none;">Akses Koordinator & Admin</h4>
-                        <p data-lang="en">Administrators can monitor waste collection statistics and receive automated reports, while admins have full control via API endpoints for managing roles and data.</p>
-                        <p data-lang="id" style="display:none;">Koordinator (perangkat desa) dapat memantau statistik pengumpulan sampah dan menerima laporan otomatis, sementara admin memiliki kontrol penuh melalui endpoint API untuk manajemen peran dan data.</p>
-                    </div>
-                    
-                    <div class="feature-card">
-                        <h4 data-lang="en">Automated Waste Classification</h4>
-                        <h4 data-lang="id" style="display:none;">Klasifikasi Sampah Otomatis</h4>
-                        <p data-lang="en">AI-powered image analysis automatically identifies waste types from photos, providing instant classification and recycling guidance to users.</p>
-                        <p data-lang="id" style="display:none;">Analisis gambar berbasis AI secara otomatis mengidentifikasi jenis sampah dari foto, memberikan klasifikasi instan dan panduan daur ulang kepada pengguna.</p>
-                    </div>
-                    
-                    <div class="feature-card">
-                        <h4 data-lang="en">Collection Point Management</h4>
-                        <h4 data-lang="id" style="display:none;">Manajemen Titik Pengumpulan</h4>
-                        <p data-lang="en">Dynamic mapping and scheduling for waste collection points, helping users find the nearest appropriate disposal locations and optimizing collection routes.</p>
-                        <p data-lang="id" style="display:none;">Pemetaan dan penjadwalan dinamis untuk titik pengumpulan sampah, membantu pengguna menemukan lokasi terdekat dan mengoptimalkan rute pengumpulan.</p>
-                    </div>
-                </div>
-            </section>
+      <h2 id="overview">Platform Overview</h2>
+      <p>EcoBot is a Python/Flask backend that connects messaging channels (WhatsApp via WAHA, Telegram) to an AI assistant specialized in waste management education, collection scheduling, and citizen engagement.</p>
 
-            <!-- Features Section -->
-            <section id="features">
-                <h2 data-lang="en">Features</h2>
-                <h2 data-lang="id" style="display:none;">Fitur</h2>
-                
-                <ul>
-                    <li data-lang="en"><strong>AI Modes</strong> - EcoBot (database-only), General, and Hybrid modes selectable via WhatsApp commands.</li>
-                    <li data-lang="id" style="display:none;"><strong>Mode AI</strong> - EcoBot (khusus database), General, dan Hybrid dapat dipilih melalui perintah WhatsApp.</li>
-                    <li data-lang="en"><strong>Conversation Memory</strong> - Long‑term memory stored in SQLite (user facts and conversation history).</li>
-                    <li data-lang="id" style="display:none;"><strong>Memori Percakapan</strong> - Memori jangka panjang tersimpan di SQLite (fakta pengguna dan riwayat percakapan).</li>
-                    <li data-lang="en"><strong>Registration Modes</strong> - Auto or manual, controlled by <code>REGISTRATION_MODE</code>.</li>
-                    <li data-lang="id" style="display:none;"><strong>Mode Registrasi</strong> - Otomatis atau manual, dikontrol oleh <code>REGISTRATION_MODE</code>.</li>
-                    <li data-lang="en"><strong>WhatsApp Integration</strong> - Uses <a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA</a>.</li>
-                    <li data-lang="id" style="display:none;"><strong>Integrasi WhatsApp</strong> - Menggunakan <a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA</a>.</li>
-                    <li data-lang="en"><strong>AI Providers</strong> - <a href="https://lunos.tech/" target="_blank" rel="noopener">Lunos.tech</a> (text) and <a href="https://unli.dev/" target="_blank" rel="noopener">Unli.dev</a> (vision).</li>
-                    <li data-lang="id" style="display:none;"><strong>Penyedia AI</strong> - <a href="https://lunos.tech/" target="_blank" rel="noopener">Lunos.tech</a> (teks) dan <a href="https://unli.dev/" target="_blank" rel="noopener">Unli.dev</a> (visi).</li>
-                    <li data-lang="en"><strong>Admin Commands</strong> - /admin help, user/point management, stats, logs, backup, broadcast, report, memory_stats.</li>
-                    <li data-lang="id" style="display:none;"><strong>Perintah Admin</strong> - /admin help, manajemen user/point, statistik, log, backup, broadcast, report, memory_stats.</li>
-                </ul>
-            </section>
-
-            <section id="overview">
-                <h2 data-lang="id">Arsitektur Sistem</h2>
-                <h2 data-lang="en" style="display:none;">System Overview</h2>
-                <p data-lang="id">EcoBot menggunakan pola arsitektur microservice yang dibangun di atas kerangka kerja Flask. Sistem ini terdiri dari beberapa komponen kunci yang saling berinteraksi:</p>
-                <p data-lang="en" style="display:none;">EcoBot follows a microservice architecture pattern built on the Flask framework. The system consists of several key components that interact with each other:</p>
-                
-                <h3 data-lang="id">Komponen Arsitektur</h3>
-                <h3 data-lang="en" style="display:none;">Architecture Components</h3>
-                <table>
-                    <thead>
-                        <tr data-lang="id">
-                            <th>Komponen</th>
-                            <th>Teknologi</th>
-                            <th>Tujuan</th>
-                        </tr>
-                        <tr data-lang="en" style="display:none;">
-                            <th>Component</th>
-                            <th>Technology</th>
-                            <th>Purpose</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td data-lang="id"><strong>Lapisan API</strong></td>
-                            <td data-lang="en" style="display:none;"><strong>API Layer</strong></td>
-                            <td>Flask Blueprints</td>
-                            <td data-lang="id">Endpoint REST untuk webhook, manajemen pengguna, dan data titik pengumpulan.</td>
-                            <td data-lang="en" style="display:none;">REST endpoints for webhooks, user management, and collection point data.</td>
-                        </tr>
-                        <tr>
-                            <td data-lang="id"><strong>Mesin Inti</strong></td>
-                            <td data-lang="en" style="display:none;"><strong>Core Engine</strong></td>
-                            <td>Python 3.10+</td>
-                            <td data-lang="id">Mengelola logika bisnis, konfigurasi, dan fungsionalitas utama.</td>
-                            <td data-lang="en" style="display:none;">Manages business logic, configuration, and core functionalities.</td>
-                        </tr>
-                        <tr>
-                            <td data-lang="id"><strong>Database</strong></td>
-                            <td data-lang="en" style="display:none;"><strong>Database</strong></td>
-                            <td>SQLite</td>
-                            <td data-lang="id">Penyimpanan data pengguna, log pesan, dan status aplikasi.</td>
-                            <td data-lang="en" style="display:none;">Storage for user data, message logs, and application state.</td>
-                        </tr>
-                        <tr>
-                            <td data-lang="id"><strong>API WhatsApp</strong></td>
-                            <td data-lang="en" style="display:none;"><strong>WhatsApp API</strong></td>
-                            <td><a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA Integration</a></td>
-                            <td data-lang="id">Penerimaan dan pengiriman pesan melalui WhatsApp.</td>
-                            <td data-lang="en" style="display:none;">Receives and sends messages via WhatsApp.</td>
-                        </tr>
-                        <tr>
-                            <td data-lang="id"><strong>Layanan AI</strong></td>
-                            <td data-lang="en" style="display:none;"><strong>AI Services</strong></td>
-                            <td><a href="https://lunos.tech/" target="_blank" rel="noopener">Lunos.tech</a> & <a href="https://unli.dev/" target="_blank" rel="noopener">Unli.dev</a></td>
-                            <td data-lang="id">Pemrosesan bahasa alami dan klasifikasi gambar untuk fitur-fitur cerdas.</td>
-                            <td data-lang="en" style="display:none;">Natural language processing and image classification for intelligent features.</td>
-                        </tr>
-                        <tr>
-                            <td data-lang="id"><strong>Layanan Email</strong></td>
-                            <td data-lang="en" style="display:none;"><strong>Email Service</strong></td>
-                            <td><a href="https://mailry.co/" target="_blank" rel="noopener">Mailry.co</a></td>
-                            <td data-lang="id">Pengiriman laporan dan notifikasi otomatis melalui email.</td>
-                            <td data-lang="en" style="display:none;">Sends automated reports and notifications via email.</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h3 data-lang="id">Alur Data</h3>
-                <h3 data-lang="en" style="display:none;">Data Flow</h3>
-                <div class="alert alert-info">
-                    <strong data-lang="id">Alur Permintaan:</strong> Pesan WhatsApp → Webhook WAHA → EcoBot API (Python) → Pemrosesan AI → Penyimpanan Database → Generasi Respons → Balasan WhatsApp
-                    <strong data-lang="en" style="display:none;">Request Flow:</strong> WhatsApp Message → WAHA Webhook → EcoBot API (Python) → AI Processing → Database Storage → Response Generation → WhatsApp Reply
-                </div>
-            </section>
-
-            <section id="getting-started">
-                <h2 data-lang="id">Memulai</h2>
-                <h2 data-lang="en" style="display:none;">Getting Started</h2>
-                
-                <h3 data-lang="en">Quickstart</h3>
-                <h3 data-lang="id" style="display:none;">Quickstart</h3>
-                <ol>
-                    <li>
-                        <p data-lang="en"><strong>Clone and install</strong></p>
-                        <p data-lang="id" style="display:none;"><strong>Klon dan instal</strong></p>
-                        <pre><code>git clone https://github.com/mycoderisyad/raflangt-ecobot.git
-cd raflangt-ecobot
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt</code></pre>
-                    </li>
-                    <li>
-                        <p data-lang="en"><strong>Configure environment</strong></p>
-                        <p data-lang="id" style="display:none;"><strong>Konfigurasi lingkungan</strong></p>
-                        <pre><code>cp .env.example .env
-# edit .env and set at minimum:
-WAHA_BASE_URL=...
-WAHA_API_KEY=...
-LUNOS_API_KEY=...
-LUNOS_BASE_URL=...
-REGISTRATION_MODE=auto</code></pre>
-                    </li>
-                    <li>
-                        <p data-lang="en"><strong>Run the server</strong></p>
-                        <p data-lang="id" style="display:none;"><strong>Jalankan server</strong></p>
-                        <pre><code>python3 main.py</code></pre>
-                    </li>
-                    <li>
-                        <p data-lang="en"><strong>Point WAHA webhook to EcoBot</strong></p>
-                        <p data-lang="id" style="display:none;"><strong>Arahkan webhook WAHA ke EcoBot</strong></p>
-                        <p data-lang="en">Set WAHA instance webhook URL to <code>http://&lt;your-server&gt;:5000/webhook</code> (or your public URL). Ensure the instance is connected.</p>
-                        <p data-lang="id" style="display:none;">Setel URL webhook instance WAHA ke <code>http://&lt;server-anda&gt;:5000/webhook</code> (atau URL publik Anda). Pastikan instance tersambung.</p>
-                    </li>
-                    <li>
-                        <p data-lang="en"><strong>Test via WhatsApp</strong></p>
-                        <p data-lang="id" style="display:none;"><strong>Uji melalui WhatsApp</strong></p>
-                        <ul>
-                            <li data-lang="en">Send <code>help</code> to see features by role</li>
-                            <li data-lang="id" style="display:none;">Kirim <code>help</code> untuk melihat fitur sesuai peran</li>
-                            <li data-lang="en">Try AI modes: <code>/hybrid-ecobot</code>, <code>/layanan-ecobot</code>, <code>/general-ecobot</code></li>
-                            <li data-lang="id" style="display:none;">Coba mode AI: <code>/hybrid-ecobot</code>, <code>/layanan-ecobot</code>, <code>/general-ecobot</code></li>
-                            <li data-lang="en">Send an image to receive waste classification</li>
-                            <li data-lang="id" style="display:none;">Kirim gambar untuk klasifikasi sampah</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <h3 data-lang="id">Persyaratan</h3>
-                <h3 data-lang="en" style="display:none;">Requirements</h3>
-                <ul>
-                    <li>Python 3.10 atau lebih tinggi</li>
-                    <li>pip (manajer paket Python)</li>
-                    <li>Virtual environment (direkomendasikan)</li>
-                    <li>Git untuk kontrol versi</li>
-                </ul>
-
-                <h3 data-lang="id">Instalasi</h3>
-                <h3 data-lang="en" style="display:none;">Installation</h3>
-                <pre><code># Clone the repository
-git clone https://github.com/raflangt/ecobot.git
-cd ecobot
-
-# Buat virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Di Windows: venv\Scripts\activate
-
-# Install dependensi
-pip install -r requirements.txt
-
-# Siapkan konfigurasi lingkungan
-cp .env.example .env
-# Edit file .env dengan kunci API dan konfigurasi Anda</code></pre>
-
-                <h3 data-lang="id">Menjalankan Aplikasi</h3>
-                <h3 data-lang="en" style="display:none;">Running the Application</h3>
-                <pre><code># Mode pengembangan (default)
-python3 main.py
-
-# Mode produksi
-python3 main.py --production
-
-# Produksi dengan Gunicorn
-gunicorn -w 4 -b 0.0.0.0:8000 'main:create_app("production")'</code></pre>
-            </section>
-
-            <section id="configuration">
-                <h2 data-lang="id">Konfigurasi</h2>
-                <h2 data-lang="en" style="display:none;">Configuration</h2>
-                
-                <h3 data-lang="id">Variabel Lingkungan</h3>
-                <h3 data-lang="en" style="display:none;">Environment Variables</h3>
-                <table>
-                    <thead>
-                        <tr data-lang="id">
-                            <th>Variabel</th>
-                            <th>Wajib</th>
-                            <th>Deskripsi</th>
-                            <th>Contoh</th>
-                        </tr>
-                        <tr data-lang="en" style="display:none;">
-                            <th>Variable</th>
-                            <th>Required</th>
-                            <th>Description</th>
-                            <th>Example</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>ENVIRONMENT</code></td>
-                            <td data-lang="id">Tidak</td>
-                            <td data-lang="en" style="display:none;">No</td>
-                            <td data-lang="id">Lingkungan aplikasi</td>
-                            <td data-lang="en" style="display:none;">Application environment</td>
-                            <td data-lang="id"><code>development</code>, <code>production</code></td>
-                            <td data-lang="en" style="display:none;"><code>development</code>, <code>production</code></td>
-                        </tr>
-                        <tr>
-                            <td><code>PORT</code></td>
-                            <td data-lang="id">Tidak</td>
-                            <td data-lang="en" style="display:none;">No</td>
-                            <td data-lang="id">Port server (default: 8000)</td>
-                            <td data-lang="en" style="display:none;">Server port (default: 8000)</td>
-                            <td data-lang="id">8000</td>
-                            <td data-lang="en" style="display:none;">8000</td>
-                        </tr>
-                        <tr>
-                            <td><code>WAHA_BASE_URL</code></td>
-                            <td data-lang="id">Ya</td>
-                            <td data-lang="en" style="display:none;">Yes</td>
-                            <td data-lang="id">Base URL WAHA</td>
-                            <td data-lang="en" style="display:none;">WAHA Base URL</td>
-                            <td>https://waha.devlike.pro/api/instance_id</td>
-                        </tr>
-                        <tr>
-                            <td><code>WAHA_API_KEY</code></td>
-                            <td data-lang="id">Ya</td>
-                            <td data-lang="en" style="display:none;">Yes</td>
-                            <td data-lang="id">Kunci otentikasi WAHA</td>
-                            <td data-lang="en" style="display:none;">WAHA authentication key</td>
-                            <td>your_waha_api_key</td>
-                        </tr>
-                        <tr>
-                            <td><code>LUNOS_API_KEY</code></td>
-                            <td data-lang="id">Ya</td>
-                            <td data-lang="en" style="display:none;">Yes</td>
-                            <td data-lang="id">Kunci API layanan AI Lunos.tech</td>
-                            <td data-lang="en" style="display:none;">Lunos.tech AI service key</td>
-                            <td>sk-lunos-xxx</td>
-                        </tr>
-                        <tr>
-                            <td><code>UNLI_API_KEY</code></td>
-                            <td data-lang="id">Ya</td>
-                            <td data-lang="en" style="display:none;">Yes</td>
-                            <td data-lang="id">Kunci API layanan AI Unli.dev</td>
-                            <td data-lang="en" style="display:none;">Unli.dev AI service key</td>
-                            <td>sk-unli-xxx</td>
-                        </tr>
-                        <tr>
-                            <td><code>MAILRY_API_KEY</code></td>
-                            <td data-lang="id">Ya</td>
-                            <td data-lang="en" style="display:none;">Yes</td>
-                            <td data-lang="id">Kunci API layanan email Mailry.co</td>
-                            <td data-lang="en" style="display:none;">Mailry.co email service key</td>
-                            <td>your_mailry_api_key</td>
-                        </tr>
-                        <tr>
-                            <td><code>MAILRY_BASE_URL</code></td>
-                            <td data-lang="id">Tidak</td>
-                            <td data-lang="en" style="display:none;">No</td>
-                            <td data-lang="id">Base URL API Mailry.co</td>
-                            <td data-lang="en" style="display:none;">Mailry.co API base URL</td>
-                            <td>https://api.mailry.co</td>
-                        </tr>
-                        <tr>
-                            <td><code>MAILRY_FROM_EMAIL</code></td>
-                            <td data-lang="id">Tidak</td>
-                            <td data-lang="en" style="display:none;">No</td>
-                            <td data-lang="id">Alamat pengirim email</td>
-                            <td data-lang="en" style="display:none;">Sender email address</td>
-                            <td>noreply@example.com</td>
-                        </tr>
-                        <tr>
-                            <td><code>MAILRY_TO_EMAIL</code></td>
-                            <td data-lang="id">Tidak</td>
-                            <td data-lang="en" style="display:none;">No</td>
-                            <td data-lang="id">Alamat penerima default</td>
-                            <td data-lang="en" style="display:none;">Default recipient</td>
-                            <td>coordinator@example.com</td>
-                        </tr>
-                        <tr>
-                            <td><code>REGISTRATION_MODE</code></td>
-                            <td data-lang="id">Tidak</td>
-                            <td data-lang="en" style="display:none;">No</td>
-                            <td data-lang="id">Mode registrasi pengguna</td>
-                            <td data-lang="en" style="display:none;">User registration mode</td>
-                            <td data-lang="id"><code>auto</code> atau <code>manual</code></td>
-                            <td data-lang="en" style="display:none;"><code>auto</code> or <code>manual</code></td>
-                        </tr>
-                        <tr>
-                            <td><code>ADMIN_PHONE_NUMBERS</code></td>
-                            <td data-lang="id">Ya</td>
-                            <td data-lang="en" style="display:none;">Yes</td>
-                            <td data-lang="id">Nomor telepon admin (dipisahkan koma)</td>
-                            <td data-lang="en" style="display:none;">Comma-separated admin phone numbers</td>
-                            <td data-lang="id">+6281234567890,+6281987654321</td>
-                            <td data-lang="en" style="display:none;">+6281234567890,+6281987654321</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="alert alert-warning" data-lang="id">
-                    <strong>Catatan Keamanan:</strong> Jangan pernah menyimpan kunci API di dalam kode atau sistem kontrol versi. Gunakan variabel lingkungan.
-                </div>
-                <div class="alert alert-warning" data-lang="en" style="display:none;">
-                    <strong>Security Note:</strong> Never commit API keys to version control. Use environment variables or secure key management services.
-                </div>
-            </section>
-
-            <section id="api">
-                <h2 data-lang="id">Dokumentasi API</h2>
-                <h2 data-lang="en" style="display:none;">API Documentation</h2>
-                
-                <h3 data-lang="id">Base URLs</h3>
-                <h3 data-lang="en" style="display:none;">Base URLs</h3>
-                <table>
-                    <thead>
-                        <tr data-lang="id">
-                            <th>Lingkungan</th>
-                            <th>Base URL</th>
-                            <th>Tujuan</th>
-                        </tr>
-                        <tr data-lang="en" style="display:none;">
-                            <th>Environment</th>
-                            <th>Base URL</th>
-                            <th>Purpose</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td data-lang="id">Produksi</td>
-                            <td data-lang="en" style="display:none;">Production</td>
-                            <td>`https://ecobot.example.com`</td>
-                            <td data-lang="id">Lingkungan produksi live (akses publik untuk endpoint kesehatan & publik saja)</td>
-                            <td data-lang="en" style="display:none;">Live production environment (public access to health & public endpoints only)</td>
-                        </tr>
-                        <tr>
-                            <td data-lang="id">Pengembangan</td>
-                            <td data-lang="en" style="display:none;">Development</td>
-                            <td>`http://localhost:5000`</td>
-                            <td data-lang="id">Server pengembangan lokal</td>
-                            <td data-lang="en" style="display:none;">Local development server</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <p data-lang="id" style="margin-top:1rem">
-                    Endpoint sensitif atau administratif tidak dipublikasikan di dokumentasi publik. Untuk akses programatik, hubungi pengelola proyek.
-                </p>
-                <p data-lang="en" style="margin-top:1rem; display:none;">
-                    Sensitive or administrative API endpoints are not published in the public documentation for security reasons. For programmatic access, contact the project maintainer.
-                </p>
-
-                <p style="margin:20px 0">
-                    <a class="btn" href="https://wa.me/6287875366731" target="_blank" rel="noopener" data-lang="id">Minta Akses API melalui WhatsApp</a>
-                    <a class="btn" href="https://wa.me/6287875366731" target="_blank" rel="noopener" data-lang="en" style="display:none;">Request API Access via WhatsApp</a>
-                </p>
-
-                <h3 data-lang="id">Contoh Respons</h3>
-                <h3 data-lang="en" style="display:none;">Response Examples</h3>
-                
-                <h4 data-lang="id">Health Check Response</h4>
-                <h4 data-lang="en" style="display:none;">Health Check Response</h4>
-                <pre><code>GET /health
-
-{
-    "status": "healthy",
-    "service": "EcoBot",
-    "version": "1.5.0",
-    "environment": "production"
-}</code></pre>
-
-                <h4 data-lang="id">Format Respons Error</h4>
-                <h4 data-lang="en" style="display:none;">Error Response Format</h4>
-                <pre><code>{
-    "error": {
-        "code": 400,
-        "message": "Format permintaan tidak valid",
-        "details": "Kolom yang dibutuhkan hilang: phone_number"
-    }
-}</code></pre>
-            </section>
-
-            <section id="usage">
-                <h2 data-lang="id">Contoh Penggunaan</h2>
-                <h2 data-lang="en" style="display:none;">Usage Examples</h2>
-                
-                <h3 data-lang="id">WhatsApp Webhook Integration</h3>
-                <h3 data-lang="en" style="display:none;">WhatsApp Webhook Integration</h3>
-                <pre><code># Contoh pemrosesan payload webhook dari WAHA
-# Pastikan Anda telah mengonfigurasi endpoint webhook di dasbor WAHA
-{
-    "messages": [{
-        "from": "whatsapp:+6281234567890",
-        "body": "Jadwal sampah",
-        "type": "text"
-    }]
-}</code></pre>
-
-                <h3 data-lang="id">Alur Integrasi</h3>
-                <h3 data-lang="en" style="display:none;">Workflow Integration</h3>
-                <div class="alert alert-info">
-                    <strong data-lang="id">Alur Khas:</strong> Pengguna kirim pesan/gambar → Webhook WAHA menerima → EcoBot memproses → AI menganalisis (jika ada gambar) → Database menyimpan → Respons dikirim → Pengguna menerima panduan
-                    <strong data-lang="en" style="display:none;">Typical Flow:</strong> User sends message → WAHA Webhook receives → EcoBot processes → AI analyzes (if image) → Database stores → Response sent → User receives guidance
-                </div>
-            </section>
-
-            <section id="deployment">
-                <h2 data-lang="id">Panduan Deployment</h2>
-                <h2 data-lang="en" style="display:none;">Deployment Guide</h2>
-                
-                <h3 data-lang="id">Deployment Produksi dengan Heroku/Gunicorn</h3>
-                <h3 data-lang="en" style="display:none;">Production Deployment with Heroku/Gunicorn</h3>
-                <pre><code># Pastikan file Procfile dan requirements.txt sudah ada di root proyek
-# Procfile: web: gunicorn -w 4 -b 0.0.0.0:$PORT main:create_app()
-# requirements.txt: flask, gunicorn, requests, dll.
-
-# Login ke Heroku CLI
-heroku login
-
-# Buat aplikasi baru di Heroku
-heroku create nama-app-unik-ecobot
-
-# Hubungkan repositori Git Anda
-git push heroku master
-
-# Setel variabel lingkungan
-heroku config:set WAHA_BASE_URL=...
-heroku config:set WAHA_API_KEY=...
-...</code></pre>
-
-            </section>
-
-            <section id="security">
-                <h2 data-lang="id">Praktik Terbaik Keamanan</h2>
-                <h2 data-lang="en" style="display:none;">Security Best Practices</h2>
-                
-                <h3 data-lang="id">Keamanan API</h3>
-                <h3 data-lang="en" style="display:none;">API Security</h3>
-                <ul>
-                    <li data-lang="id"><strong>Proteksi Kunci API:</strong> Simpan kunci di variabel lingkungan, jangan pernah di kode.</li>
-                    <li data-lang="en" style="display:none;"><strong>API Key Protection:</strong> Store keys in environment variables, never in code.</li>
-                    <li data-lang="id"><strong>Hanya HTTPS:</strong> Selalu gunakan enkripsi SSL/TLS di lingkungan produksi.</li>
-                    <li data-lang="en" style="display:none;"><strong>HTTPS Only:</strong> Always use SSL/TLS encryption in production.</li>
-                    <li data-lang="id"><strong>Validasi Input:</strong> Validasi semua data yang masuk dan bersihkan input untuk mencegah serangan.</li>
-                    <li data-lang="en" style="display:none;"><strong>Input Validation:</strong> Validate all incoming data and sanitize inputs.</li>
-                </ul>
-
-                <h3 data-lang="id">Keamanan Infrastruktur</h3>
-                <h3 data-lang="en" style="display:none;">Infrastructure Security</h3>
-                <ul>
-                    <li data-lang="id"><strong>Reverse Proxy:</strong> Gunakan Nginx atau Caddy sebagai reverse proxy dengan header keamanan.</li>
-                    <li data-lang="en" style="display:none;"><strong>Reverse Proxy:</strong> Use Nginx or Caddy as a reverse proxy with security headers.</li>
-                    <li data-lang="id"><strong>Firewall:</strong> Batasi akses ke port yang diperlukan saja.</li>
-                    <li data-lang="en" style="display:none;"><strong>Firewall Rules:</strong> Restrict access to necessary ports only.</li>
-                    <li data-lang="id"><strong>Pembaruan Reguler:</strong> Jaga sistem dan dependensi selalu terbarui.</li>
-                    <li data-lang="en" style="display:none;"><strong>Regular Updates:</strong> Keep system and dependencies updated.</li>
-                </ul>
-            </section>
-
-            <section id="changelog">
-                <h2 data-lang="id">Changelog / Rencana Masa Depan</h2>
-                <h2 data-lang="en" style="display:none;">Changelog / Future Work</h2>
-                
-                <h3 data-lang="id">Riwayat Versi</h3>
-                <h3 data-lang="en" style="display:none;">Version History</h3>
-                <table>
-                    <thead>
-                        <tr data-lang="id">
-                            <th>Versi</th>
-                            <th>Tanggal</th>
-                            <th>Perubahan</th>
-                        </tr>
-                        <tr data-lang="en" style="display:none;">
-                            <th>Version</th>
-                            <th>Date</th>
-                            <th>Changes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1.5.0</td>
-                            <td data-lang="id">2025-08-26</td>
-                            <td data-lang="en" style="display:none;">2025-08-26</td>
-                            <td data-lang="id">Mode AI hybrid, memori percakapan, perintah berbasis peran, konfigurasi REGISTRATION_MODE, dan perbaikan keandalan API.</td>
-                            <td data-lang="en" style="display:none;">Hybrid AI mode, conversation memory, role-based commands, REGISTRATION_MODE config, and API resiliency improvements.</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h3 data-lang="id">Rencana Perbaikan</h3>
-                <h3 data-lang="en" style="display:none;">Planned Improvements</h3>
-                <ul>
-                    <li data-lang="id">Pelatihan model AI yang disesuaikan untuk akurasi klasifikasi sampah yang lebih baik.</li>
-                    <li data-lang="en" style="display:none;">Enhanced AI model training for better waste classification accuracy.</li>
-                    <li data-lang="id">Dashboard analitik real-time untuk koordinator.</li>
-                    <li data-lang="en" style="display:none;">Real-time dashboard for coordinator analytics.</li>
-                    <li data-lang="id">Sistem Poin dan Redeem untuk insentif warga.</li>
-                    <li data-lang="en" style="display:none;">Point and Redeem System for citizen incentives.</li>
-                    <li data-lang="id">Dukungan multi-bahasa untuk komunitas yang beragam.</li>
-                    <li data-lang="en" style="display:none;">Multi-language support for diverse communities.</li>
-                </ul>
-            </section>
-
+      <div class="card-grid">
+        <div class="card">
+          <h4>Multi-Channel Chatbot</h4>
+          <p>Receive and reply to messages on WhatsApp &amp; Telegram with automatic AI-powered responses, waste classification from photos, and role-based commands.</p>
         </div>
-    </main>
-
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <p data-lang="id">&copy; 2025 EcoBot. Dilisensikan di bawah Apache License 2.0. Membuat pengelolaan sampah lebih cerdas, satu pesan pada satu waktu.</p>
-                <p data-lang="en" style="display:none;">&copy; 2025 EcoBot. Licensed under Apache License 2.0. Making waste management smarter, one message at a time.</p>
-                <a href="https://github.com/mycoderisyad/raflangt-ecobot" target="_blank" rel="noopener" class="github-link">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                    </svg>
-                    <span data-lang="id">Lihat di GitHub</span>
-                    <span data-lang="en" style="display:none;">View on GitHub</span>
-                </a>
-            </div>
+        <div class="card">
+          <h4>Admin Panel</h4>
+          <p>Web-based dashboard on port 3001 for managing users, collection points, schedules, broadcast messages, and analytics.</p>
         </div>
-    </footer>
+        <div class="card">
+          <h4>REST API</h4>
+          <p>Programmatic access to user data, health checks, and webhook endpoints. Protected with API key authentication and HMAC-verified webhooks.</p>
+        </div>
+        <div class="card">
+          <h4>AI Vision &amp; Text</h4>
+          <p>Powered by Gemini or OpenAI for natural language understanding and image-based waste type classification with recycling guidance.</p>
+        </div>
+      </div>
 
-    <!-- JavaScript -->
-    <script>
-        function setLang(lang) {
-            // Handle content elements
-            const elements = document.querySelectorAll('[data-lang]');
-            elements.forEach(el => {
-                if (el.getAttribute('data-lang') === lang) {
-                    // Set appropriate display type based on element
-                    if (el.tagName === 'TR') {
-                        el.style.display = 'table-row';
-                    } else if (el.tagName === 'UL' && el.classList.contains('nav-links')) {
-                        el.style.display = 'flex';
-                    } else {
-                        el.style.display = 'block';
-                    }
-                } else {
-                    el.style.display = 'none';
-                }
-            });
+      <h2 id="tech-stack">Technology Stack</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Technology</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Runtime</strong></td><td>Python 3.10+</td><td>Core application language</td></tr>
+          <tr><td><strong>Web Framework</strong></td><td>Flask + Uvicorn (ASGI)</td><td>API server with async wrapper</td></tr>
+          <tr><td><strong>Database</strong></td><td>PostgreSQL</td><td>Users, schedules, collection points, conversation history</td></tr>
+          <tr><td><strong>WhatsApp</strong></td><td><a href="https://waha.devlike.pro/" target="_blank" rel="noopener">WAHA</a></td><td>WhatsApp HTTP API gateway</td></tr>
+          <tr><td><strong>Telegram</strong></td><td>Bot API</td><td>Native Telegram webhook integration</td></tr>
+          <tr><td><strong>AI</strong></td><td>Gemini / OpenAI</td><td>Text &amp; vision models via OpenAI-compatible SDK</td></tr>
+          <tr><td><strong>Email</strong></td><td>Resend</td><td>Automated reports &amp; notifications</td></tr>
+          <tr><td><strong>Admin Panel</strong></td><td>Flask + Jinja2</td><td>Server-rendered admin UI on port 3001</td></tr>
+          <tr><td><strong>Containerization</strong></td><td>Docker &amp; Docker Compose</td><td>Production-ready with non-root user</td></tr>
+        </tbody>
+      </table>
 
-            // Handle navigation
-            const navEl = document.getElementById('site-nav');
-            const navEn = document.getElementById('nav-links-en');
-            const navId = document.getElementById('nav-links-id');
-            
-            if (lang === 'en') {
-                if (navEn) navEn.style.display = 'flex';
-                if (navId) navId.style.display = 'none';
-            } else {
-                if (navEn) navEn.style.display = 'none';
-                if (navId) navId.style.display = 'flex';
-            }
-            // collapse nav if open after language switch
-            if (navEl) navEl.classList.remove('open');
-            const toggleBtn = document.getElementById('nav-toggle');
-            if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+      <h2 id="features">Key Features</h2>
+      <ul>
+        <li><strong>AI Modes</strong> &mdash; EcoBot (database-only), General, and Hybrid modes selectable via WhatsApp commands</li>
+        <li><strong>Conversation Memory</strong> &mdash; Long-term memory stored in PostgreSQL (user facts &amp; chat history)</li>
+        <li><strong>Waste Image Classification</strong> &mdash; Send a photo and get AI-powered waste type identification &amp; recycling tips</li>
+        <li><strong>Registration Modes</strong> &mdash; Auto or manual user registration, controlled by <code>REGISTRATION_MODE</code></li>
+        <li><strong>Role-Based Access</strong> &mdash; Warga, Coordinator, and Admin roles with different command sets</li>
+        <li><strong>Collection Schedules</strong> &mdash; Manage and broadcast waste pickup schedules per area</li>
+        <li><strong>Broadcast Messages</strong> &mdash; Send announcements to all active users across channels</li>
+        <li><strong>Security Hardened</strong> &mdash; CSRF protection, rate limiting, HMAC webhook verification, session hardening</li>
+      </ul>
 
-            // Handle button states
-            const btnEn = document.getElementById('btn-en');
-            const btnId = document.getElementById('btn-id');
-            
-            if (lang === 'en') {
-                if (btnEn) btnEn.classList.add('active');
-                if (btnId) btnId.classList.remove('active');
-            } else {
-                if (btnEn) btnEn.classList.remove('active');
-                if (btnId) btnId.classList.add('active');
-            }
+      <h2 id="quicklinks">Documentation Pages</h2>
+      <div class="card-grid">
+        <a href="getting-started.html" class="card" style="text-decoration:none;color:inherit">
+          <h4>Getting Started</h4>
+          <p>Installation, prerequisites, quickstart guide, and first run.</p>
+        </a>
+        <a href="architecture.html" class="card" style="text-decoration:none;color:inherit">
+          <h4>Architecture</h4>
+          <p>System overview, data flow diagrams, project structure, and component interactions.</p>
+        </a>
+        <a href="configuration.html" class="card" style="text-decoration:none;color:inherit">
+          <h4>Configuration</h4>
+          <p>Complete environment variables reference with descriptions and examples.</p>
+        </a>
+        <a href="api.html" class="card" style="text-decoration:none;color:inherit">
+          <h4>API Reference</h4>
+          <p>All endpoints documented with live playground for testing requests.</p>
+        </a>
+        <a href="admin-panel.html" class="card" style="text-decoration:none;color:inherit">
+          <h4>Admin Panel</h4>
+          <p>Dashboard features, user management, broadcasts, and analytics.</p>
+        </a>
+        <a href="security.html" class="card" style="text-decoration:none;color:inherit">
+          <h4>Security</h4>
+          <p>Security audit results, hardening measures, and best practices.</p>
+        </a>
+      </div>
 
-            // Store language preference
-            localStorage.setItem('ecobot-lang', lang);
-        }
+    </div>
+  </section>
 
-        // Set default language on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check for stored language preference or default to English
-            const savedLang = localStorage.getItem('ecobot-lang') || 'en';
-            setLang(savedLang);
-            // Wire up hamburger toggle
-            const nav = document.getElementById('site-nav');
-            const toggle = document.getElementById('nav-toggle');
-            if (toggle && nav) {
-                toggle.addEventListener('click', () => {
-                    const isOpen = nav.classList.toggle('open');
-                    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-                });
-                // Close menu when clicking a nav link (better UX)
-                const links = nav.querySelectorAll('.nav-links a');
-                links.forEach(a => a.addEventListener('click', () => {
-                    if (nav.classList.contains('open')) {
-                        nav.classList.remove('open');
-                        toggle.setAttribute('aria-expanded', 'false');
-                    }
-                }));
-            }
-        });
-    </script>
-    <!-- Floating WhatsApp Button -->
-    <a href="https://wa.me/6287875366731" target="_blank" rel="noopener" class="whatsapp-float" title="Contact Bot via WhatsApp">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.488"/>
-        </svg>
-    </a>
+  <footer id="main-footer"></footer>
 
+  <!-- Floating WhatsApp -->
+  <a href="https://wa.me/6287875366731" target="_blank" rel="noopener" class="wa-float" title="Contact Bot via WhatsApp">
+    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.488"/></svg>
+  </a>
+
+  <script src="js/app.js"></script>
 </body>
 </html>

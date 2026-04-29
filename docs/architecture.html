@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture &mdash; EcoBot Docs</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <section class="page-content">
+    <div class="container">
+      <div class="page-header">
+        <h1>System Architecture</h1>
+        <p class="lead">How EcoBot is structured: components, data flow, project layout, and technology choices.</p>
+      </div>
+
+      <h2 id="high-level">High-Level Architecture</h2>
+      <div class="alert alert-info">
+        <strong>Request Flow:</strong>
+        User Message &rarr; WhatsApp/Telegram &rarr; WAHA/Bot API &rarr; Webhook Endpoint &rarr; Orchestrator &rarr; AI Service &rarr; Database &rarr; Response &rarr; User
+      </div>
+
+      <p>EcoBot runs as two Flask applications behind Uvicorn (ASGI):</p>
+      <ul>
+        <li><strong>API Server</strong> (port 8000) &mdash; Webhook receivers, user management API, health checks</li>
+        <li><strong>Admin Panel</strong> (port 3001) &mdash; Web-based dashboard for data management and broadcasting</li>
+      </ul>
+      <p>Both apps share the same PostgreSQL database and configuration.</p>
+
+      <h2 id="components">Component Overview</h2>
+      <table>
+        <thead><tr><th>Component</th><th>Technology</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><strong>API Layer</strong></td><td>Flask Blueprints</td><td>REST endpoints for webhooks, user management, health</td></tr>
+          <tr><td><strong>Orchestrator</strong></td><td>Python</td><td>Central message router: parses intent, calls AI, builds replies</td></tr>
+          <tr><td><strong>Channels</strong></td><td>WhatsApp (WAHA) + Telegram</td><td>Abstraction layer for sending/receiving messages per channel</td></tr>
+          <tr><td><strong>AI Service</strong></td><td>OpenAI SDK (Gemini/OpenAI)</td><td>Text generation and image vision for waste classification</td></tr>
+          <tr><td><strong>Database</strong></td><td>PostgreSQL + psycopg2</td><td>Users, conversations, collection points, schedules</td></tr>
+          <tr><td><strong>Scheduler</strong></td><td>APScheduler (background)</td><td>Automated reminders and scheduled tasks</td></tr>
+          <tr><td><strong>Admin Panel</strong></td><td>Flask + Jinja2</td><td>CRUD dashboard with session auth, CSRF, rate limiting</td></tr>
+          <tr><td><strong>Email</strong></td><td>Resend API</td><td>Automated reports sent to coordinators</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="data-flow">Data Flow</h2>
+
+      <h3>Incoming Message (WhatsApp)</h3>
+      <ol class="steps">
+        <li>
+          <h4>WAHA receives WhatsApp message</h4>
+          <p>WAHA forwards the payload as an HTTP POST to <code>/webhook/whatsapp</code> with the <code>X-Waha-Webhook-Secret</code> header.</p>
+        </li>
+        <li>
+          <h4>Webhook verification</h4>
+          <p><code>_verify_waha_secret()</code> validates the HMAC header. Rejects with <code>403</code> if invalid or not configured (fail-closed).</p>
+        </li>
+        <li>
+          <h4>Channel parsing</h4>
+          <p><code>WhatsAppChannel.parse_webhook()</code> extracts sender ID, message type, body text, and media URLs.</p>
+        </li>
+        <li>
+          <h4>Orchestrator routing</h4>
+          <p>For text: <code>Orchestrator.handle_text()</code> determines intent, fetches conversation context, and calls the AI model.<br>
+             For images: <code>Orchestrator.handle_image()</code> downloads media, sends to vision model for classification.</p>
+        </li>
+        <li>
+          <h4>Database interaction</h4>
+          <p>User lookup/creation, conversation history storage, points update.</p>
+        </li>
+        <li>
+          <h4>Reply delivery</h4>
+          <p><code>WhatsAppChannel.send_message()</code> sends the AI response back via the WAHA API.</p>
+        </li>
+      </ol>
+
+      <h3>Incoming Message (Telegram)</h3>
+      <p>Same flow as WhatsApp, but uses <code>/webhook/telegram</code>, <code>X-Telegram-Bot-Api-Secret-Token</code>, and <code>TelegramChannel</code> for parsing and sending.</p>
+
+      <h2 id="project-structure">Project Structure</h2>
+      <pre><code>raflangt-ecobot/
+├── src/
+│   ├── api/                    # Flask Blueprints
+│   │   ├── __init__.py         # Blueprint registration
+│   │   ├── health.py           # GET / and /health
+│   │   ├── users.py            # GET /api/users, /api/users/{phone}
+│   │   ├── webhook_telegram.py # POST /webhook/telegram
+│   │   └── webhook_whatsapp.py # POST /webhook/whatsapp
+│   ├── channels/
+│   │   ├── telegram.py         # Telegram Bot API integration
+│   │   └── whatsapp.py         # WAHA WhatsApp integration
+│   ├── core/
+│   │   ├── orchestrator.py     # Central message handler
+│   │   ├── rate_limiter.py     # In-memory rate limiter
+│   │   └── ai_service.py       # OpenAI-compatible AI client
+│   ├── database/
+│   │   ├── connection.py       # PostgreSQL connection pool
+│   │   ├── schema.sql          # Database schema
+│   │   └── models/
+│   │       └── user.py         # User model (CRUD operations)
+│   ├── services/
+│   │   └── scheduler.py        # Background task scheduler
+│   ├── config.py               # Centralized settings from env vars
+│   └── app.py                  # Flask app factory + ASGI wrapper
+├── admin_panel/
+│   ├── app.py                  # Admin Flask app (port 3001)
+│   ├── templates/              # Jinja2 HTML templates
+│   └── static/                 # CSS, JS assets
+├── tests/
+│   └── security/               # Security PoC scripts (V1-V6)
+├── docs/                       # This documentation site
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+├── .env.example
+└── SECURITY_AUDIT.md</code></pre>
+
+      <h2 id="database-schema">Database Schema</h2>
+      <p>PostgreSQL tables used by the system:</p>
+      <table>
+        <thead><tr><th>Table</th><th>Purpose</th><th>Key Columns</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>users</code></td>
+            <td>Registered users</td>
+            <td><code>phone_number</code>, <code>username</code>, <code>role</code>, <code>points</code>, <code>is_active</code>, <code>total_messages</code>, <code>total_images</code></td>
+          </tr>
+          <tr>
+            <td><code>collection_points</code></td>
+            <td>Waste collection locations</td>
+            <td><code>id</code>, <code>name</code>, <code>type</code>, <code>latitude</code>, <code>longitude</code>, <code>accepted_waste_types</code>, <code>schedule</code></td>
+          </tr>
+          <tr>
+            <td><code>collection_schedules</code></td>
+            <td>Pickup schedules per area</td>
+            <td><code>id</code>, <code>location_name</code>, <code>schedule_day</code>, <code>schedule_time</code>, <code>waste_types</code>, <code>contact</code></td>
+          </tr>
+          <tr>
+            <td><code>conversations</code></td>
+            <td>Chat history &amp; memory</td>
+            <td><code>user_id</code>, <code>role</code>, <code>content</code>, <code>created_at</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="security-arch">Security Architecture</h2>
+      <ul>
+        <li><strong>Webhook HMAC verification</strong> &mdash; Both channels use <code>hmac.compare_digest()</code> with fail-closed design</li>
+        <li><strong>API key authentication</strong> &mdash; <code>/api/*</code> endpoints require <code>X-API-Key</code> header with constant-time comparison</li>
+        <li><strong>Admin panel hardening</strong> &mdash; CSRF tokens (flask-wtf), rate-limited login (flask-limiter), HttpOnly/SameSite cookies</li>
+        <li><strong>SSRF protection</strong> &mdash; Media downloads validate URL scheme and block private IP ranges</li>
+        <li><strong>Docker</strong> &mdash; Non-root user, PostgreSQL bound to 127.0.0.1 only</li>
+      </ul>
+      <p>For the full audit, see <a href="security.html">Security</a>.</p>
+
+    </div>
+  </section>
+
+  <footer id="main-footer"></footer>
+  <script src="js/app.js"></script>
+</body>
+</html>

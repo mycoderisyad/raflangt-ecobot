@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel &mdash; EcoBot Docs</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <section class="page-content">
+    <div class="container">
+      <div class="page-header">
+        <h1>Admin Panel Guide</h1>
+        <p class="lead">Web-based dashboard for managing users, collection points, schedules, broadcasts, and analytics. Runs on port <code>3001</code>.</p>
+      </div>
+
+      <h2 id="access">Accessing the Panel</h2>
+      <pre><code># Start the admin panel
+python admin_panel/app.py
+
+# Open in browser
+# http://localhost:3001</code></pre>
+      <p>Login with the credentials from your <code>.env</code> file:</p>
+      <table>
+        <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ADMIN_PANEL_USERNAME</code></td><td><code>admin</code></td><td>Login username</td></tr>
+          <tr><td><code>ADMIN_PANEL_PASSWORD</code></td><td><code>admin</code></td><td>Login password (change in production!)</td></tr>
+          <tr><td><code>ADMIN_PANEL_PORT</code></td><td><code>3001</code></td><td>HTTP port</td></tr>
+        </tbody>
+      </table>
+
+      <div class="alert alert-warning">
+        <strong>Important:</strong> Change the default password before deploying to production. Set <code>ADMIN_PANEL_PASSWORD</code> in your <code>.env</code> to a strong, unique value.
+      </div>
+
+      <h2 id="features">Features Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h4>Dashboard</h4>
+          <p>Overview statistics: total users, active users, total points, messages, images, role distribution, and recent activity.</p>
+        </div>
+        <div class="card">
+          <h4>User Management</h4>
+          <p>View all users, create new users, edit roles/points/status, delete users. Supports search and role filtering.</p>
+        </div>
+        <div class="card">
+          <h4>Collection Points</h4>
+          <p>Manage waste collection locations with name, type (TPS/TPA), GPS coordinates, accepted waste types, schedule, and contact info.</p>
+        </div>
+        <div class="card">
+          <h4>Collection Schedules</h4>
+          <p>Create and manage weekly pickup schedules per area with day, time range, waste types, collector name, and notes.</p>
+        </div>
+        <div class="card">
+          <h4>Broadcast</h4>
+          <p>Send announcement messages to all active registered users via WhatsApp and/or Telegram channels.</p>
+        </div>
+        <div class="card">
+          <h4>Analytics</h4>
+          <p>Monthly user growth, message volume, image submissions, top users by points, and activity trends.</p>
+        </div>
+      </div>
+
+      <h2 id="pages">Page Reference</h2>
+      <table>
+        <thead><tr><th>Page</th><th>URL</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Login</td><td><code>/login</code></td><td>Authentication page with rate limiting (5/min)</td></tr>
+          <tr><td>Dashboard</td><td><code>/dashboard</code></td><td>Statistics overview with recent activity feed</td></tr>
+          <tr><td>Users</td><td><code>/users</code></td><td>User list with create/edit/delete actions</td></tr>
+          <tr><td>Create User</td><td><code>/users/create</code></td><td>Form to add a new user (phone, name, role, points)</td></tr>
+          <tr><td>Edit User</td><td><code>/users/&lt;phone&gt;/edit</code></td><td>Modify user details</td></tr>
+          <tr><td>Collection Points</td><td><code>/locations</code></td><td>Location list with map coordinates</td></tr>
+          <tr><td>Schedules</td><td><code>/schedules</code></td><td>Weekly collection schedule grid</td></tr>
+          <tr><td>Analytics</td><td><code>/analytics</code></td><td>Charts and tables for usage metrics</td></tr>
+          <tr><td>Broadcast</td><td><code>/broadcast</code></td><td>Send messages to all active users</td></tr>
+          <tr><td>Settings</td><td><code>/settings</code></td><td>View current system configuration (read-only)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="user-roles">User Roles</h2>
+      <p>The system supports three roles with different privileges:</p>
+      <table>
+        <thead><tr><th>Role</th><th>Description</th><th>Capabilities</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>warga</code></td>
+            <td>Citizen (default)</td>
+            <td>Chat with bot, waste classification, view schedules/locations, earn points</td>
+          </tr>
+          <tr>
+            <td><code>koordinator</code></td>
+            <td>Village coordinator</td>
+            <td>All warga features + receive reports, view statistics via chat commands</td>
+          </tr>
+          <tr>
+            <td><code>admin</code></td>
+            <td>System administrator</td>
+            <td>All features + user management, broadcast, backup, system commands via <code>/admin</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="admin-commands">WhatsApp/Telegram Admin Commands</h2>
+      <p>Admins can also manage the system directly through chat using the <code>/admin</code> prefix:</p>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/admin help</code></td><td>Show all available admin commands</td></tr>
+          <tr><td><code>/admin stats</code></td><td>View system statistics</td></tr>
+          <tr><td><code>/admin users</code></td><td>List registered users</td></tr>
+          <tr><td><code>/admin broadcast &lt;message&gt;</code></td><td>Send broadcast to all active users</td></tr>
+          <tr><td><code>/admin report</code></td><td>Generate and send activity report</td></tr>
+          <tr><td><code>/admin backup</code></td><td>Export data backup</td></tr>
+          <tr><td><code>/admin memory_stats</code></td><td>View conversation memory statistics</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="security-features">Security Features</h2>
+      <ul>
+        <li><strong>CSRF Protection</strong> &mdash; All POST forms include a <code>csrf_token</code> hidden field via flask-wtf</li>
+        <li><strong>Rate Limiting</strong> &mdash; Login endpoint limited to 5 attempts/minute, 20/hour</li>
+        <li><strong>Session Hardening</strong> &mdash; <code>HttpOnly</code>, <code>SameSite=Strict</code>, <code>Secure</code> (production), 8-hour timeout</li>
+        <li><strong>Constant-Time Auth</strong> &mdash; Password comparison uses <code>hmac.compare_digest()</code></li>
+      </ul>
+
+    </div>
+  </section>
+
+  <footer id="main-footer"></footer>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started &mdash; EcoBot Docs</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <section class="page-content">
+    <div class="container">
+      <div class="page-header">
+        <h1>Getting Started</h1>
+        <p class="lead">Set up EcoBot locally in under 5 minutes. This guide covers prerequisites, installation, configuration, and your first run.</p>
+      </div>
+
+      <h2 id="prerequisites">Prerequisites</h2>
+      <ul>
+        <li><strong>Python 3.10+</strong> with <code>pip</code></li>
+        <li><strong>PostgreSQL 14+</strong> (local install or Docker)</li>
+        <li><strong>Git</strong> for cloning the repository</li>
+        <li><strong>WAHA instance</strong> (for WhatsApp) &mdash; <a href="https://waha.devlike.pro/" target="_blank" rel="noopener">waha.devlike.pro</a></li>
+        <li><strong>AI API key</strong> &mdash; Gemini (free tier available) or OpenAI</li>
+      </ul>
+
+      <h2 id="installation">Installation</h2>
+      <ol class="steps">
+        <li>
+          <h4>Clone the repository</h4>
+          <pre><code>git clone https://github.com/mycoderisyad/raflangt-ecobot.git
+cd raflangt-ecobot</code></pre>
+        </li>
+        <li>
+          <h4>Create a virtual environment</h4>
+          <pre><code># Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
+
+# Windows
+python -m venv venv
+venv\Scripts\activate</code></pre>
+        </li>
+        <li>
+          <h4>Install dependencies</h4>
+          <pre><code>pip install -r requirements.txt</code></pre>
+        </li>
+        <li>
+          <h4>Set up PostgreSQL</h4>
+          <p>Option A &mdash; Docker (recommended):</p>
+          <pre><code>docker compose up -d db
+# Creates database "ecobot" with user "postgres"</code></pre>
+          <p>Option B &mdash; Local PostgreSQL:</p>
+          <pre><code>createdb ecobot
+# Or use pgAdmin to create the database</code></pre>
+        </li>
+        <li>
+          <h4>Configure environment</h4>
+          <pre><code>cp .env.example .env</code></pre>
+          <p>Edit <code>.env</code> and set at minimum:</p>
+          <pre><code># Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ecobot
+
+# AI Provider
+AI_PROVIDER=gemini
+AI_API_KEY=your-gemini-api-key
+
+# WhatsApp (WAHA)
+WHATSAPP_ENABLED=true
+WAHA_BASE_URL=http://localhost:3000
+WAHA_API_KEY=your-waha-key
+WAHA_WEBHOOK_SECRET=a-random-secret-string
+
+# Security
+API_SECRET_KEY=change-me-to-a-random-string
+ADMIN_PANEL_SECRET_KEY=change-me-to-something-random
+ADMIN_PANEL_PASSWORD=a-strong-password</code></pre>
+          <p>See <a href="configuration.html">Configuration</a> for the full list of environment variables.</p>
+        </li>
+      </ol>
+
+      <h2 id="running">Running the Application</h2>
+
+      <h3>API Server (port 8000)</h3>
+      <pre><code># Development
+uvicorn src.app:create_asgi_app --factory --host 127.0.0.1 --port 8000
+
+# Production (multiple workers)
+uvicorn src.app:create_asgi_app --factory --host 0.0.0.0 --port 8000 --workers 4</code></pre>
+
+      <h3>Admin Panel (port 3001)</h3>
+      <pre><code>python admin_panel/app.py
+# Access at http://localhost:3001</code></pre>
+
+      <h3>Docker Compose (full stack)</h3>
+      <pre><code>docker compose up -d
+# Starts: PostgreSQL + EcoBot API + Admin Panel</code></pre>
+
+      <h2 id="verify">Verify Installation</h2>
+      <p>After starting the server, run these checks:</p>
+
+      <pre><code># Health check
+curl http://localhost:8000/health
+# Expected: {"status": "healthy"}
+
+# Root endpoint
+curl http://localhost:8000/
+# Expected: {"name": "EcoBot", "status": "running"}
+
+# Admin panel health
+curl http://localhost:3001/health
+# Expected: {"status": "healthy", "service": "EcoBot Admin Panel", ...}</code></pre>
+
+      <h2 id="webhooks">Configure Webhooks</h2>
+
+      <h3>WhatsApp (WAHA)</h3>
+      <ol>
+        <li>Open your WAHA dashboard</li>
+        <li>Set webhook URL to <code>http://&lt;your-server&gt;:8000/webhook/whatsapp</code></li>
+        <li>Set webhook secret to match your <code>WAHA_WEBHOOK_SECRET</code> env var</li>
+        <li>Enable the <code>message</code> event</li>
+      </ol>
+
+      <h3>Telegram</h3>
+      <ol>
+        <li>Create a bot via <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a></li>
+        <li>Set <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_ENABLED=true</code> in <code>.env</code></li>
+        <li>Register webhook with Telegram API:</li>
+      </ol>
+      <pre><code>curl -X POST "https://api.telegram.org/bot&lt;BOT_TOKEN&gt;/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://&lt;your-public-domain&gt;/webhook/telegram",
+    "secret_token": "&lt;TELEGRAM_WEBHOOK_SECRET&gt;"
+  }'</code></pre>
+
+      <h2 id="first-test">First Test</h2>
+      <ol>
+        <li>Send <code>help</code> via WhatsApp to your WAHA-connected number</li>
+        <li>Try AI modes: <code>/hybrid-ecobot</code>, <code>/layanan-ecobot</code>, <code>/general-ecobot</code></li>
+        <li>Send a photo of waste to test image classification</li>
+        <li>Log into admin panel at <code>http://localhost:3001</code> to see the dashboard</li>
+      </ol>
+
+      <div class="alert alert-info">
+        <strong>Next:</strong> See the full <a href="api.html">API Reference</a> with interactive playground, or read about the <a href="architecture.html">System Architecture</a>.
+      </div>
+
+    </div>
+  </section>
+
+  <footer id="main-footer"></footer>
+  <script src="js/app.js"></script>
+</body>
+</html>

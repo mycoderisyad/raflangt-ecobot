@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security &mdash; EcoBot Docs</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <section class="page-content">
+    <div class="container">
+      <div class="page-header">
+        <h1>Security</h1>
+        <p class="lead">Security audit results, hardening measures applied, and best practices for production deployment.</p>
+      </div>
+
+      <h2 id="audit">Security Audit Summary</h2>
+      <p>A comprehensive security audit was performed covering the API layer, admin panel, webhook endpoints, Docker infrastructure, and secret management. <strong>13 vulnerabilities</strong> were identified and remediated.</p>
+
+      <table>
+        <thead><tr><th>ID</th><th>Severity</th><th>Category</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>V1</td><td><strong style="color:var(--c-danger)">Critical</strong></td><td>AuthN</td><td>Telegram webhook accepts unauthenticated requests</td><td>Fixed</td></tr>
+          <tr><td>V2</td><td><strong style="color:var(--c-warning)">High</strong></td><td>CSRF</td><td>Admin panel POST endpoints lack CSRF tokens</td><td>Fixed</td></tr>
+          <tr><td>V3</td><td><strong style="color:var(--c-warning)">High</strong></td><td>Brute-Force</td><td>No rate limiting on admin login</td><td>Fixed</td></tr>
+          <tr><td>V4</td><td><strong style="color:var(--c-warning)">High</strong></td><td>SSRF</td><td>WhatsApp media download fetches arbitrary URLs</td><td>Fixed</td></tr>
+          <tr><td>V5</td><td><strong style="color:var(--c-warning)">High</strong></td><td>Crypto</td><td>API key comparison vulnerable to timing oracle</td><td>Fixed</td></tr>
+          <tr><td>V6</td><td><strong style="color:var(--c-danger)">Critical</strong></td><td>AuthN</td><td>WhatsApp webhook accepts unauthenticated requests</td><td>Fixed</td></tr>
+          <tr><td>V7</td><td>Medium</td><td>Session</td><td>Session cookies missing HttpOnly/SameSite flags</td><td>Fixed</td></tr>
+          <tr><td>V8</td><td>Medium</td><td>Session</td><td>No session timeout/expiry</td><td>Fixed</td></tr>
+          <tr><td>V9</td><td>Low</td><td>Rate Limit</td><td>In-memory rate limiter doesn't work across workers</td><td>Documented</td></tr>
+          <tr><td>V10</td><td>Medium</td><td>Info Disclosure</td><td>Health endpoint leaks version and environment</td><td>Fixed</td></tr>
+          <tr><td>V11</td><td>Low</td><td>Infra</td><td>Docker container runs as root</td><td>Fixed</td></tr>
+          <tr><td>V12</td><td>Low</td><td>Infra</td><td>PostgreSQL port exposed to all interfaces</td><td>Fixed</td></tr>
+          <tr><td>V13</td><td>Low</td><td>Secrets</td><td>No startup validation of secret strength</td><td>Fixed</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="poc-tests">PoC Verification Results</h2>
+      <p>Automated proof-of-concept scripts in <code>tests/security/</code> verify each fix:</p>
+      <table>
+        <thead><tr><th>Test</th><th>Result</th><th>Details</th></tr></thead>
+        <tbody>
+          <tr><td>V1 &mdash; Telegram webhook spoof</td><td><strong style="color:var(--c-success)">PROTECTED</strong></td><td>HTTP 403 Forbidden</td></tr>
+          <tr><td>V2 &mdash; CSRF admin panel</td><td><strong style="color:var(--c-success)">PROTECTED</strong></td><td>HTTP 400 on POST without token</td></tr>
+          <tr><td>V3 &mdash; Brute-force login</td><td><strong style="color:var(--c-success)">PROTECTED</strong></td><td>CSRF + rate limiting (429)</td></tr>
+          <tr><td>V4 &mdash; SSRF media download</td><td><strong style="color:var(--c-success)">PROTECTED</strong></td><td><code>_is_safe_url()</code> blocks private IPs</td></tr>
+          <tr><td>V5 &mdash; Timing oracle</td><td><strong style="color:var(--c-success)">FIXED</strong></td><td><code>hmac.compare_digest()</code></td></tr>
+          <tr><td>V6 &mdash; WA webhook injection</td><td><strong style="color:var(--c-success)">PROTECTED</strong></td><td>Fail-closed HMAC verification</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Running PoC Tests</h3>
+      <pre><code># Start the API server and admin panel first
+uvicorn src.app:create_asgi_app --factory --host 127.0.0.1 --port 8000 &
+python admin_panel/app.py &
+
+# Run all PoC scripts
+python tests/security/poc_v1_telegram_webhook_spoof.py
+python tests/security/poc_v2_csrf_admin.py
+python tests/security/poc_v3_brute_force_login.py
+python tests/security/poc_v4_ssrf_whatsapp.py
+python tests/security/poc_v5_timing_api_key.py
+python tests/security/poc_v6_whatsapp_webhook_inject.py</code></pre>
+
+      <h2 id="measures">Security Measures</h2>
+
+      <h3>Webhook Authentication</h3>
+      <ul>
+        <li>Both WhatsApp and Telegram webhooks use HMAC-based secret verification</li>
+        <li><strong>Fail-closed design:</strong> if the secret env var is not configured, all requests are rejected</li>
+        <li>Uses <code>hmac.compare_digest()</code> for constant-time comparison (prevents timing attacks)</li>
+      </ul>
+
+      <h3>Admin Panel Security</h3>
+      <ul>
+        <li><strong>CSRF protection</strong> via <code>flask-wtf CSRFProtect</code> on all POST forms</li>
+        <li><strong>Rate limiting</strong> on login: 5 requests/minute, 20 requests/hour</li>
+        <li><strong>Session hardening:</strong> <code>HttpOnly</code>, <code>SameSite=Strict</code>, <code>Secure</code> (production), 8-hour timeout</li>
+        <li>Constant-time credential comparison with <code>hmac.compare_digest()</code></li>
+      </ul>
+
+      <h3>API Security</h3>
+      <ul>
+        <li>User management endpoints require <code>X-API-Key</code> header</li>
+        <li>Key validation uses constant-time comparison</li>
+        <li>Returns <code>500</code> if <code>API_SECRET_KEY</code> is not configured (fail-closed)</li>
+      </ul>
+
+      <h3>SSRF Protection</h3>
+      <ul>
+        <li>Media download validates URL scheme (only <code>http</code>/<code>https</code>)</li>
+        <li>Resolves hostname and blocks RFC1918, loopback, and link-local IP ranges</li>
+        <li>Enforces 5 MB max download via <code>Content-Length</code> and streaming</li>
+      </ul>
+
+      <h3>Infrastructure</h3>
+      <ul>
+        <li>Docker runs as non-root <code>appuser</code></li>
+        <li>PostgreSQL bound to <code>127.0.0.1</code> only in Docker Compose</li>
+        <li>Startup validation rejects weak/placeholder secrets in production</li>
+      </ul>
+
+      <h2 id="recommendations">Production Recommendations</h2>
+      <ol>
+        <li>Set strong, unique values for <code>WAHA_WEBHOOK_SECRET</code>, <code>TELEGRAM_WEBHOOK_SECRET</code>, <code>API_SECRET_KEY</code>, <code>ADMIN_PANEL_SECRET_KEY</code>, and <code>ADMIN_PANEL_PASSWORD</code></li>
+        <li>Enable HTTPS via reverse proxy (Nginx/Caddy) so <code>SESSION_COOKIE_SECURE</code> works</li>
+        <li>Use Redis-backed <code>flask-limiter</code> for multi-worker deployments</li>
+        <li>Rotate all secrets if they were ever committed to version control</li>
+        <li>Run security PoC tests after any webhook or auth-related code changes</li>
+        <li>Keep Python dependencies updated (<code>pip audit</code>)</li>
+      </ol>
+
+    </div>
+  </section>
+
+  <footer id="main-footer"></footer>
+  <script src="js/app.js"></script>
+</body>
+</html>

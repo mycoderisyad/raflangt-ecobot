@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference &mdash; EcoBot Docs</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <section class="page-content">
+    <div class="container">
+      <div class="page-header">
+        <h1>API Reference</h1>
+        <p class="lead">Complete endpoint documentation for the EcoBot REST API (port 8000) and Admin Panel (port 3001). Use the interactive playground below to send live requests.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="overview">Overview</h2>
+
+      <table>
+        <thead><tr><th>Property</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td><strong>API Base URL</strong></td><td><code>http://localhost:8000</code></td></tr>
+          <tr><td><strong>Admin Panel URL</strong></td><td><code>http://localhost:3001</code></td></tr>
+          <tr><td><strong>Content Type</strong></td><td><code>application/json</code></td></tr>
+          <tr><td><strong>Authentication</strong></td><td><code>X-API-Key</code> header (for <code>/api/*</code> endpoints)</td></tr>
+          <tr><td><strong>Webhook Auth</strong></td><td>HMAC secret headers (fail-closed)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="auth">Authentication</h3>
+      <p>The EcoBot API uses different authentication methods depending on the endpoint type:</p>
+
+      <table>
+        <thead><tr><th>Endpoint Type</th><th>Auth Method</th><th>Header</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Health checks (<code>/</code>, <code>/health</code>)</td>
+            <td><span class="badge badge-public">Public</span></td>
+            <td>None required</td>
+          </tr>
+          <tr>
+            <td>User management (<code>/api/users</code>)</td>
+            <td><span class="badge badge-auth">API Key</span></td>
+            <td><code>X-API-Key: &lt;API_SECRET_KEY&gt;</code></td>
+          </tr>
+          <tr>
+            <td>WhatsApp webhook</td>
+            <td><span class="badge badge-webhook">Webhook Secret</span></td>
+            <td><code>X-Waha-Webhook-Secret: &lt;WAHA_WEBHOOK_SECRET&gt;</code></td>
+          </tr>
+          <tr>
+            <td>Telegram webhook</td>
+            <td><span class="badge badge-webhook">Webhook Secret</span></td>
+            <td><code>X-Telegram-Bot-Api-Secret-Token: &lt;TELEGRAM_WEBHOOK_SECRET&gt;</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="alert alert-warning">
+        <strong>Fail-closed webhooks:</strong> If the webhook secret environment variable is not set, <em>all</em> requests to that webhook are rejected with <code>403 Forbidden</code>. You must configure <code>WAHA_WEBHOOK_SECRET</code> and/or <code>TELEGRAM_WEBHOOK_SECRET</code> in your <code>.env</code>.
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="endpoints">Endpoint Reference</h2>
+
+      <h3 id="ep-health">Health Endpoints</h3>
+
+      <h4><span class="badge badge-get">GET</span> <code>/</code></h4>
+      <p>Root status check. Returns application name and running status.</p>
+      <p><strong>Auth:</strong> <span class="badge badge-public">Public</span></p>
+      <p><strong>Response 200:</strong></p>
+      <pre><code>{
+  "name": "EcoBot",
+  "status": "running"
+}</code></pre>
+
+      <h4><span class="badge badge-get">GET</span> <code>/health</code></h4>
+      <p>Lightweight health-check (suitable for load balancers / uptime monitors).</p>
+      <p><strong>Auth:</strong> <span class="badge badge-public">Public</span></p>
+      <p><strong>Response 200:</strong></p>
+      <pre><code>{
+  "status": "healthy"
+}</code></pre>
+
+      <!-- Users -->
+      <h3 id="ep-users">User Management Endpoints</h3>
+
+      <h4><span class="badge badge-get">GET</span> <code>/api/users</code></h4>
+      <p>List all registered users with pagination support.</p>
+      <p><strong>Auth:</strong> <span class="badge badge-auth">API Key</span> &mdash; <code>X-API-Key</code> header</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>limit</code></td><td>integer</td><td>100</td><td>Maximum number of users to return</td></tr>
+          <tr><td><code>offset</code></td><td>integer</td><td>0</td><td>Number of rows to skip (for pagination)</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Response 200:</strong></p>
+      <pre><code>{
+  "users": [
+    {
+      "phone_number": "628xxx@c.us",
+      "username": "John",
+      "role": "warga",
+      "points": 150,
+      "is_active": true,
+      "total_messages": 42,
+      "total_images": 5,
+      "first_seen": "2025-01-15T08:30:00",
+      "last_active": "2026-04-28T01:00:00"
+    }
+  ],
+  "total": 1
+}</code></pre>
+      <p><strong>Response 401:</strong></p>
+      <pre><code>{ "error": "Unauthorized" }</code></pre>
+      <p><strong>Response 500 (API_SECRET_KEY not set):</strong></p>
+      <pre><code>{ "error": "Server misconfiguration" }</code></pre>
+
+      <h4><span class="badge badge-get">GET</span> <code>/api/users/{phone}</code></h4>
+      <p>Get a single user by their phone number identifier.</p>
+      <p><strong>Auth:</strong> <span class="badge badge-auth">API Key</span></p>
+      <table>
+        <thead><tr><th>Path Param</th><th>Description</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><code>phone</code></td><td>Phone number identifier</td><td><code>628123456789@c.us</code></td></tr>
+        </tbody>
+      </table>
+      <p><strong>Response 200:</strong> Full user object (same fields as above)</p>
+      <p><strong>Response 404:</strong></p>
+      <pre><code>{ "error": "User not found" }</code></pre>
+
+      <!-- Webhooks -->
+      <h3 id="ep-webhooks">Webhook Endpoints</h3>
+
+      <h4><span class="badge badge-post">POST</span> <code>/webhook/whatsapp</code></h4>
+      <p>WhatsApp (WAHA) webhook receiver. Processes incoming messages and images from WhatsApp users.</p>
+      <p><strong>Auth:</strong> <span class="badge badge-webhook">Webhook Secret</span> &mdash; <code>X-Waha-Webhook-Secret</code> header</p>
+      <p><strong>Request Body:</strong></p>
+      <pre><code>{
+  "event": "message",
+  "payload": {
+    "from": "628123456789@c.us",
+    "hasMedia": false,
+    "type": "chat",
+    "body": "Jadwal pengumpulan sampah hari ini?"
+  }
+}</code></pre>
+      <table>
+        <thead><tr><th>Status</th><th>Body</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>200</td><td><code>{"status": "ok"}</code></td><td>Message processed successfully</td></tr>
+          <tr><td>200</td><td><code>{"status": "ignored"}</code></td><td>Payload ignored (not a user message)</td></tr>
+          <tr><td>200</td><td><code>{"status": "disabled"}</code></td><td>WhatsApp channel is disabled in config</td></tr>
+          <tr><td>403</td><td><code>{"error": "Forbidden"}</code></td><td>Invalid or missing webhook secret</td></tr>
+          <tr><td>500</td><td><code>{"status": "error"}</code></td><td>Internal server error</td></tr>
+        </tbody>
+      </table>
+
+      <h4><span class="badge badge-post">POST</span> <code>/webhook/telegram</code></h4>
+      <p>Telegram Bot API webhook receiver. Processes incoming Telegram updates (messages &amp; images).</p>
+      <p><strong>Auth:</strong> <span class="badge badge-webhook">Webhook Secret</span> &mdash; <code>X-Telegram-Bot-Api-Secret-Token</code> header</p>
+      <p><strong>Request Body:</strong> Standard Telegram <a href="https://core.telegram.org/bots/api#update" target="_blank" rel="noopener">Update object</a>.</p>
+      <pre><code>{
+  "update_id": 123456,
+  "message": {
+    "message_id": 1,
+    "chat": { "id": 12345, "type": "private" },
+    "from": { "id": 12345, "first_name": "User", "username": "testuser" },
+    "text": "Hello EcoBot!",
+    "date": 1714300800
+  }
+}</code></pre>
+      <table>
+        <thead><tr><th>Status</th><th>Body</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>200</td><td><code>{"status": "ok"}</code></td><td>Update processed successfully</td></tr>
+          <tr><td>200</td><td><code>{"status": "ignored"}</code></td><td>Update type not supported</td></tr>
+          <tr><td>200</td><td><code>{"status": "disabled"}</code></td><td>Telegram channel is disabled in config</td></tr>
+          <tr><td>403</td><td><code>{"error": "Forbidden"}</code></td><td>Invalid or missing webhook secret</td></tr>
+          <tr><td>500</td><td><code>{"status": "error"}</code></td><td>Internal server error</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Admin Panel API -->
+      <h3 id="ep-admin">Admin Panel Endpoints (port 3001)</h3>
+      <p>The admin panel runs as a separate Flask app on port <code>3001</code>. All mutating endpoints are protected by session authentication + CSRF tokens. Rate limiting is applied to the login route.</p>
+
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/</code></td><td>-</td><td>Redirect to dashboard or login</td></tr>
+          <tr><td><span class="badge badge-get">GET</span>&nbsp;<span class="badge badge-post">POST</span></td><td><code>/login</code></td><td>-</td><td>Admin login (rate limited: 5/min, 20/hr)</td></tr>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/logout</code></td><td>Session</td><td>Logout and clear session</td></tr>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/dashboard</code></td><td>Session</td><td>Main dashboard with statistics</td></tr>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/users</code></td><td>Session</td><td>User management list</td></tr>
+          <tr><td><span class="badge badge-get">GET</span>&nbsp;<span class="badge badge-post">POST</span></td><td><code>/users/create</code></td><td>Session + CSRF</td><td>Create new user</td></tr>
+          <tr><td><span class="badge badge-get">GET</span>&nbsp;<span class="badge badge-post">POST</span></td><td><code>/users/&lt;phone&gt;/edit</code></td><td>Session + CSRF</td><td>Edit user details</td></tr>
+          <tr><td><span class="badge badge-post">POST</span></td><td><code>/users/&lt;phone&gt;/delete</code></td><td>Session + CSRF</td><td>Delete user</td></tr>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/locations</code></td><td>Session</td><td>Collection points list</td></tr>
+          <tr><td><span class="badge badge-get">GET</span>&nbsp;<span class="badge badge-post">POST</span></td><td><code>/locations/create</code></td><td>Session + CSRF</td><td>Create collection point</td></tr>
+          <tr><td><span class="badge badge-get">GET</span>&nbsp;<span class="badge badge-post">POST</span></td><td><code>/locations/&lt;id&gt;/edit</code></td><td>Session + CSRF</td><td>Edit collection point</td></tr>
+          <tr><td><span class="badge badge-post">POST</span></td><td><code>/locations/&lt;id&gt;/delete</code></td><td>Session + CSRF</td><td>Delete collection point</td></tr>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/schedules</code></td><td>Session</td><td>Collection schedules list</td></tr>
+          <tr><td><span class="badge badge-get">GET</span>&nbsp;<span class="badge badge-post">POST</span></td><td><code>/schedules/create</code></td><td>Session + CSRF</td><td>Create schedule</td></tr>
+          <tr><td><span class="badge badge-get">GET</span>&nbsp;<span class="badge badge-post">POST</span></td><td><code>/schedules/&lt;id&gt;/edit</code></td><td>Session + CSRF</td><td>Edit schedule</td></tr>
+          <tr><td><span class="badge badge-post">POST</span></td><td><code>/schedules/&lt;id&gt;/delete</code></td><td>Session + CSRF</td><td>Delete schedule</td></tr>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/analytics</code></td><td>Session</td><td>Analytics and reports page</td></tr>
+          <tr><td><span class="badge badge-get">GET</span>&nbsp;<span class="badge badge-post">POST</span></td><td><code>/broadcast</code></td><td>Session + CSRF</td><td>Send broadcast to all active users</td></tr>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/settings</code></td><td>Session</td><td>System settings page</td></tr>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/stats</code></td><td>Session</td><td>JSON stats for dashboard AJAX</td></tr>
+          <tr><td><span class="badge badge-get">GET</span></td><td><code>/health</code></td><td>-</td><td>Admin panel health check</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ============================================================= -->
+      <h2 id="testing">Testing with cURL</h2>
+
+      <h4>Health Check</h4>
+      <pre><code>curl http://localhost:8000/health</code></pre>
+
+      <h4>List Users (with API key)</h4>
+      <pre><code>curl -H "X-API-Key: YOUR_API_SECRET_KEY" \
+     "http://localhost:8000/api/users?limit=10&offset=0"</code></pre>
+
+      <h4>Get Single User</h4>
+      <pre><code>curl -H "X-API-Key: YOUR_API_SECRET_KEY" \
+     "http://localhost:8000/api/users/628123456789@c.us"</code></pre>
+
+      <h4>Test Telegram Webhook (rejected without secret)</h4>
+      <pre><code>curl -X POST http://localhost:8000/webhook/telegram \
+     -H "Content-Type: application/json" \
+     -d '{"update_id":1,"message":{"message_id":1,"chat":{"id":1,"type":"private"},"from":{"id":1,"first_name":"Test"},"text":"hello","date":1700000000}}'
+# Expected: 403 Forbidden</code></pre>
+
+      <h4>Test Telegram Webhook (with valid secret)</h4>
+      <pre><code>curl -X POST http://localhost:8000/webhook/telegram \
+     -H "Content-Type: application/json" \
+     -H "X-Telegram-Bot-Api-Secret-Token: YOUR_TELEGRAM_WEBHOOK_SECRET" \
+     -d '{"update_id":1,"message":{"message_id":1,"chat":{"id":1,"type":"private"},"from":{"id":1,"first_name":"Test"},"text":"hello","date":1700000000}}'</code></pre>
+
+      <h4>Test WhatsApp Webhook</h4>
+      <pre><code>curl -X POST http://localhost:8000/webhook/whatsapp \
+     -H "Content-Type: application/json" \
+     -H "X-Waha-Webhook-Secret: YOUR_WAHA_WEBHOOK_SECRET" \
+     -d '{"event":"message","payload":{"from":"628xxx@c.us","hasMedia":false,"type":"chat","body":"test"}}'</code></pre>
+
+      <h4>Admin Panel Health</h4>
+      <pre><code>curl http://localhost:3001/health</code></pre>
+
+      <!-- ============================================================= -->
+      <h2 id="error-codes">Error Codes</h2>
+      <table>
+        <thead><tr><th>Code</th><th>Meaning</th><th>Common Cause</th></tr></thead>
+        <tbody>
+          <tr><td><code>200</code></td><td>OK</td><td>Request processed successfully</td></tr>
+          <tr><td><code>400</code></td><td>Bad Request</td><td>Missing CSRF token on admin panel POST</td></tr>
+          <tr><td><code>401</code></td><td>Unauthorized</td><td>Missing or invalid <code>X-API-Key</code></td></tr>
+          <tr><td><code>403</code></td><td>Forbidden</td><td>Invalid webhook secret or secret not configured</td></tr>
+          <tr><td><code>404</code></td><td>Not Found</td><td>User or resource does not exist</td></tr>
+          <tr><td><code>429</code></td><td>Too Many Requests</td><td>Rate limit exceeded on login</td></tr>
+          <tr><td><code>500</code></td><td>Internal Server Error</td><td>Unhandled exception or <code>API_SECRET_KEY</code> not configured</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ============================================================= -->
+      <h2 id="playground">Live API Playground</h2>
+      <p>Send real HTTP requests to your local EcoBot instance. Make sure the server is running before testing.</p>
+      <div class="alert alert-info">
+        <strong>Note:</strong> The playground uses <code>fetch()</code> from your browser. For cross-origin requests, your server must allow CORS, or you should open this page from the same origin. Health check endpoints typically work without CORS issues.
+      </div>
+      <div id="api-playground"></div>
+
+    </div>
+  </section>
+
+  <footer id="main-footer"></footer>
+  <script src="js/app.js"></script>
+  <script src="js/api-playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration &mdash; EcoBot Docs</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <section class="page-content">
+    <div class="container">
+      <div class="page-header">
+        <h1>Configuration</h1>
+        <p class="lead">Complete reference for all environment variables. Copy <code>.env.example</code> to <code>.env</code> and fill in your values.</p>
+      </div>
+
+      <h2 id="app">Application</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ENVIRONMENT</code></td><td>No</td><td><code>development</code></td><td>App environment: <code>development</code> or <code>production</code></td></tr>
+          <tr><td><code>APP_NAME</code></td><td>No</td><td><code>EcoBot</code></td><td>Application display name</td></tr>
+          <tr><td><code>APP_VERSION</code></td><td>No</td><td><code>2.0.0</code></td><td>Application version string</td></tr>
+          <tr><td><code>PORT</code></td><td>No</td><td><code>8000</code></td><td>API server port</td></tr>
+          <tr><td><code>TIMEZONE</code></td><td>No</td><td><code>Asia/Jakarta</code></td><td>Timezone for scheduling and logs</td></tr>
+          <tr><td><code>VILLAGE_NAME</code></td><td>No</td><td>-</td><td>Village name for personalized messages</td></tr>
+          <tr><td><code>VILLAGE_COORDINATES</code></td><td>No</td><td>-</td><td>GPS coordinates for collection point proximity</td></tr>
+          <tr><td><code>REGISTRATION_MODE</code></td><td>No</td><td><code>auto</code></td><td>User registration: <code>auto</code> (instant) or <code>manual</code> (admin approval)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="database">Database</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>DATABASE_URL</code></td><td>Yes</td><td><code>postgresql://postgres:postgres@localhost:5432/ecobot</code></td><td>PostgreSQL connection string</td></tr>
+          <tr><td><code>POSTGRES_USER</code></td><td>No</td><td><code>postgres</code></td><td>DB user (Docker Compose override)</td></tr>
+          <tr><td><code>POSTGRES_PASSWORD</code></td><td>No</td><td><code>postgres</code></td><td>DB password (Docker Compose override)</td></tr>
+          <tr><td><code>POSTGRES_DB</code></td><td>No</td><td><code>ecobot</code></td><td>DB name (Docker Compose override)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="ai">AI Provider</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>AI_PROVIDER</code></td><td>No</td><td><code>gemini</code></td><td>AI backend: <code>gemini</code> or <code>openai</code></td></tr>
+          <tr><td><code>AI_API_KEY</code></td><td>Yes</td><td>-</td><td>API key for the AI provider</td></tr>
+          <tr><td><code>AI_MODEL</code></td><td>No</td><td><code>gemini-2.0-flash</code></td><td>Model name (auto-detected per provider)</td></tr>
+          <tr><td><code>AI_BASE_URL</code></td><td>No</td><td>Auto</td><td>Custom API base URL (leave blank for default)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="whatsapp">WhatsApp (WAHA)</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>WHATSAPP_ENABLED</code></td><td>No</td><td><code>true</code></td><td>Enable/disable WhatsApp channel</td></tr>
+          <tr><td><code>WAHA_BASE_URL</code></td><td>If enabled</td><td>-</td><td>WAHA HTTP API base URL</td></tr>
+          <tr><td><code>WAHA_API_KEY</code></td><td>If enabled</td><td>-</td><td>WAHA authentication API key</td></tr>
+          <tr><td><code>WAHA_SESSION_NAME</code></td><td>No</td><td><code>default</code></td><td>WAHA session name</td></tr>
+          <tr><td><code>WAHA_WEBHOOK_SECRET</code></td><td>If enabled</td><td>-</td><td>Secret for webhook HMAC verification (fail-closed)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="telegram">Telegram</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>TELEGRAM_ENABLED</code></td><td>No</td><td><code>false</code></td><td>Enable/disable Telegram channel</td></tr>
+          <tr><td><code>TELEGRAM_BOT_TOKEN</code></td><td>If enabled</td><td>-</td><td>Bot token from @BotFather</td></tr>
+          <tr><td><code>TELEGRAM_WEBHOOK_SECRET</code></td><td>If enabled</td><td>-</td><td>Secret for webhook HMAC verification (fail-closed)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="email">Email (Resend)</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>RESEND_API_KEY</code></td><td>If email needed</td><td>-</td><td>Resend API key</td></tr>
+          <tr><td><code>EMAIL_FROM</code></td><td>No</td><td>-</td><td>Sender email address</td></tr>
+          <tr><td><code>EMAIL_TO</code></td><td>No</td><td>-</td><td>Default recipient (coordinator reports)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="roles">Role Management</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ADMIN_PHONE_NUMBERS</code></td><td>Yes</td><td>-</td><td>Comma-separated admin WhatsApp phone numbers</td></tr>
+          <tr><td><code>COORDINATOR_PHONE_NUMBERS</code></td><td>No</td><td>-</td><td>Comma-separated coordinator phone numbers</td></tr>
+          <tr><td><code>ADMIN_TELEGRAM_USERNAMES</code></td><td>No</td><td>-</td><td>Comma-separated Telegram admin usernames (without @)</td></tr>
+          <tr><td><code>COORDINATOR_TELEGRAM_USERNAMES</code></td><td>No</td><td>-</td><td>Comma-separated Telegram coordinator usernames</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="security">Security &amp; Admin Panel</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>API_SECRET_KEY</code></td><td>Yes</td><td>-</td><td>Secret for <code>X-API-Key</code> header validation (user API)</td></tr>
+          <tr><td><code>ADMIN_PANEL_SECRET_KEY</code></td><td>Yes</td><td>-</td><td>Flask session secret key for admin panel</td></tr>
+          <tr><td><code>ADMIN_PANEL_USERNAME</code></td><td>No</td><td><code>admin</code></td><td>Admin panel login username</td></tr>
+          <tr><td><code>ADMIN_PANEL_PASSWORD</code></td><td>Yes</td><td><code>admin</code></td><td>Admin panel login password (change in production!)</td></tr>
+          <tr><td><code>ADMIN_PANEL_PORT</code></td><td>No</td><td><code>3001</code></td><td>Admin panel HTTP port</td></tr>
+        </tbody>
+      </table>
+
+      <div class="alert alert-danger">
+        <strong>Security:</strong> Never commit real API keys or passwords to version control. The <code>_check_secrets()</code> function in <code>src/app.py</code> will reject weak/placeholder secrets in production mode.
+      </div>
+
+    </div>
+  </section>
+
+  <footer id="main-footer"></footer>
+  <script src="js/app.js"></script>
+</body>
+</html>
