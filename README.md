@@ -108,7 +108,3 @@ See `.env.example` for the full list.
 | **warga** | Chat, education, schedule, location, image analysis |
 | **koordinator** | + statistics, reports |
 | **admin** | + full admin panel, user management |
-
-## License
-
-MIT
