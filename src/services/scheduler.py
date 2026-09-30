@@ -4,6 +4,7 @@ import json
 import logging
 import threading
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from src.database.models.collection import CollectionScheduleModel
 from src.database.models.user import UserModel
@@ -33,13 +34,20 @@ def start_scheduler() -> None:
     if _scheduler_thread and _scheduler_thread.is_alive():
         return
     _stop_event.clear()
-    _scheduler_thread = threading.Thread(target=_loop, daemon=True, name="ecobot-scheduler")
+    _scheduler_thread = threading.Thread(
+        target=_loop, daemon=True, name="ecobot-scheduler"
+    )
     _scheduler_thread.start()
     logger.info("Scheduler started")
 
 
 def stop_scheduler() -> None:
+    global _scheduler_thread
     _stop_event.set()
+    if _scheduler_thread and _scheduler_thread is not threading.current_thread():
+        _scheduler_thread.join(timeout=65)
+        if not _scheduler_thread.is_alive():
+            _scheduler_thread = None
     logger.info("Scheduler stopping")
 
 
@@ -63,7 +71,8 @@ def _loop() -> None:
 def _tick() -> None:
     global _last_reset_date, _sent_today
 
-    now = datetime.now()
+    cfg = get_settings()
+    now = datetime.now(ZoneInfo(cfg.app.timezone))
     today_str = now.strftime("%Y-%m-%d")
     current_time = now.strftime("%H:%M")
     day_name = _DAY_MAP.get(now.weekday(), "")
@@ -76,7 +85,6 @@ def _tick() -> None:
     if not day_name:
         return
 
-    cfg = get_settings()
     if not cfg.telegram.enabled:
         return
 
@@ -94,7 +102,8 @@ def _tick() -> None:
             continue
 
         # Send reminder 30 minutes before (or at the scheduled time)
-        if not _should_remind(current_time, sched_time):
+        start_time = sched_time.split("-", 1)[0].strip()
+        if not _should_remind(current_time, start_time):
             continue
 
         _sent_today.add(sched_key)
@@ -128,7 +137,11 @@ def _send_reminder(sched: dict, cfg) -> None:
             except (json.JSONDecodeError, TypeError):
                 waste_types_raw = [waste_types_raw]
 
-        waste_str = ", ".join(waste_types_raw) if isinstance(waste_types_raw, list) else str(waste_types_raw)
+        waste_str = (
+            ", ".join(waste_types_raw)
+            if isinstance(waste_types_raw, list)
+            else str(waste_types_raw)
+        )
 
         message = (
             f"Pengingat Pengumpulan Sampah\n\n"
@@ -140,21 +153,24 @@ def _send_reminder(sched: dict, cfg) -> None:
         )
 
         user_model = UserModel()
-        phones = user_model.get_reminder_enabled_phones()
+        user_ids = user_model.get_reminder_enabled_user_ids()
 
-        if not phones:
+        if not user_ids:
             return
 
         # Only send via Telegram for now (users stored as chat_id for TG)
-        if cfg.telegram.enabled:
-            tg = TelegramChannel()
-            sent = 0
-            for phone in phones:
-                # Telegram chat IDs are numeric strings
-                if phone.isdigit():
-                    if tg.send_message(phone, message):
-                        sent += 1
-            logger.info("Reminder sent to %d/%d Telegram users for %s at %s", sent, len(phones), location, sched_time)
+        tg = TelegramChannel()
+        targets = [
+            user_id for user_id in user_ids if user_id.isascii() and user_id.isdecimal()
+        ]
+        sent = sum(tg.send_message(user_id, message) for user_id in targets)
+        logger.info(
+            "Reminder sent to %d/%d Telegram users for %s at %s",
+            sent,
+            len(targets),
+            location,
+            sched_time,
+        )
 
     except Exception as e:
         logger.error("Reminder send error: %s", e, exc_info=True)

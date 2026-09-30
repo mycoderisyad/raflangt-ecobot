@@ -16,7 +16,7 @@ EcoBot menggunakan LLM sebagai brain utama untuk memahami intent user dan mengha
 ## Agent Flow
 
 ```
-User Message → Channel (WA/Telegram)
+User Message → Telegram Bot API
     → Webhook API
     → Orchestrator
     → Intent Resolver (lightweight LLM call)

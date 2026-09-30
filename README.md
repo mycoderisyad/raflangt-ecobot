@@ -1,110 +1,114 @@
-# EcoBot v2 — Waste Management Assistant
+# EcoBot API
 
-A modular Python/Flask backend for waste management via **WhatsApp** and **Telegram**. Powered by **Gemini** or **OpenAI** (selectable at runtime), backed by **PostgreSQL**, with role-based workflows, AI vision for waste classification, and automated email reports via **Resend**.
+Backend FastAPI untuk chatbot edukasi pengelolaan sampah. Warga berinteraksi lewat Telegram untuk tanya jawab, mengirim foto sampah untuk klasifikasi AI, dan menerima pengingat jadwal. Backend juga menyediakan API admin untuk UI terpisah.
 
-## Architecture
+## Stack dan fitur
 
-```
-src/
-├── ai/           # AI provider, agent, prompt templates
-├── api/          # Flask blueprints (webhooks, users, health)
-├── channels/     # WhatsApp (WAHA) + Telegram abstraction
-├── core/         # Orchestrator, intent resolver, constants
-├── database/     # PostgreSQL pool, migrations, models
-├── services/     # Email (Resend), reports (PDF), registration
-├── utils/        # Logger, phone, formatting helpers
-├── config.py     # Centralised settings from env vars
-└── app.py        # Flask application factory
-```
+- FastAPI dan Uvicorn, dengan dokumentasi OpenAPI di `/docs`.
+- PostgreSQL untuk pengguna, interaksi, percakapan, jadwal, lokasi, dan klasifikasi sampah.
+- Telegram Bot API melalui long polling lokal atau webhook HTTPS.
+- Gemini/OpenAI untuk percakapan dan analisis foto.
+- API admin berbasis bearer JWT untuk pengguna, titik pengumpulan, jadwal, statistik, laporan, dan broadcast.
+- Laporan PDF dan email melalui Resend.
 
-## Features
+## Menjalankan secara lokal (Windows)
 
-- **Dual AI Provider** — Gemini multimodal or OpenAI via a single OpenAI-compatible SDK
-- **Multi-Channel** — WhatsApp (WAHA) + Telegram Bot API
-- **Natural Language** — No slash commands required; LLM-based intent resolution
-- **AI Vision** — Send a photo → waste classification + recycling tips
-- **PostgreSQL** — Conversation history, user memory, waste stats
-- **Role-Based Access** — admin / koordinator / warga
-- **Modular Prompts** — Markdown templates composed at runtime
-- **Email Reports** — PDF generation + delivery via Resend
-- **Admin Panel** — Flask templates with extracted CSS
-- **Docker-Ready** — `docker compose up` for production
+Prasyarat: Python 3.12+, PostgreSQL lokal, token Telegram, dan API key AI untuk fitur percakapan/klasifikasi.
 
-## Quick Start
-
-```bash
-git clone https://github.com/mycoderisyad/raflangt-ecobot.git
-cd raflangt-ecobot
-python -m venv venv && venv\Scripts\activate   # Windows
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp .env.example .env                           # edit with your keys
+Copy-Item .env.example .env
+```
 
-# First-time database setup (PostgreSQL must be running)
+Isi `.env`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ENABLED=true`, `TELEGRAM_MODE=polling`, `AI_API_KEY`, `API_SECRET_KEY`, `ADMIN_USERNAME`, dan `ADMIN_PASSWORD`. Buat secret acak dengan:
+
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Gunakan hasil acak untuk `API_SECRET_KEY` dan `TELEGRAM_WEBHOOK_SECRET`; ganti juga password admin. API development mengikat ke localhost.
+
+Siapkan tabel dan data contoh:
+
+```powershell
 python manage.py db:setup
+```
 
-# Setup webhooks
-python manage.py webhook:tg         # register Telegram webhook
-python manage.py webhook:wa         # WhatsApp (WAHA) setup guide
+Untuk database yang sudah berisi data, jalankan `python manage.py db:migrate` agar perubahan skema diterapkan. Migrasi menambah kolom catatan jadwal dan tabel deduplikasi update Telegram; tidak menghapus data.
 
-# Start dev server (uvicorn with hot reload)
+Periksa token bot dan mulai server:
+
+```powershell
+python manage.py telegram:check
 python main.py
 ```
 
-### Production (Docker)
+Buka `http://localhost:8000/health` dan `http://localhost:8000/docs`. Kirim pesan ke bot Telegram untuk menguji balasan. Jalankan satu proses server agar worker polling dan pengingat tidak berjalan ganda.
 
-```bash
-cp .env.example .env   # fill in real values
-docker compose up -d --build
+Jika bot sebelumnya menggunakan webhook, hapus webhook sebelum polling:
+
+```powershell
+python manage.py telegram:webhook:info
+python manage.py telegram:webhook:delete
 ```
 
-## Management CLI (`manage.py`)
+## Telegram webhook
 
-```bash
-# Database
-python manage.py db:create          # create PostgreSQL database
-python manage.py db:migrate         # run migration files
-python manage.py db:seed            # insert sample data
-python manage.py db:setup           # create + migrate + seed (first time)
-python manage.py db:reset           # drop all tables, re-migrate + seed
-python manage.py db:status          # show tables and row counts
+Webhook memerlukan URL publik HTTPS. Atur `TELEGRAM_MODE=webhook` dan `TELEGRAM_WEBHOOK_SECRET`, daftarkan URL, lalu jalankan server:
 
-# Webhooks
-python manage.py webhook:tg         # set Telegram webhook URL
-python manage.py webhook:tg:info    # check Telegram webhook status
-python manage.py webhook:tg:delete  # remove Telegram webhook
-python manage.py webhook:wa         # WhatsApp (WAHA) setup guide
+```powershell
+python manage.py telegram:webhook:set https://domain-publik.example
+python main.py
 ```
 
-## Key Environment Variables
+Telegram mengirim update ke `POST /webhook/telegram` beserta header secret. Polling dan webhook tidak bisa aktif bersamaan untuk bot yang sama.
 
-| Variable | Description | Default |
-|---|---|---|
-| `AI_PROVIDER` | `gemini` or `openai` | `gemini` |
-| `AI_API_KEY` | API key for chosen provider | — |
-| `AI_MODEL` | Model name | `gemini-2.0-flash` |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://…/ecobot` |
-| `WHATSAPP_ENABLED` | Enable WhatsApp channel | `true` |
-| `WAHA_BASE_URL` | WAHA API URL | — |
-| `WAHA_API_KEY` | WAHA API key | — |
-| `TELEGRAM_ENABLED` | Enable Telegram channel | `false` |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token | — |
-| `RESEND_API_KEY` | Resend email API key | — |
-| `ADMIN_PHONE_NUMBERS` | Comma-separated admin phones | — |
+## API admin
 
-See `.env.example` for the full list.
+Login dengan kredensial dari `.env`:
 
-## Webhooks
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
 
-| Channel | Endpoint |
+{"username":"admin","password":"..."}
+```
+
+Pakai `access_token` sebagai `Authorization: Bearer <token>`. Token berlaku 60 menit secara default. Seluruh endpoint admin dan bentuk JSON-nya tersedia di `/docs` setelah server berjalan.
+
+| Area | Endpoint |
 |---|---|
-| WhatsApp (WAHA) | `POST /webhook/whatsapp` |
-| Telegram | `POST /webhook/telegram` |
-| Health check | `GET /health` |
+| Identitas | `POST /api/v1/auth/login`, `GET /api/v1/auth/me` |
+| Ringkasan | `GET /api/v1/dashboard`, `GET /api/v1/analytics`, `GET /api/v1/settings` |
+| Pengguna | `GET/POST /api/v1/users`, `GET/PATCH/DELETE /api/v1/users/{user_id}` |
+| Lokasi | `GET/POST /api/v1/locations`, `GET/PATCH/DELETE /api/v1/locations/{id}` |
+| Jadwal | `GET/POST /api/v1/schedules`, `GET/PATCH/DELETE /api/v1/schedules/{id}` |
+| Broadcast | `GET /api/v1/broadcast/audience`, `POST /api/v1/broadcast` |
+| Laporan | `POST /api/v1/reports/send` |
+| Kesehatan | `GET /health` |
 
-## Roles & Access
+`user_id` adalah ID chat pribadi Telegram. Baris pengguna lama tetap tersimpan; hanya ID numerik yang menjadi penerima pesan Telegram. Pengguna dengan riwayat yang terhubung tidak dapat dihapus permanen; nonaktifkan lewat `PATCH /api/v1/users/{user_id}`.
 
-| Role | Capabilities |
-|---|---|
-| **warga** | Chat, education, schedule, location, image analysis |
-| **koordinator** | + statistics, reports |
-| **admin** | + full admin panel, user management |
+## Perintah CLI
+
+```text
+python manage.py db:create
+python manage.py db:migrate
+python manage.py db:seed
+python manage.py db:setup
+python manage.py db:status
+python manage.py telegram:check
+python manage.py telegram:webhook:set [https://domain-publik.example]
+python manage.py telegram:webhook:info
+python manage.py telegram:webhook:delete
+```
+
+Seed dapat dijalankan ulang tanpa menggandakan jadwal contoh. Migrasi berlangsung melalui CLI dan tidak dieksekusi saat server dimulai.
+
+## Konfigurasi UI terpisah
+
+`CORS_ORIGINS` menerima daftar origin frontend yang dipisahkan koma. Dalam development, origin Vite `http://localhost:5173` dan `http://127.0.0.1:5173` menjadi default. Atur origin deployment eksplisit; kredensial server dan secret bot tidak pernah dikirimkan sebagai konfigurasi frontend.
+
+Referensi rinci ada di [dokumentasi lokal](docs/README.md) dan [catatan keamanan](docs/security.md).

@@ -11,8 +11,18 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Sample collection schedules
 INSERT INTO collection_schedules (location_name, address, schedule_day, schedule_time, waste_types, contact)
-VALUES
+SELECT seed.location_name, seed.address, seed.schedule_day, seed.schedule_time, seed.waste_types::jsonb, seed.contact
+FROM (VALUES
     ('TPS Desa Utama', 'Jl. Raya Desa No. 1', 'Senin', '07:00-09:00', '["ORGANIK"]', 'Pak RT'),
     ('TPS Desa Utama', 'Jl. Raya Desa No. 1', 'Kamis', '07:00-09:00', '["ANORGANIK"]', 'Pak RT'),
     ('Bank Sampah RT 03', 'Jl. Melati No. 5', 'Sabtu', '08:00-12:00', '["ANORGANIK"]', 'Bu Ani')
-ON CONFLICT DO NOTHING;
+) AS seed(location_name, address, schedule_day, schedule_time, waste_types, contact)
+WHERE NOT EXISTS (
+    SELECT 1 FROM collection_schedules existing
+    WHERE existing.location_name = seed.location_name
+      AND existing.address = seed.address
+      AND existing.schedule_day = seed.schedule_day
+      AND existing.schedule_time = seed.schedule_time
+      AND existing.waste_types = seed.waste_types::jsonb
+      AND COALESCE(existing.contact, '') = COALESCE(seed.contact, '')
+);

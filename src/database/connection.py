@@ -1,8 +1,9 @@
-"""PostgreSQL connection pool using psycopg2."""
+"""PostgreSQL connection pool shared by synchronous services."""
 
 import logging
+import threading
 from contextlib import contextmanager
-from typing import Any, List, Optional
+from typing import Any, Iterator, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -11,38 +12,28 @@ from psycopg2.pool import ThreadedConnectionPool
 from src.config import get_settings
 
 logger = logging.getLogger(__name__)
-
 _pool: Optional[ThreadedConnectionPool] = None
+_pool_lock = threading.Lock()
 
 
 def init_db() -> None:
-    """Create the connection pool and run migrations."""
+    """Open the connection pool. Schema migrations are an explicit CLI task."""
     global _pool
-    settings = get_settings()
-    _pool = ThreadedConnectionPool(
-        minconn=1,
-        maxconn=10,
-        dsn=settings.database.url,
-    )
-    logger.info("PostgreSQL connection pool created")
-    _run_migrations()
-
-
-def _run_migrations() -> None:
-    """Execute SQL migration files in order."""
-    import pathlib
-
-    migrations_dir = pathlib.Path(__file__).parent / "migrations"
-    if not migrations_dir.exists():
+    if _pool is not None:
         return
-    for sql_file in sorted(migrations_dir.glob("*.sql")):
-        logger.info("Running migration %s", sql_file.name)
-        with get_db() as db:
-            db.execute_script(sql_file.read_text("utf-8"))
+    with _pool_lock:
+        if _pool is None:
+            _pool = ThreadedConnectionPool(
+                minconn=1,
+                maxconn=10,
+                dsn=get_settings().database.url,
+                connect_timeout=5,
+            )
+            logger.info("PostgreSQL connection pool created")
 
 
 class DB:
-    """Thin wrapper around a psycopg2 connection for convenience."""
+    """Small adapter that returns rows as dictionaries."""
 
     def __init__(self, conn):
         self._conn = conn
@@ -50,50 +41,48 @@ class DB:
     def execute_script(self, sql: str) -> None:
         with self._conn.cursor() as cur:
             cur.execute(sql)
-        self._conn.commit()
 
-    def fetchall(self, query: str, params: tuple = ()) -> List[dict]:
+    def fetchall(self, query: str, params: tuple = ()) -> list[dict[str, Any]]:
         with self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(query, params)
             return [dict(row) for row in cur.fetchall()]
 
-    # Alias for snake_case consistency
     fetch_all = fetchall
 
-    def fetchone(self, query: str, params: tuple = ()) -> Optional[dict]:
+    def fetchone(self, query: str, params: tuple = ()) -> Optional[dict[str, Any]]:
         with self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(query, params)
             row = cur.fetchone()
             return dict(row) if row else None
 
-    # Alias for snake_case consistency
     fetch_one = fetchone
 
     def execute(self, query: str, params: tuple = ()) -> int:
         with self._conn.cursor() as cur:
             cur.execute(query, params)
-            self._conn.commit()
             return cur.rowcount
 
 
 def close_db() -> None:
-    """Close the connection pool gracefully."""
     global _pool
-    if _pool is not None:
-        _pool.closeall()
-        _pool = None
-        logger.info("PostgreSQL connection pool closed")
+    with _pool_lock:
+        if _pool is not None:
+            _pool.closeall()
+            _pool = None
+            logger.info("PostgreSQL connection pool closed")
 
 
 @contextmanager
-def get_db():
-    """Yield a DB wrapper, returning the connection to the pool afterwards."""
+def get_db() -> Iterator[DB]:
     global _pool
     if _pool is None:
         init_db()
+    if _pool is None:
+        raise RuntimeError("PostgreSQL connection pool is unavailable")
     conn = _pool.getconn()
     try:
         yield DB(conn)
+        conn.commit()
     except Exception:
         conn.rollback()
         raise

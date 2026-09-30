@@ -11,30 +11,22 @@ logger = logging.getLogger(__name__)
 
 
 class UserModel:
-
     def __init__(self):
-        self._admin_phones = self._load_phones("ADMIN_PHONE_NUMBERS")
-        self._coordinator_phones = self._load_phones("COORDINATOR_PHONE_NUMBERS")
-        self._admin_tg_usernames = self._load_list("ADMIN_TELEGRAM_USERNAMES", lower=True)
-        self._coordinator_tg_usernames = self._load_list("COORDINATOR_TELEGRAM_USERNAMES", lower=True)
+        self._admin_tg_usernames = self._load_list(
+            "ADMIN_TELEGRAM_USERNAMES", lower=True
+        )
+        self._coordinator_tg_usernames = self._load_list(
+            "COORDINATOR_TELEGRAM_USERNAMES", lower=True
+        )
 
     # ------------------------------------------------------------------
-    # Phone helpers
+    # Telegram role helpers
     # ------------------------------------------------------------------
-    @staticmethod
-    def _load_phones(env_key: str) -> List[str]:
-        raw = os.getenv(env_key, "")
-        return [p.strip().replace("@c.us", "").lstrip("+") for p in raw.split(",") if p.strip()]
-
     @staticmethod
     def _load_list(env_key: str, lower: bool = False) -> List[str]:
         raw = os.getenv(env_key, "")
         items = [v.strip().lstrip("@") for v in raw.split(",") if v.strip()]
         return [v.lower() for v in items] if lower else items
-
-    @staticmethod
-    def _bare(phone: str) -> str:
-        return phone.replace("@c.us", "").replace("@s.whatsapp.net", "").lstrip("+").strip()
 
     # ------------------------------------------------------------------
     # CRUD
@@ -54,16 +46,9 @@ class UserModel:
             )
 
     def get_user_role(self, phone: str, telegram_username: str = "") -> str:
-        bare = self._bare(phone)
         tg_lower = telegram_username.lower().lstrip("@") if telegram_username else ""
-        # Check admin
-        if bare in self._admin_phones:
-            return "admin"
         if tg_lower and tg_lower in self._admin_tg_usernames:
             return "admin"
-        # Check coordinator
-        if bare in self._coordinator_phones:
-            return "koordinator"
         if tg_lower and tg_lower in self._coordinator_tg_usernames:
             return "koordinator"
         # Fallback to DB role
@@ -101,7 +86,7 @@ class UserModel:
                 (limit, offset),
             )
 
-    def get_all_active_phones(self) -> List[str]:
+    def get_active_user_ids(self) -> List[str]:
         with get_db() as db:
             rows = db.fetchall(
                 "SELECT phone_number FROM users WHERE is_active = TRUE AND registration_status = 'registered'"
@@ -115,7 +100,12 @@ class UserModel:
 
     def update_user_role(self, phone: str, role: str) -> bool:
         with get_db() as db:
-            return db.execute("UPDATE users SET role = %s WHERE phone_number = %s", (role, phone)) > 0
+            return (
+                db.execute(
+                    "UPDATE users SET role = %s WHERE phone_number = %s", (role, phone)
+                )
+                > 0
+            )
 
     def delete_user(self, phone: str) -> bool:
         with get_db() as db:
@@ -126,10 +116,13 @@ class UserModel:
     # ------------------------------------------------------------------
     def set_username(self, phone: str, username: str) -> bool:
         with get_db() as db:
-            return db.execute(
-                "UPDATE users SET username = %s WHERE phone_number = %s",
-                (username.strip(), phone),
-            ) > 0
+            return (
+                db.execute(
+                    "UPDATE users SET username = %s WHERE phone_number = %s",
+                    (username.strip(), phone),
+                )
+                > 0
+            )
 
     def get_username(self, phone: str) -> Optional[str]:
         user = self.get_user(phone)
@@ -154,13 +147,16 @@ class UserModel:
         prefs = self.get_preferences(phone)
         prefs[key] = value
         with get_db() as db:
-            return db.execute(
-                "UPDATE users SET preferences = %s WHERE phone_number = %s",
-                (json.dumps(prefs), phone),
-            ) > 0
+            return (
+                db.execute(
+                    "UPDATE users SET preferences = %s WHERE phone_number = %s",
+                    (json.dumps(prefs), phone),
+                )
+                > 0
+            )
 
-    def get_reminder_enabled_phones(self) -> List[str]:
-        """Return phone numbers of active users who have reminders enabled."""
+    def get_reminder_enabled_user_ids(self) -> List[str]:
+        """Return active Telegram identifiers with reminders enabled."""
         with get_db() as db:
             rows = db.fetchall(
                 """SELECT phone_number FROM users

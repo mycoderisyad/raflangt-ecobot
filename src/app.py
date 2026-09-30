@@ -1,100 +1,149 @@
-"""Flask application factory + ASGI wrapper for uvicorn."""
+"""FastAPI application and managed service lifecycles."""
 
-import atexit
 import logging
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import AsyncIterator
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from flask import Flask
 from dotenv import load_dotenv
-from asgiref.wsgi import WsgiToAsgi
 
-from src.config import init_settings, get_settings
-from src.database import init_db, close_db
+load_dotenv()
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-_PLACEHOLDER_SECRETS = {
+from src.config import get_settings, init_settings
+from src.database import close_db, init_db
+
+_PLACEHOLDERS = {
+    "",
+    "secret",
+    "your-secret-key",
     "change-me-to-a-random-string",
     "change-me-to-something-random",
-    "your-secret-key",
-    "secret",
-    "",
+    "admin",
+    "admin123",
 }
 
 
-def _check_secrets(environment: str) -> None:
-    """In production, abort if any critical secret is a known placeholder."""
-    if environment != "production":
-        return
-    import os as _os
-    checks = {
-        "API_SECRET_KEY": _os.getenv("API_SECRET_KEY", ""),
-        "ADMIN_PANEL_SECRET_KEY": _os.getenv("ADMIN_PANEL_SECRET_KEY", ""),
-        "ADMIN_PANEL_PASSWORD": _os.getenv("ADMIN_PANEL_PASSWORD", ""),
-    }
-    for name, value in checks.items():
-        if value in _PLACEHOLDER_SECRETS or value == "admin":
-            raise RuntimeError(
-                f"SECURITY ERROR: {name} is set to a weak/placeholder value. "
-                "Set a strong random secret before running in production."
-            )
+def _setup_logging(environment: str) -> None:
+    Path("logs").mkdir(exist_ok=True)
+    level = logging.WARNING if environment == "production" else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[
+            logging.FileHandler(Path("logs") / "ecobot.log"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
 
 
-def create_app() -> Flask:
-    """Create and configure the Flask application."""
-    load_dotenv()
+def _validate_settings() -> None:
+    cfg = get_settings()
+    if cfg.app.jwt_ttl_seconds <= 0:
+        raise RuntimeError("JWT_TTL_SECONDS must be greater than zero")
+    try:
+        ZoneInfo(cfg.app.timezone)
+    except ZoneInfoNotFoundError as exc:
+        raise RuntimeError(f"Unknown TIMEZONE: {cfg.app.timezone}") from exc
+    weak = (
+        cfg.app.api_secret_key.lower() in _PLACEHOLDERS
+        or cfg.app.api_secret_key.lower().startswith("replace-with-")
+        or len(cfg.app.api_secret_key) < 32
+        or cfg.app.admin_password.lower() in _PLACEHOLDERS
+        or cfg.app.admin_password.lower().startswith("replace-with-")
+        or len(cfg.app.admin_password) < 12
+    )
+    if cfg.app.environment == "production" and weak:
+        raise RuntimeError(
+            "Production requires a strong API_SECRET_KEY and ADMIN_PASSWORD in .env"
+        )
+    if weak:
+        logging.getLogger(__name__).warning(
+            "Weak local admin/API credentials detected; bind development server to localhost"
+        )
+    if cfg.telegram.enabled and not cfg.telegram.bot_token:
+        raise RuntimeError("TELEGRAM_ENABLED=true requires TELEGRAM_BOT_TOKEN")
+    if (
+        cfg.telegram.mode == "webhook"
+        and cfg.telegram.enabled
+        and not cfg.telegram.webhook_secret
+    ):
+        raise RuntimeError("TELEGRAM_MODE=webhook requires TELEGRAM_WEBHOOK_SECRET")
+    if (
+        cfg.app.environment == "production"
+        and cfg.telegram.mode == "webhook"
+        and cfg.telegram.enabled
+        and len(cfg.telegram.webhook_secret) < 32
+    ):
+        raise RuntimeError(
+            "Production Telegram webhooks require a random TELEGRAM_WEBHOOK_SECRET of at least 32 characters"
+        )
 
-    settings = init_settings()
-    _check_secrets(settings.app.environment)
-    _setup_logging(settings.app.environment)
 
-    # Initialise database pool
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    init_settings()
+    _setup_logging(get_settings().app.environment)
+    _validate_settings()
     init_db()
 
-    app = Flask(__name__)
-    app.config["DEBUG"] = settings.app.debug
-
-    # Register blueprints
-    from src.api import health_bp, wa_webhook_bp, tg_webhook_bp, users_bp
-
-    app.register_blueprint(health_bp)
-    app.register_blueprint(wa_webhook_bp)
-    app.register_blueprint(tg_webhook_bp)
-    app.register_blueprint(users_bp)
-
-    # Start background scheduler for reminders
     from src.services.scheduler import start_scheduler, stop_scheduler
-    start_scheduler()
+    from src.services.telegram_polling import TelegramPollingWorker
 
-    # Graceful shutdown
-    atexit.register(stop_scheduler)
-    atexit.register(close_db)
+    cfg = get_settings()
+    polling_worker = (
+        TelegramPollingWorker()
+        if cfg.telegram.enabled and cfg.telegram.mode == "polling"
+        else None
+    )
+    try:
+        if cfg.telegram.enabled:
+            start_scheduler()
+        if polling_worker:
+            polling_worker.start()
+        yield
+    finally:
+        if polling_worker:
+            polling_worker.stop()
+        stop_scheduler()
+        close_db()
 
-    logger = logging.getLogger(__name__)
-    logger.info("EcoBot %s started — env=%s", settings.app.version, settings.app.environment)
 
+def create_app() -> FastAPI:
+    cfg = init_settings().app
+    app = FastAPI(
+        title=cfg.name,
+        version=cfg.version,
+        description="Waste management assistant API with Telegram bot and admin endpoints.",
+        lifespan=lifespan,
+    )
+    if cfg.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cfg.cors_origins,
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=[
+                "Authorization",
+                "Content-Type",
+                "X-Telegram-Bot-Api-Secret-Token",
+            ],
+        )
+
+    from src.api.admin import router as admin_router
+    from src.api.auth import router as auth_router
+    from src.api.health import router as health_router
+    from src.api.webhook_telegram import router as telegram_router
+
+    app.include_router(health_router)
+    app.include_router(auth_router)
+    app.include_router(admin_router)
+    app.include_router(telegram_router)
     return app
 
 
-def create_asgi_app():
-    """ASGI entry point for uvicorn (production)."""
-    return WsgiToAsgi(create_app())
-
-
-def _setup_logging(environment: str) -> None:
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
-
-    level = logging.WARNING if environment == "production" else logging.INFO
-    fmt = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-
-    handlers = [
-        logging.FileHandler(log_dir / "ecobot.log"),
-        logging.StreamHandler(sys.stdout),
-    ]
-
-    logging.basicConfig(level=level, format=fmt, handlers=handlers)
-
-    if environment == "production":
-        for lib in ("werkzeug", "urllib3", "requests"):
-            logging.getLogger(lib).setLevel(logging.ERROR)
+app = create_app()
