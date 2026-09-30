@@ -1,11 +1,12 @@
-"""
-Centralized Configuration Management
-All settings loaded from environment variables with sensible defaults.
-"""
+"""Centralized configuration loaded from environment variables."""
 
 import os
 from dataclasses import dataclass, field
-from typing import List
+
+
+def _parse_list(raw: str, *, lower: bool = False) -> list[str]:
+    values = [value.strip().lstrip("@") for value in raw.split(",") if value.strip()]
+    return [value.lower() for value in values] if lower else values
 
 
 @dataclass
@@ -15,10 +16,9 @@ class DatabaseConfig:
     @classmethod
     def from_env(cls) -> "DatabaseConfig":
         return cls(
-            url=os.getenv(
-                "DATABASE_URL",
-                "postgresql://postgres:postgres@localhost:5432/ecobot",
-            ),
+            os.getenv(
+                "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/ecobot"
+            )
         )
 
 
@@ -34,32 +34,19 @@ class AIConfig:
         provider = os.getenv("AI_PROVIDER", "gemini").lower()
         base_url = os.getenv("AI_BASE_URL", "").strip()
         if not base_url:
-            if provider == "gemini":
-                base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-            else:
-                base_url = "https://api.openai.com/v1/"
+            base_url = (
+                "https://generativelanguage.googleapis.com/v1beta/openai/"
+                if provider == "gemini"
+                else "https://api.openai.com/v1/"
+            )
         return cls(
             provider=provider,
             api_key=os.getenv("AI_API_KEY", ""),
-            model=os.getenv("AI_MODEL", "gemini-2.0-flash" if provider == "gemini" else "gpt-4o-mini"),
+            model=os.getenv(
+                "AI_MODEL",
+                "gemini-2.0-flash" if provider == "gemini" else "gpt-4o-mini",
+            ),
             base_url=base_url,
-        )
-
-
-@dataclass
-class WhatsAppConfig:
-    enabled: bool = False
-    base_url: str = ""
-    api_key: str = ""
-    session_name: str = "default"
-
-    @classmethod
-    def from_env(cls) -> "WhatsAppConfig":
-        return cls(
-            enabled=os.getenv("WHATSAPP_ENABLED", "true").lower() == "true",
-            base_url=os.getenv("WAHA_BASE_URL", ""),
-            api_key=os.getenv("WAHA_API_KEY", ""),
-            session_name=os.getenv("WAHA_SESSION_NAME", "default"),
         )
 
 
@@ -67,12 +54,19 @@ class WhatsAppConfig:
 class TelegramConfig:
     enabled: bool = False
     bot_token: str = ""
+    webhook_secret: str = ""
+    mode: str = "polling"
 
     @classmethod
     def from_env(cls) -> "TelegramConfig":
+        mode = os.getenv("TELEGRAM_MODE", "polling").lower()
+        if mode not in {"polling", "webhook"}:
+            raise ValueError("TELEGRAM_MODE must be 'polling' or 'webhook'")
         return cls(
             enabled=os.getenv("TELEGRAM_ENABLED", "false").lower() == "true",
             bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
+            webhook_secret=os.getenv("TELEGRAM_WEBHOOK_SECRET", ""),
+            mode=mode,
         )
 
 
@@ -97,19 +91,27 @@ class AppConfig:
     version: str = "2.0.0"
     environment: str = "development"
     debug: bool = True
-    port: int = 5000
+    port: int = 8000
     timezone: str = "Asia/Jakarta"
     village_name: str = ""
     village_coordinates: str = ""
-    admin_phones: List[str] = field(default_factory=list)
-    coordinator_phones: List[str] = field(default_factory=list)
-    admin_telegram_usernames: List[str] = field(default_factory=list)
-    coordinator_telegram_usernames: List[str] = field(default_factory=list)
+    admin_telegram_usernames: list[str] = field(default_factory=list)
+    coordinator_telegram_usernames: list[str] = field(default_factory=list)
     registration_mode: str = "auto"
+    api_secret_key: str = ""
+    admin_username: str = "admin"
+    admin_password: str = ""
+    cors_origins: list[str] = field(default_factory=list)
+    jwt_ttl_seconds: int = 3600
 
     @classmethod
     def from_env(cls) -> "AppConfig":
         env = os.getenv("ENVIRONMENT", "development")
+        default_origins = (
+            "http://localhost:5173,http://127.0.0.1:5173"
+            if env == "development"
+            else ""
+        )
         return cls(
             name=os.getenv("APP_NAME", "EcoBot"),
             version=os.getenv("APP_VERSION", "2.0.0"),
@@ -119,11 +121,22 @@ class AppConfig:
             timezone=os.getenv("TIMEZONE", "Asia/Jakarta"),
             village_name=os.getenv("VILLAGE_NAME", ""),
             village_coordinates=os.getenv("VILLAGE_COORDINATES", ""),
-            admin_phones=_parse_list(os.getenv("ADMIN_PHONE_NUMBERS", "")),
-            coordinator_phones=_parse_list(os.getenv("COORDINATOR_PHONE_NUMBERS", "")),
-            admin_telegram_usernames=_parse_list(os.getenv("ADMIN_TELEGRAM_USERNAMES", ""), lower=True),
-            coordinator_telegram_usernames=_parse_list(os.getenv("COORDINATOR_TELEGRAM_USERNAMES", ""), lower=True),
+            admin_telegram_usernames=_parse_list(
+                os.getenv("ADMIN_TELEGRAM_USERNAMES", ""), lower=True
+            ),
+            coordinator_telegram_usernames=_parse_list(
+                os.getenv("COORDINATOR_TELEGRAM_USERNAMES", ""), lower=True
+            ),
             registration_mode=os.getenv("REGISTRATION_MODE", "auto").lower(),
+            api_secret_key=os.getenv("API_SECRET_KEY", ""),
+            admin_username=os.getenv(
+                "ADMIN_USERNAME", os.getenv("ADMIN_PANEL_USERNAME", "admin")
+            ),
+            admin_password=os.getenv(
+                "ADMIN_PASSWORD", os.getenv("ADMIN_PANEL_PASSWORD", "")
+            ),
+            cors_origins=_parse_list(os.getenv("CORS_ORIGINS", default_origins)),
+            jwt_ttl_seconds=int(os.getenv("JWT_TTL_SECONDS", "3600")),
         )
 
 
@@ -132,7 +145,6 @@ class Settings:
     app: AppConfig = field(default_factory=AppConfig)
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     ai: AIConfig = field(default_factory=AIConfig)
-    whatsapp: WhatsAppConfig = field(default_factory=WhatsAppConfig)
     telegram: TelegramConfig = field(default_factory=TelegramConfig)
     email: EmailConfig = field(default_factory=EmailConfig)
 
@@ -142,22 +154,11 @@ class Settings:
             app=AppConfig.from_env(),
             database=DatabaseConfig.from_env(),
             ai=AIConfig.from_env(),
-            whatsapp=WhatsAppConfig.from_env(),
             telegram=TelegramConfig.from_env(),
             email=EmailConfig.from_env(),
         )
 
 
-def _parse_list(csv_string: str, *, lower: bool = False) -> List[str]:
-    if not csv_string:
-        return []
-    items = [v.strip().lstrip("@") for v in csv_string.split(",") if v.strip()]
-    return [i.lower() for i in items] if lower else items
-
-
-# ---------------------------------------------------------------------------
-# Global singleton
-# ---------------------------------------------------------------------------
 _settings: Settings | None = None
 
 

@@ -1,11 +1,11 @@
 # EcoBot v2 — Dependencies
 
-# Core framework
-flask==2.3.3
+# ASGI API
+fastapi[standard]>=0.115.0
+PyJWT>=2.9.0
 requests==2.31.0
 python-dotenv==1.0.0
-flask-limiter>=3.5.0
-flask-wtf>=1.2.0
+tzdata>=2024.1
 
 # AI — OpenAI-compatible SDK (Gemini & OpenAI)
 openai>=1.0.0
@@ -21,10 +21,6 @@ reportlab==4.0.4
 
 # Image processing
 Pillow==10.0.1
-
-# Production server (ASGI)
-uvicorn[standard]>=0.30.0
-asgiref>=3.7.0
 
 # Development tools (optional)
 pytest==7.4.2

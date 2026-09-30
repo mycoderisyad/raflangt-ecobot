@@ -1,82 +1,103 @@
-"""Telegram webhook endpoint."""
+"""Telegram webhook receiver and shared update processor."""
 
 import hmac
 import logging
-import os
-from flask import Blueprint, jsonify, request
 
-from src.config import get_settings
+from fastapi import APIRouter, Header, HTTPException, Request, status
+
 from src.channels.telegram import TelegramChannel
+from src.config import get_settings
 from src.core.orchestrator import Orchestrator
+from src.database.connection import get_db
 
 logger = logging.getLogger(__name__)
-
-tg_webhook_bp = Blueprint("tg_webhook", __name__)
-
-_channel: TelegramChannel | None = None
+router = APIRouter(tags=["telegram"])
 _orchestrator: Orchestrator | None = None
 
 
-def _lazy_init():
-    global _channel, _orchestrator
-    if _channel is None:
-        _channel = TelegramChannel()
-        _orchestrator = Orchestrator()
-
-
-def _verify_telegram_secret() -> bool:
-    """Validate X-Telegram-Bot-Api-Secret-Token header (constant-time compare).
-
-    Fail-closed: if TELEGRAM_WEBHOOK_SECRET is not set, ALL requests are rejected.
-    """
-    secret = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
-    if not secret:
-        logger.error(
-            "TELEGRAM_WEBHOOK_SECRET not set — rejecting ALL Telegram webhook requests. "
-            "Set the variable and re-register the webhook."
-        )
-        return False
-    token = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
-    return hmac.compare_digest(token.encode(), secret.encode())
-
-
-@tg_webhook_bp.route("/webhook/telegram", methods=["POST"])
-def telegram_webhook():
-    cfg = get_settings()
-    if not cfg.telegram.enabled:
-        return jsonify({"status": "disabled"}), 200
-
-    if not _verify_telegram_secret():
-        logger.warning("Telegram webhook rejected — invalid secret token (IP: %s)", request.remote_addr)
-        return jsonify({"error": "Forbidden"}), 403
-
-    _lazy_init()
-    try:
-        payload = request.get_json(silent=True) or {}
-        msg = _channel.parse_webhook(payload)
-        if not msg:
-            return jsonify({"status": "ignored"})
-
-        username = msg.get("username", "")
-
-        if msg["message_type"] == "image":
-            image_data = _channel.download_media(msg["image_url"])
-            if image_data:
-                reply = _orchestrator.handle_image(
-                    msg["from_id"], image_data, caption=msg.get("caption", ""),
-                    channel="telegram", username=username,
-                )
-            else:
-                reply = "Maaf, gambar tidak bisa diunduh. Coba kirim lagi ya."
-        else:
-            reply = _orchestrator.handle_text(
-                msg["from_id"], msg["body"], channel="telegram", username=username,
+def process_update(payload: dict) -> str:
+    """Process one Telegram update; return the outcome for webhook and polling callers."""
+    global _orchestrator
+    update_id = payload.get("update_id")
+    if update_id is not None:
+        with get_db() as db:
+            previous = db.fetchone(
+                "SELECT status FROM telegram_updates WHERE update_id = %s", (update_id,)
             )
+        if previous and previous["status"] == "processed":
+            return "duplicate"
 
-        if reply:
-            _channel.send_message(msg["from_id"], reply)
+    channel = TelegramChannel()
+    message = channel.parse_webhook(payload)
+    if not message:
+        _mark_processed(update_id)
+        return "ignored"
 
-        return jsonify({"status": "ok"})
-    except Exception as e:
-        logger.error("TG webhook error: %s", e, exc_info=True)
-        return jsonify({"status": "error", "message": "Internal error"}), 500
+    if _orchestrator is None:
+        _orchestrator = Orchestrator()
+    if message["message_type"] == "image":
+        image_data = channel.download_media(message["image_url"])
+        reply = (
+            _orchestrator.handle_image(
+                message["from_id"],
+                image_data,
+                caption=message.get("caption", ""),
+                username=message.get("username", ""),
+            )
+            if image_data
+            else "Maaf, gambar tidak bisa diunduh. Coba kirim lagi ya."
+        )
+    else:
+        reply = _orchestrator.handle_text(
+            message["from_id"],
+            message["body"],
+            username=message.get("username", ""),
+        )
+    if reply and not channel.send_message(message["from_id"], reply):
+        raise RuntimeError("Telegram gagal mengirim balasan")
+    _mark_processed(update_id)
+    return "ok"
+
+
+def _mark_processed(update_id: int | None) -> None:
+    if update_id is None:
+        return
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO telegram_updates (update_id, status, processed_at)
+               VALUES (%s, 'processed', NOW())
+               ON CONFLICT (update_id) DO UPDATE SET status='processed', processed_at=NOW()""",
+            (update_id,),
+        )
+
+
+@router.post("/webhook/telegram")
+def telegram_webhook(
+    request: Request,
+    payload: dict,
+    secret_token: str
+    | None = Header(default=None, alias="X-Telegram-Bot-Api-Secret-Token"),
+) -> dict[str, str]:
+    cfg = get_settings().telegram
+    if not cfg.enabled:
+        return {"status": "disabled"}
+    if cfg.mode != "webhook":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Telegram sedang berjalan dalam mode polling",
+        )
+    if not cfg.webhook_secret or not hmac.compare_digest(
+        secret_token or "", cfg.webhook_secret
+    ):
+        logger.warning(
+            "Telegram webhook rejected from %s",
+            request.client.host if request.client else "unknown",
+        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    try:
+        return {"status": process_update(payload)}
+    except Exception as exc:
+        logger.exception("Telegram update processing failed")
+        raise HTTPException(
+            status_code=500, detail="Telegram update processing failed"
+        ) from exc

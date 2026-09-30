@@ -1,20 +1,17 @@
-"""Health / info endpoints."""
+"""Public service health endpoints."""
 
-from flask import Blueprint, jsonify
+from fastapi import APIRouter
+
 from src.config import get_settings
 
-health_bp = Blueprint("health", __name__)
+router = APIRouter(tags=["health"])
 
 
-@health_bp.route("/", methods=["GET"])
-def index():
-    cfg = get_settings().app
-    return jsonify({
-        "name": cfg.name,
-        "status": "running",
-    })
+@router.get("/")
+def index() -> dict[str, str]:
+    return {"name": get_settings().app.name, "status": "running"}
 
 
-@health_bp.route("/health", methods=["GET"])
-def health():
-    return jsonify({"status": "healthy"})
+@router.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "healthy"}
