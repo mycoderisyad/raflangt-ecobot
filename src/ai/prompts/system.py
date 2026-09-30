@@ -47,7 +47,9 @@ def build_system_prompt(
     # 4. Dynamic context
     ctx_parts: List[str] = ["## Konteks Saat Ini"]
     if user_name:
-        ctx_parts.append(f"- Nama user: {user_name}")
+        ctx_parts.append(
+            f"- Nama profil user: {user_name}. Gunakan nama ini saat menyapa; jangan menggantinya dengan alias dari ID Telegram."
+        )
     ctx_parts.append(f"- Role user: {user_role}")
     if village_name:
         ctx_parts.append(f"- Desa/Wilayah: {village_name}")
