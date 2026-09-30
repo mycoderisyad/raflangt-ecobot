@@ -62,7 +62,9 @@ class Agent:
             logger.error("Agent text processing error: %s", e, exc_info=True)
             return FALLBACK_RESPONSE
 
-    def process_image(self, image_data: bytes, user_phone: str, caption: str = "") -> str:
+    def process_image(
+        self, image_data: bytes, user_phone: str, caption: str = ""
+    ) -> str:
         """Process an image message (waste classification) and return the AI response."""
         try:
             user = self.user_model.get_user(user_phone)
@@ -88,14 +90,18 @@ class Agent:
             if caption:
                 user_content.insert(0, {"type": "text", "text": caption})
             else:
-                user_content.insert(0, {"type": "text", "text": "Tolong analisis gambar ini."})
+                user_content.insert(
+                    0, {"type": "text", "text": "Tolong analisis gambar ini."}
+                )
 
             history = self._get_history(user_phone)
             messages = [{"role": "system", "content": system_prompt}]
             messages.extend(history)
             messages.append({"role": "user", "content": user_content})
 
-            reply = chat_completion_with_image(messages, temperature=0.5, max_tokens=500)
+            reply = chat_completion_with_image(
+                messages, temperature=0.5, max_tokens=500
+            )
 
             self._save_turn(user_phone, "[Mengirim foto]", reply)
             return reply
@@ -116,7 +122,9 @@ class Agent:
 
     def _get_history(self, user_phone: str) -> List[Dict[str, str]]:
         rows = self.conversation.get_recent(user_phone, limit=20)
-        return [{"role": r["message_role"], "content": r["message_content"]} for r in rows]
+        return [
+            {"role": r["message_role"], "content": r["message_content"]} for r in rows
+        ]
 
     def _save_turn(self, user_phone: str, user_msg: str, assistant_msg: str) -> None:
         try:
@@ -127,8 +135,20 @@ class Agent:
         except Exception as e:
             logger.error("Error saving conversation turn: %s", e)
 
-    def _resolve_display_name(self, user_phone: str, user: Optional[dict], role: str) -> str:
-        if user and user.get("name") and user["name"].strip().lower() not in ("", "none", "null"):
+    def _resolve_display_name(
+        self, user_phone: str, user: Optional[dict], role: str
+    ) -> str:
+        # The profile username is the name the user explicitly chose in EcoBot.
+        # Prefer it over names inferred from chat history or generated aliases.
+        if user and user.get("username"):
+            username = str(user["username"]).strip()
+            if username and username.lower() not in ("none", "null"):
+                return username
+        if (
+            user
+            and user.get("name")
+            and user["name"].strip().lower() not in ("", "none", "null")
+        ):
             return user["name"]
         facts = self.memory.get_all_facts(user_phone)
         if "user_name" in facts:
