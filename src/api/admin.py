@@ -16,6 +16,9 @@ from src.api.schemas import (
     ScheduleCreate,
     ScheduleOut,
     SchedulePatch,
+    SiteReportList,
+    SiteReportOut,
+    SiteReportStatusPatch,
     SettingsOut,
     UserCreate,
     UserList,
@@ -25,10 +28,12 @@ from src.api.schemas import (
 from src.config import get_settings
 from src.services.admin import AdminService
 from src.services.report import ReportService
+from src.services.site_reports import SiteReportService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["admin"], dependencies=[])
 service = AdminService()
+site_report_service = SiteReportService()
 
 
 @router.get("/dashboard")
@@ -192,6 +197,60 @@ def send_report(admin: AdminDep) -> ReportResult:
         success=False,
         message="Laporan gagal dikirim; periksa konfigurasi email dan log server",
     )
+
+
+@router.get("/site-reports", response_model=SiteReportList)
+def list_site_reports(
+    admin: AdminDep,
+    report_status: str | None = Query(
+        default=None,
+        alias="status",
+        pattern=r"^(new|acknowledged|resolved|rejected)$",
+    ),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> SiteReportList:
+    reports, total = site_report_service.model.list_reports(
+        report_status, limit, offset
+    )
+    return SiteReportList(
+        reports=reports, total=total, limit=limit, offset=offset
+    )
+
+
+@router.get("/site-reports/{report_id}/photo")
+def get_site_report_photo(report_id: int, admin: AdminDep) -> Response:
+    photo = site_report_service.model.get_photo(report_id)
+    if not photo:
+        raise HTTPException(status_code=404, detail="Foto laporan tidak ditemukan")
+    return Response(
+        content=bytes(photo["photo_data"]),
+        media_type=photo["photo_mime"] or "image/jpeg",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.patch("/site-reports/{report_id}/status", response_model=SiteReportOut)
+def update_site_report_status(
+    report_id: int, body: SiteReportStatusPatch, admin: AdminDep
+) -> SiteReportOut:
+    report = site_report_service.update_status(report_id, body.status)
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail="Laporan tidak ditemukan atau sudah ditutup",
+        )
+    return SiteReportOut(**report)
+
+
+@router.delete("/site-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_closed_site_report(report_id: int, admin: AdminDep) -> Response:
+    if not site_report_service.model.delete_closed_report(report_id):
+        raise HTTPException(
+            status_code=409,
+            detail="Hanya laporan selesai atau ditolak yang dapat dihapus",
+        )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/settings", response_model=SettingsOut)

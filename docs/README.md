@@ -50,6 +50,19 @@ Endpoint lengkap beserta skema, contoh validasi, dan kemungkinan respons tersedi
 - Tabel `schema_migrations` mencatat file migrasi yang telah diterapkan. `db:migrate` aman dijalankan berulang; migrasi tidak berjalan di startup server.
 - Penghapusan user yang sudah memiliki interaksi atau klasifikasi menghasilkan `409`; gunakan status nonaktif agar riwayat tetap terjaga.
 
+## Rekomendasi foto dan laporan titik sampah
+
+Sesudah klasifikasi foto, rekomendasi mencocokkan kategori dengan titik penerimaan dan jadwal aktif di PostgreSQL. Laporan warga dimulai lewat teks atau caption foto, lalu foto dan lokasi Telegram dimasukkan ke satu laporan. Draft menunggu langkah berikutnya selama 24 jam. Pengurus/admin terdaftar menerima foto dan tautan peta; admin memperbarui status melalui API.
+
+Endpoint admin:
+
+- GET /api/v1/site-reports dengan filter status opsional
+- GET /api/v1/site-reports/{id}/photo untuk foto
+- PATCH /api/v1/site-reports/{id}/status untuk acknowledged, resolved, atau rejected
+- DELETE /api/v1/site-reports/{id} untuk menghapus laporan yang sudah resolved/rejected
+
+Foto laporan tersimpan di PostgreSQL sampai admin menghapusnya.
+
 ## Konfigurasi
 
 Salin `.env.example` ke `.env`. Variabel utama:

@@ -51,6 +51,29 @@ class AIConfig:
 
 
 @dataclass
+class WebSearchConfig:
+    api_key: str = ""
+    daily_limit: int = 30
+    user_daily_limit: int = 3
+
+    @classmethod
+    def from_env(cls) -> "WebSearchConfig":
+        api_key = next(
+            (
+                value.strip()
+                for name in ("BRAVE_SEARCH_API_KEY", "BRAVE_API_KEY")
+                if (value := os.getenv(name, "")).strip()
+            ),
+            "",
+        )
+        return cls(
+            api_key=api_key,
+            daily_limit=max(0, int(os.getenv("WEB_SEARCH_DAILY_LIMIT", "30"))),
+            user_daily_limit=max(0, int(os.getenv("WEB_SEARCH_USER_DAILY_LIMIT", "3"))),
+        )
+
+
+@dataclass
 class TelegramConfig:
     enabled: bool = False
     bot_token: str = ""
@@ -145,6 +168,7 @@ class Settings:
     app: AppConfig = field(default_factory=AppConfig)
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     ai: AIConfig = field(default_factory=AIConfig)
+    web_search: WebSearchConfig = field(default_factory=WebSearchConfig)
     telegram: TelegramConfig = field(default_factory=TelegramConfig)
     email: EmailConfig = field(default_factory=EmailConfig)
 
@@ -154,6 +178,7 @@ class Settings:
             app=AppConfig.from_env(),
             database=DatabaseConfig.from_env(),
             ai=AIConfig.from_env(),
+            web_search=WebSearchConfig.from_env(),
             telegram=TelegramConfig.from_env(),
             email=EmailConfig.from_env(),
         )

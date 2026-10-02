@@ -58,8 +58,6 @@ _last_reset_date: str = ""
 
 def _loop() -> None:
     """Main scheduler loop — checks every 60 seconds."""
-    import time as _time
-
     while not _stop_event.is_set():
         try:
             _tick()

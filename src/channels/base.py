@@ -16,7 +16,8 @@ class BaseChannel(ABC):
         """Parse raw webhook payload into a normalised message dict.
 
         Returns None if the event should be ignored.
-        Expected keys: from_id, message_type ('text'|'image'), body, image_url, caption
+        Expected keys: from_id, message_type ('text'|'image'|'location'),
+        body, image_url, caption, latitude, longitude
         """
         ...
 

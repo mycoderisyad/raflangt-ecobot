@@ -89,6 +89,23 @@ class TelegramChannel(BaseChannel):
             logger.error("TG send error: %s", e)
             return False
 
+    def send_photo(
+        self, recipient: str, photo: bytes, caption: str, mime_type: str = "image/jpeg"
+    ) -> bool:
+        """Send a report photo to a private coordinator chat."""
+        try:
+            response = requests.post(
+                f"{self._api}/sendPhoto",
+                data={"chat_id": recipient, "caption": caption[:1024]},
+                files={"photo": ("waste-site-report", photo, mime_type)},
+                timeout=60,
+            )
+            response.raise_for_status()
+            return bool(response.json().get("ok"))
+        except Exception as e:
+            logger.error("TG send photo error: %s", e)
+            return False
+
     def parse_webhook(self, payload: dict) -> Optional[Dict[str, Any]]:
         """Parse Telegram update into normalised message dict."""
         msg = payload.get("message")
@@ -101,6 +118,23 @@ class TelegramChannel(BaseChannel):
 
         chat_id = str(msg["chat"]["id"])
         username = msg.get("from", {}).get("username", "") or ""
+
+        location = msg.get("location")
+        if location:
+            try:
+                latitude = float(location["latitude"])
+                longitude = float(location["longitude"])
+            except (KeyError, TypeError, ValueError):
+                return None
+            if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+                return None
+            return {
+                "from_id": chat_id,
+                "username": username,
+                "message_type": "location",
+                "latitude": latitude,
+                "longitude": longitude,
+            }
 
         # Photo message
         if "photo" in msg:

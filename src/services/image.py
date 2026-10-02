@@ -1,7 +1,6 @@
 """Image utility helpers — encoding, validation, format detection."""
 
 import base64
-from typing import Optional
 
 from src.core.constants import SUPPORTED_IMAGE_MIMES
 

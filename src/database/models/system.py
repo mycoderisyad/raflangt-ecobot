@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 from src.database.connection import get_db
 

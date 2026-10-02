@@ -35,14 +35,19 @@ class UserModel:
         with get_db() as db:
             return db.fetchone("SELECT * FROM users WHERE phone_number = %s", (phone,))
 
-    def create_or_update_user(self, phone: str) -> None:
+    def create_or_update_user(self, phone: str, telegram_username: str = "") -> None:
+        telegram_username = telegram_username.strip().lstrip("@").lower()
         with get_db() as db:
             db.execute(
-                """INSERT INTO users (phone_number, registration_status)
-                   VALUES (%s, 'registered')
+                """INSERT INTO users (phone_number, registration_status, telegram_username)
+                   VALUES (%s, 'registered', %s)
                    ON CONFLICT (phone_number) DO UPDATE
-                   SET last_active = NOW()""",
-                (phone,),
+                   SET last_active = NOW(),
+                       telegram_username = COALESCE(
+                           NULLIF(EXCLUDED.telegram_username, ''),
+                           users.telegram_username
+                       )""",
+                (phone, telegram_username),
             )
 
     def get_user_role(self, phone: str, telegram_username: str = "") -> str:

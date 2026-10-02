@@ -237,6 +237,29 @@ class ReportResult(BaseModel):
     message: str
 
 
+class SiteReportStatusPatch(BaseModel):
+    status: str = Field(pattern=r"^(acknowledged|resolved|rejected)$")
+
+
+class SiteReportOut(BaseModel):
+    id: int
+    user_id: str
+    issue_type: str
+    status: str
+    latitude: float
+    longitude: float
+    photo_mime: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class SiteReportList(BaseModel):
+    reports: list[SiteReportOut]
+    total: int
+    limit: int
+    offset: int
+
+
 class SettingsOut(BaseModel):
     name: str
     version: str

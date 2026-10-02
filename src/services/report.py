@@ -7,12 +7,12 @@ from typing import Dict, Any
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch, mm
+from reportlab.lib.units import mm
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable,
 )
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER
 
 from src.config import get_settings
 from src.database.models.user import UserModel
@@ -111,10 +111,6 @@ class ReportService:
             "RptSection", parent=styles["Heading2"],
             fontSize=13, textColor=_GREEN, spaceBefore=20, spaceAfter=8,
             borderPadding=(0, 0, 2, 0),
-        )
-        s_body = ParagraphStyle(
-            "RptBody", parent=styles["Normal"],
-            fontSize=10, textColor=_DARK, leading=14,
         )
         s_footer = ParagraphStyle(
             "RptFooter", parent=styles["Normal"],

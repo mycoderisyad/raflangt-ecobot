@@ -1,7 +1,7 @@
 """Dynamic context injection — fetches relevant DB data to include in prompts."""
 
 import logging
-from typing import Dict, Any, List
+from typing import List
 
 from src.database.models.collection import CollectionPointModel, CollectionScheduleModel
 

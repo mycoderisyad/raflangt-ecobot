@@ -47,6 +47,13 @@ def process_update(payload: dict) -> str:
             if image_data
             else "Maaf, gambar tidak bisa diunduh. Coba kirim lagi ya."
         )
+    elif message["message_type"] == "location":
+        reply = _orchestrator.handle_location(
+            message["from_id"],
+            message["latitude"],
+            message["longitude"],
+            username=message.get("username", ""),
+        )
     else:
         reply = _orchestrator.handle_text(
             message["from_id"],

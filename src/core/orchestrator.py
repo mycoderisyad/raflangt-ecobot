@@ -3,7 +3,6 @@
 import logging
 import re
 import time
-from typing import Dict, Any, Optional
 
 from src.config import get_settings
 from src.core.constants import FEATURE_ACCESS
@@ -13,6 +12,12 @@ from src.database.models.user import UserModel
 from src.database.models.waste import WasteClassificationModel
 from src.database.models.system import UserInteractionModel
 from src.services.report import ReportService
+from src.services.recommendation import build_waste_recommendation
+from src.services.site_reports import (
+    SiteReportService,
+    is_report_request,
+    parse_report_issue,
+)
 from src.core.rate_limiter import is_rate_limited
 
 logger = logging.getLogger(__name__)
@@ -27,6 +32,7 @@ class Orchestrator:
         self.user_model = UserModel()
         self.waste_model = WasteClassificationModel()
         self.interaction_model = UserInteractionModel()
+        self.site_reports = SiteReportService()
 
     # ------------------------------------------------------------------
     # Entry points (called by channel webhooks)
@@ -40,8 +46,26 @@ class Orchestrator:
             return "Kamu mengirim pesan terlalu cepat. Tunggu sebentar ya. ⏳"
 
         # Ensure user exists
-        self.user_model.create_or_update_user(normalized)
+        self.user_model.create_or_update_user(normalized, telegram_username=username)
         self.user_model.increment_user_stats(normalized, "message")
+
+        if message.strip().lower() in {"batal", "cancel", "/cancel"}:
+            reply = self.site_reports.cancel(normalized)
+            self._log_interaction(normalized, "site_report", message, reply, time.time() - start)
+            return reply
+
+        report_issue = parse_report_issue(message)
+        if report_issue:
+            if report_issue == "unknown":
+                reply = 'Pilih jenis laporan: "lapor sampah liar" atau "lapor TPS penuh".'
+            else:
+                reply = self.site_reports.begin(normalized, report_issue)
+            self._log_interaction(normalized, "site_report", message, reply, time.time() - start)
+            return reply
+        if is_report_request(message):
+            reply = 'Pilih jenis laporan: "lapor sampah liar" atau "lapor TPS penuh".'
+            self._log_interaction(normalized, "site_report", message, reply, time.time() - start)
+            return reply
 
         # Resolve intent
         ai_cfg = self.settings.ai
@@ -99,16 +123,56 @@ class Orchestrator:
         if is_rate_limited(normalized):
             return "Kamu mengirim pesan terlalu cepat. Tunggu sebentar ya. ⏳"
 
-        self.user_model.create_or_update_user(normalized)
+        self.user_model.create_or_update_user(normalized, telegram_username=username)
         self.user_model.increment_user_stats(normalized, "image")
+
+        report_issue = parse_report_issue(caption) if caption else None
+        if report_issue and report_issue != "unknown":
+            reply = self.site_reports.begin(normalized, report_issue, image_data)
+            self._log_interaction(normalized, "site_report", "[report photo]", reply, time.time() - start)
+            return reply
+        if report_issue == "unknown":
+            reply = 'Pilih jenis laporan di caption: "lapor sampah liar" atau "lapor TPS penuh".'
+            self._log_interaction(normalized, "site_report", "[report photo]", reply, time.time() - start)
+            return reply
+
+        report_reply = self.site_reports.receive_photo(normalized, image_data)
+        if report_reply:
+            self._log_interaction(normalized, "site_report", "[report photo]", report_reply, time.time() - start)
+            return report_reply
 
         reply = self.agent.process_image(image_data, normalized, caption=caption)
 
         # Extract and save waste classification from AI response
-        self._save_classification(normalized, reply)
+        waste_type = self._save_classification(normalized, reply)
+        if waste_type:
+            recommendation = build_waste_recommendation(waste_type)
+            reply += recommendation
+            try:
+                self.agent.conversation.add_message(
+                    normalized, "assistant", recommendation.strip()
+                )
+                self.agent.conversation.trim(normalized, max_messages=60)
+            except Exception:
+                logger.exception("Could not save image recommendation to conversation")
 
         self._log_interaction(
             normalized, "image", "[photo]", reply, time.time() - start
+        )
+        return reply
+
+    def handle_location(
+        self, phone: str, latitude: float, longitude: float, username: str = ""
+    ) -> str:
+        """Attach a shared Telegram location to the user's open waste site report."""
+        start = time.time()
+        normalized = phone
+        if is_rate_limited(normalized):
+            return "Kamu mengirim pesan terlalu cepat. Tunggu sebentar ya. ⏳"
+        self.user_model.create_or_update_user(normalized, telegram_username=username)
+        reply = self.site_reports.receive_location(normalized, latitude, longitude)
+        self._log_interaction(
+            normalized, "site_report", "[shared location]", reply, time.time() - start
         )
         return reply
 
@@ -170,9 +234,7 @@ class Orchestrator:
             prefs = self.user_model.get_preferences(phone)
 
             # --- Set username ---
-            import re as _re
-
-            name_match = _re.search(r"(?:nama|username|name)[:\s]+(.+)", lower)
+            name_match = re.search(r"(?:nama|username|name)[:\s]+(.+)", lower)
             if name_match:
                 new_name = name_match.group(1).strip().title()
                 if len(new_name) < 2 or len(new_name) > 50:
@@ -223,14 +285,12 @@ class Orchestrator:
         """Broadcast a message to all active users."""
         try:
             # Extract the actual broadcast content (remove trigger keywords)
-            import re as _re
-
-            content = _re.sub(
+            content = re.sub(
                 r"^\s*(broadcast|pengumuman|umumkan|siarkan)[:\s]*",
                 "",
                 message,
                 count=1,
-                flags=_re.IGNORECASE,
+                flags=re.IGNORECASE,
             ).strip()
             if not content or len(content) < 5:
                 return (
@@ -298,8 +358,8 @@ class Orchestrator:
         "ORGANIK": re.compile(r"\b(organik|organic)\b", re.I),
     }
 
-    def _save_classification(self, phone: str, reply: str) -> None:
-        """Extract waste type(s) from AI reply and save to waste_classifications."""
+    def _save_classification(self, phone: str, reply: str) -> str | None:
+        """Extract waste type(s), save them, and return the primary classification."""
         try:
             lower = reply.lower()
 
@@ -313,28 +373,37 @@ class Orchestrator:
             else:
                 confidence = 0.6
 
-            # Detect all mentioned waste types using word-boundary regex
-            detected = []
-            for waste_type in ("B3", "ANORGANIK", "ORGANIK"):
-                pattern = self._WASTE_PATTERNS[waste_type]
-                if waste_type == "ORGANIK":
-                    # Only match "organik" that is NOT preceded by "an" to avoid overlap
-                    matches = pattern.findall(reply)
-                    real = [
-                        m
-                        for m in matches
-                        if not re.search(
-                            r"an\s*$", reply[: reply.lower().find(m.lower())][-3:]
-                        )
-                    ]
-                    if real:
+            # Prefer the explicit label requested by the image prompt. Only use
+            # the legacy keyword fallback when the model omitted that label.
+            label = re.search(
+                r"\bjenis\s*:\s*(B3|ANORGANIK|ORGANIK|TIDAK\s+TERIDENTIFIKASI)\b",
+                reply,
+                re.I,
+            )
+            if label:
+                detected = [label.group(1).upper().replace(" ", "_")]
+            else:
+                detected = []
+                for waste_type in ("B3", "ANORGANIK", "ORGANIK"):
+                    pattern = self._WASTE_PATTERNS[waste_type]
+                    if waste_type == "ORGANIK":
+                        # Avoid classifying "anorganik" as organic.
+                        matches = pattern.findall(reply)
+                        real = [
+                            m
+                            for m in matches
+                            if not re.search(
+                                r"an\s*$", reply[: reply.lower().find(m.lower())][-3:]
+                            )
+                        ]
+                        if real:
+                            detected.append(waste_type)
+                    elif pattern.search(reply):
                         detected.append(waste_type)
-                elif pattern.search(reply):
-                    detected.append(waste_type)
 
             if not detected:
                 logger.debug("No waste type detected in AI reply for %s", phone)
-                return
+                return None
 
             for waste_type in detected:
                 self.waste_model.save_classification(
@@ -349,8 +418,12 @@ class Orchestrator:
                     confidence,
                     phone,
                 )
+            if confidence <= 0.5 or detected[0] == "TIDAK_TERIDENTIFIKASI":
+                return None
+            return detected[0]
         except Exception as e:
             logger.error("Error saving classification: %s", e)
+            return None
 
     def _log_interaction(
         self, phone: str, itype: str, msg: str, reply: str, elapsed: float

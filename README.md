@@ -8,6 +8,7 @@ Backend FastAPI untuk chatbot edukasi pengelolaan sampah. Warga berinteraksi lew
 - PostgreSQL untuk pengguna, interaksi, percakapan, jadwal, lokasi, dan klasifikasi sampah.
 - Telegram Bot API melalui long polling lokal atau webhook HTTPS.
 - Gemini/OpenAI untuk percakapan dan analisis foto.
+- Pencarian web opsional untuk pertanyaan lingkungan yang membutuhkan informasi terbaru, dengan sumber dan kuota harian.
 - API admin berbasis bearer JWT untuk pengguna, titik pengumpulan, jadwal, statistik, laporan, dan broadcast.
 - Laporan PDF dan email melalui Resend.
 
@@ -36,7 +37,13 @@ Siapkan tabel dan data contoh:
 python manage.py db:setup
 ```
 
-Untuk database yang sudah berisi data, jalankan `python manage.py db:migrate` agar perubahan skema diterapkan. Migrasi menambah kolom catatan jadwal dan tabel deduplikasi update Telegram; tidak menghapus data.
+Untuk database yang sudah berisi data, jalankan `python manage.py db:migrate` agar perubahan skema diterapkan. Migrasi menambah kolom catatan jadwal, tabel deduplikasi update Telegram, kuota pencarian web, laporan titik sampah, dan username Telegram; tidak menghapus data.
+
+### Informasi terbaru dari web
+
+Isi `BRAVE_SEARCH_API_KEY` (atau `BRAVE_API_KEY`) di `.env`, lalu restart EcoBot agar environment variable termuat. Jalankan `python manage.py db:migrate` bila migrasi belum diterapkan. EcoBot memakai Brave LLM Context untuk pencarian yang ditujukan ke agent. Pencarian aktif hanya jika pesan menyebut topik lingkungan/sampah **dan** meminta informasi terbaru, berita, harga, aturan baru, atau secara eksplisit meminta pencarian. Pertanyaan jadwal dan lokasi pengumpulan tetap memakai data lokal. Satu pesan menghasilkan paling banyak satu permintaan Brave Search dan tiga sumber; cuplikan web tidak disimpan sebagai cache. Jawaban mencantumkan tautan sumber. Jika pencarian gagal atau kuota habis, bot menyatakan bahwa informasi terbaru belum terverifikasi.
+
+`WEB_SEARCH_DAILY_LIMIT` (default 30) membatasi total permintaan dan `WEB_SEARCH_USER_DAILY_LIMIT` (default 3) membatasi tiap pengguna per hari kalender Asia/Jakarta. Kuota disimpan di PostgreSQL sehingga berlaku lintas worker dan restart. Permintaan gagal tetap dihitung agar biaya maksimal terjaga. Nilai `0` menonaktifkan pencarian. Menurut [harga Brave Search API](https://api-dashboard.search.brave.com/documentation/pricing), Search saat ini $5 per 1.000 request dengan $5 kredit bulanan. Batas default maksimal 930 permintaan dalam bulan 31 hari, sehingga masih di bawah kredit bulanan itu jika tidak ada penggunaan API lain; periksa harga saat mengaktifkan layanan.
 
 Periksa token bot dan mulai server:
 
@@ -106,6 +113,23 @@ python manage.py telegram:webhook:delete
 ```
 
 Seed dapat dijalankan ulang tanpa menggandakan jadwal contoh. Migrasi berlangsung melalui CLI dan tidak dieksekusi saat server dimulai.
+
+### Rekomendasi foto dan laporan titik sampah
+
+Setelah klasifikasi foto, EcoBot memberi saran persiapan sampah serta titik penerimaan dan jadwal yang cocok dari database aktif. Jika datanya belum tersedia, bot meminta warga mengonfirmasi kepada pengurus dan tidak membuat lokasi atau jadwal sendiri.
+
+Untuk membuat laporan, kirim "lapor sampah liar" atau "lapor TPS penuh", kirim foto, lalu bagikan lokasi lewat lampiran Telegram → Lokasi. Bisa juga kirim foto dengan salah satu frasa itu di caption, lalu bagikan lokasi. Foto maksimal 6 MB; draft yang belum lengkap kedaluwarsa setelah 24 jam, dan ketik "batal" untuk membatalkan. Laporan tersimpan di PostgreSQL; pengurus/admin Telegram dengan role database atau username yang dikonfigurasi menerima foto dan tautan peta. Pengurus berbasis username Telegram perlu mengirim pesan ke bot sekali agar chat ID-nya tercatat. Foto laporan disimpan sampai admin menghapus laporan yang sudah selesai atau ditolak.
+
+Admin dapat melihat dan mengelola tindak lanjut melalui API bearer:
+
+| Method | Endpoint | Tujuan |
+|---|---|---|
+| GET | /api/v1/site-reports?status=new | Daftar laporan; status opsional: new, acknowledged, resolved, rejected |
+| GET | /api/v1/site-reports/{id}/photo | Mengambil foto laporan |
+| PATCH | /api/v1/site-reports/{id}/status | Mengubah status; body contoh: {"status":"acknowledged"} |
+| DELETE | /api/v1/site-reports/{id} | Menghapus laporan berstatus resolved atau rejected beserta fotonya |
+
+Status yang dapat diatur: acknowledged, resolved, rejected. Warga menerima notifikasi Telegram saat status berubah. Foto laporan tersimpan di PostgreSQL sampai admin menghapus laporan yang sudah resolved atau rejected.
 
 ## Konfigurasi UI terpisah
 
